@@ -1,55 +1,105 @@
-import create from 'zustand';
+import {create} from 'zustand';
 import { devtools } from 'zustand/middleware';
 
 export const useMetaStore = create(
   devtools((set, get) => ({
     // === STATE ===
-    departmentsList: [],           // Список всех отделов
-    allEmployees: [],              // Все сотрудники (для поиска)
-    
-    currentDepartmentConfig: null, // Конфиг текущего отдела
-    // {
-    //   departmentId, 
-    //   name, 
-    //   statusConfig: [{code, label, color}],
-    //   employees: [{id, name, position}],
-    //   settings
-    // }
+    departmentsList: [],
+    allEmployees: [],
+    currentDepartmentConfig: null,
+
+    isDepartmentsLoaded: false, 
     
     loading: {
       departmentsList: false,
-      config: false
+      config: false,
+      employees: false
     },
     
     // === ACTIONS ===
     
     loadDepartmentsList: async () => {
-      set({ loading: { ...get().loading, departmentsList: true } });
+      if (get().isDepartmentsLoaded || get().loading.departmentsList) {
+        return;
+      }
+
+      set(state => ({ 
+        loading: { ...state.loading, departmentsList: true } 
+      }));
       
-      // const response = await api.get('/api/departments/list');
-      // set({ departmentsList: response.departments });
-      
-      set({ loading: { ...get().loading, departmentsList: false } });
+      try {
+        const response = await fetch('../../public/department-list.json');
+        const data = await response.json();
+        
+        set({ 
+          departmentsList: data.departments,
+          isDepartmentsLoaded: true,
+          loading: { ...get().loading, departmentsList: false }
+        });
+      } catch (error) {
+        console.error('Failed to load departments:', error);
+        set(state => ({ 
+          loading: { ...state.loading, departmentsList: false } 
+        }));
+      }
     },
     
     loadDepartmentConfig: async (departmentId) => {
-      set({ loading: { ...get().loading, config: true } });
+      set(state => ({ 
+        loading: { ...state.loading, config: true } 
+      }));
       
-      // const response = await api.get(`/api/departments/${departmentId}/config`);
-      // set({ currentDepartmentConfig: response });
-      
-      set({ loading: { ...get().loading, config: false } });
+      try {
+        const response = await fetch(`../../public/departments-config-${departmentId}.json`);
+        const data = await response.json();
+        
+        set({ 
+          currentDepartmentConfig: data,
+          loading: { ...get().loading, config: false }
+        });
+      } catch (error) {
+        console.error('Failed to load config:', error);
+        set(state => ({ 
+          loading: { ...state.loading, config: false } 
+        }));
+      }
     },
     
-    loadAllEmployees: async () => {
-      // Загружаем всех сотрудников для поиска
-      // const response = await api.get('/api/employees/all');
-      // set({ allEmployees: response.employees });
-    },
+    // loadAllEmployees: async () => {
+    //   set(state => ({ 
+    //     loading: { ...state.loading, employees: true } 
+    //   }));
+      
+    //   try {
+    //     const response = await fetch('/api/employees/search?query=');
+    //     const data = await response.json();
+        
+    //     set({ 
+    //       allEmployees: data.employees,
+    //       loading: { ...get().loading, employees: false }
+    //     });
+    //   } catch (error) {
+    //     console.error('Failed to load employees:', error);
+    //     set(state => ({ 
+    //       loading: { ...state.loading, employees: false } 
+    //     }));
+    //   }
+    // },
     
-    // Очистить конфиг при переключении отдела
     clearCurrentConfig: () => {
       set({ currentDepartmentConfig: null });
-    }
+    },
+    
+    // Обновление конфига через WebSocket
+    // updateDepartmentConfig: (config) => {
+    //   const currentConfig = get().currentDepartmentConfig;
+      
+    //   // Обновляем только если это текущий отдел
+    //   if (currentConfig?.departmentId === config.departmentId) {
+    //     set({ currentDepartmentConfig: config });
+    //   }
+    // }
   }), { name: 'MetaStore' })
 );
+
+export default useMetaStore 
