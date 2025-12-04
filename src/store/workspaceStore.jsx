@@ -35,7 +35,7 @@ export const useWorkspaceStore = create(
       await scheduleStore.loadSchedule(departmentId, get().currentYear);
       
       // Подписываемся на WebSocket
-      scheduleStore.subscribeToUpdates(departmentId);
+      // scheduleStore.subscribeToUpdates(departmentId);
     },
     
     // Навигация по годам

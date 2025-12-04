@@ -1,13 +1,13 @@
 import {create} from 'zustand';
 import { devtools } from 'zustand/middleware';
 
-import { normalizeSchedule } from '../utils/normalize'
+// import { normalizeSchedule } from '../utils/normalize'
 
 export const useScheduleStore = create(
   devtools((set, get) => ({
     // === STATE ===
     scheduleMap: {},               // { "emp-1-2025-01-15": "Д", ... }
-    employeesMap: {},
+    employeeMap: {},
     changedCells: new Set(),       // Подсветка изменённых ячеек
     loading: false,
     
@@ -26,13 +26,17 @@ export const useScheduleStore = create(
           `../../public/data-${departmentId}-${year}.json`
         );
         const data = await response.json();
-        const {scheduleMap, employeesMap} = normalizeSchedule(data)
+        const {employeeMap, scheduleMap} = get().normalizeScheduleData(data, year)
         
         set({ 
           scheduleMap: scheduleMap || {},
-          employeesMap: employeesMap || {},
+          employeeMap: employeeMap || {},
           loading: false 
         });
+
+        console.log(employeeMap);
+        console.log(scheduleMap);
+        
       } catch (error) {
         console.error('Failed to load schedule:', error);
         set({ loading: false });
