@@ -5,56 +5,83 @@ import EmployeeRow from './EmployeeRow';
 import styles from './Table.module.css';
 
 export default function ScheduleTable({ period, search }) {
-  // Напрямую из Zustand store - никаких лишних слоёв
+  // === ДАННЫЕ ИЗ ZUSTAND STORE ===
+
+  // Подписка на loading state
   const loading = useScheduleStore(state => state.loading);
-  const [baseDate, setBaseDate] = useState(new Date('2025-11-30'));
 
-  // TODO: Заменить мок данными из API/store
-  const employeesMap = useMemo(() => ({
-    10001: { id: 10001, name: 'Иванов И.И.', name_long: 'Иванов Иван Иванович', department: 'Отдел А' },
-    10002: { id: 10002, name: 'Петров П.П.', name_long: 'Петров Петр Петрович', department: 'Отдел А' },
-    10003: { id: 10003, name: 'Сидоров С.С.', name_long: 'Сидоров Сергей Сергеевич', department: 'Отдел Б' },
-  }), []);
+  // Подписка на employeeMap - объект { "1000": {id, name, fullName}, ... }
+  const employeeMap = useScheduleStore(state => state.employeeMap);
 
-  // useMemo - фильтрация и сортировка только при изменении employeesMap или search
+  // Локальное состояние для навигации по датам
+  const [baseDate, setBaseDate] = useState(new Date());
+
+  // === МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ ===
+
+  // useMemo: фильтрация и сортировка сотрудников
+  // Перерасчёт только при изменении employeeMap или search
   const employees = useMemo(() => {
-    let result = Object.values(employeesMap);
+    // Получаем массив сотрудников из employeeMap
+    let result = Object.values(employeeMap);
 
+    // Фильтрация по поиску
     if (search) {
       const s = search.toLowerCase();
-      result = result.filter(e => e.name_long.toLowerCase().includes(s));
+      result = result.filter(emp =>
+        emp.fullName?.toLowerCase().includes(s) ||
+        emp.name?.toLowerCase().includes(s)
+      );
     }
 
+    // Сортировка по фамилии
     result.sort((a, b) => a.name.localeCompare(b.name));
-    return result;
-  }, [employeesMap, search]);
 
-  // useMemo - генерация дат только при изменении period или baseDate
+    return result;
+  }, [employeeMap, search]);
+
+  // useMemo: генерация массива дат для выбранного периода
+  // Перерасчёт только при изменении period или baseDate
   const [dates, monthGroups] = useMemo(() => {
     return getDateRange(period, baseDate);
   }, [period, baseDate]);
+
+  // === НАВИГАЦИЯ ПО ДАТАМ ===
 
   const shift = (direction) => {
     const newDate = new Date(baseDate);
 
     if (period === '3months') {
+      // Переход на 3 месяца вперёд/назад
       newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 3 : -3));
     } else if (period === '1month') {
+      // Переход на 1 месяц вперёд/назад
       newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
     } else if (period === '7days') {
+      // Переход на 7 дней вперёд/назад
       newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
     }
 
     setBaseDate(newDate);
   };
 
+  // === РЕНДЕР ===
+
   if (loading) {
     return <div className={styles.loading}>Загрузка...</div>;
   }
 
+  // Если нет сотрудников - показываем заглушку
+  if (employees.length === 0) {
+    return (
+      <div className={styles.loading}>
+        {search ? 'Сотрудники не найдены' : 'Нет данных. Выберите отдел.'}
+      </div>
+    );
+  }
+
   return (
     <div className={styles.tableContainer}>
-      {/* Кнопки навигации */}
+      {/* Кнопки навигации по датам */}
       <div className={styles.navigation}>
         <button onClick={() => shift('prev')} className={styles.navButton}>
           ← Назад
@@ -65,7 +92,7 @@ export default function ScheduleTable({ period, search }) {
       </div>
 
       <div className={styles.tableWrapper}>
-        {/* Левая фиксированная колонка с именами */}
+        {/* ЛЕВАЯ ФИКСИРОВАННАЯ КОЛОНКА - имена сотрудников */}
         <div className={styles.fixedColumn}>
           <table className={styles.employeeTable}>
             <thead>
@@ -81,7 +108,7 @@ export default function ScheduleTable({ period, search }) {
                 <tr key={emp.id}>
                   <td
                     className={styles.employeeCell}
-                    title={emp.name_long}
+                    title={emp.fullName}
                   >
                     {emp.name}
                   </td>
@@ -91,11 +118,11 @@ export default function ScheduleTable({ period, search }) {
           </table>
         </div>
 
-        {/* Прокручиваемая часть с датами и расписанием */}
+        {/* ПРАВАЯ ПРОКРУЧИВАЕМАЯ ЧАСТЬ - расписание */}
         <div className={styles.scrollableArea}>
           <table className={styles.scheduleTable}>
             <thead>
-              {/* Первая строка - месяцы */}
+              {/* Первая строка - месяцы с colspan */}
               <tr>
                 {monthGroups.map((group, i) => (
                   <th
@@ -107,7 +134,7 @@ export default function ScheduleTable({ period, search }) {
                   </th>
                 ))}
               </tr>
-              {/* Вторая строка - дни */}
+              {/* Вторая строка - дни месяца */}
               <tr>
                 {dates.map(date => (
                   <th key={date} className={styles.dayHeader}>
@@ -117,6 +144,7 @@ export default function ScheduleTable({ period, search }) {
               </tr>
             </thead>
             <tbody>
+              {/* Каждая строка = сотрудник */}
               {employees.map(emp => (
                 <EmployeeRow
                   key={emp.id}
