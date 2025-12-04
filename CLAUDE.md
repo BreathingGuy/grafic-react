@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide
 
 **Project:** Employee Schedule Management System (Grafic React)
-**Last Updated:** 2025-12-03
+**Last Updated:** 2025-12-04
 **Tech Stack:** React 19.2 + Vite 7.2 + Zustand 5.0
 
 ---
@@ -41,8 +41,14 @@ grafic-react/
 │   ├── components/        # React components (organized by feature)
 │   │   ├── Layout/       # Header and layout components
 │   │   ├── Table/        # Schedule table and related components
+│   │   │   ├── ScheduleTable.jsx   # Main table with React.memo optimization
+│   │   │   ├── ScheduleCell.jsx    # Individual cell with status colors
+│   │   │   ├── EmployeeRow.jsx     # Row component (memoized)
+│   │   │   ├── CellEditor.jsx      # Dropdown editor for statuses
+│   │   │   └── Table.module.css    # Table styles
 │   │   ├── Controls/     # Navigation, search, admin controls
-│   │   ├── Tabs/         # Department tabs
+│   │   ├── Tabs/         # Department tabs selector
+│   │   │   └── DepartmentTabs.jsx  # Department selector dropdown
 │   │   ├── Legend/       # Status legend
 │   │   └── Loader/       # Loading skeletons
 │   ├── hooks/            # Custom React hooks
@@ -52,24 +58,26 @@ grafic-react/
 │   │   ├── useWebSocket.jsx
 │   │   └── useDepartments.jsx
 │   ├── store/            # Zustand state management
-│   │   ├── scheduleStore.jsx   # Schedule data and operations
-│   │   ├── adminStore.jsx      # Admin auth and permissions
-│   │   ├── metaStore.jsx       # Metadata
-│   │   └── monitoringStore.jsx # Monitoring/analytics
-│   ├── context/          # React Context providers
-│   │   └── StaticDataContext.jsx
+│   │   ├── scheduleStore.jsx      # Schedule data, loading, normalization
+│   │   ├── adminStore.jsx         # Admin auth and permissions
+│   │   ├── metaStore.jsx          # Departments list and configs
+│   │   ├── workspaceStore.jsx     # UI state (current dept/year)
+│   │   └── monitoringStore.jsx    # Monitoring/analytics
 │   ├── services/         # External service integrations
 │   │   └── api.js       # API client
 │   ├── utils/           # Utility functions
 │   │   ├── scheduleHelpers.js
-│   │   ├── dateHelpers.js
+│   │   ├── dateHelpers.js        # Date range calculations
 │   │   └── normalize.js
 │   ├── constants/       # Application constants
 │   │   └── index.js    # Status colors, months
 │   ├── App.jsx          # Main application component
 │   ├── main.jsx         # Application entry point
 │   └── index.css        # Global styles
-├── public/              # Static assets
+├── public/              # Static JSON data files
+│   ├── department-list.json           # List of all departments
+│   ├── departments-config-dept-X.json # Status config per department
+│   └── data-dept-X-YYYY.json         # Schedule data per dept/year
 ├── package.json         # Dependencies and scripts
 ├── vite.config.js       # Vite configuration
 ├── eslint.config.js     # ESLint configuration
@@ -84,17 +92,99 @@ grafic-react/
 
 The application uses **Zustand** for global state management with multiple stores:
 
-1. **scheduleStore.jsx** - Main schedule data
-   - `scheduleMap` - Production schedule (key: `employeeId-date`, value: status)
-   - `draftSchedule` - Admin draft changes
+1. **scheduleStore.jsx** - Schedule data and operations
+   - `scheduleMap` - Normalized schedule (key: `employeeId-date`, value: status)
+   - `employeeMap` - Employee data (key: employeeId, value: {id, name, fullName})
    - `changedCells` - Set of recently changed cells (for highlighting)
-   - Actions: `loadSchedule()`, `updateCell()`, `saveDraft()`, `publishDraft()`
+   - `loading` - Loading state
+   - Actions:
+     - `loadSchedule(departmentId, year)` - Fetches JSON and normalizes
+     - `normalizeScheduleData(rawData, year)` - Transforms API format to flat maps
+     - `getCellStatus(employeeId, date)` - Get status for specific cell
+     - `getAllEmployees()` - Returns array of employees
 
 2. **adminStore.jsx** - Authentication and permissions
    - Uses `persist` middleware for localStorage
    - Stores user token and department permissions
    - `editMode` - Flag for admin editing mode
-   - Actions: `login()`, `logout()`, `enableEditMode()`, `publishDraft()`
+   - `draftSchedule` - Admin draft changes
+   - Actions: `login()`, `logout()`, `enableEditMode()`, `updateDraftCell()`, `publishDraft()`
+
+3. **metaStore.jsx** - Metadata and configurations
+   - `departmentsList` - Array of all departments [{id, name}]
+   - `currentDepartmentConfig` - Status config for selected department
+   - `isDepartmentsLoaded` - Flag to prevent duplicate loads
+   - Actions:
+     - `loadDepartmentsList()` - Loads from public/department-list.json
+     - `loadDepartmentConfig(departmentId)` - Loads department-specific config
+
+4. **workspaceStore.jsx** - UI workspace state
+   - `currentDepartmentId` - Currently selected department
+   - `currentYear` - Currently selected year
+   - Actions:
+     - `setDepartment(departmentId)` - Switches department, loads data
+     - `setYear(year)` - Changes year, reloads schedule
+     - `goToNextYear()` / `goToPreviousYear()` - Year navigation
+
+5. **monitoringStore.jsx** - Analytics and monitoring
+   - Tracks user interactions and performance metrics
+
+### Data Structure & JSON Files
+
+The application loads schedule data from static JSON files in `/public/`:
+
+**1. Department List** (`department-list.json`):
+```json
+{
+  "departments": [
+    { "id": "dept-1", "name": "ПФ АС МР" },
+    { "id": "dept-2", "name": "ПФ АС НН" }
+  ]
+}
+```
+
+**2. Department Config** (`departments-config-dept-X.json`):
+```json
+{
+  "departmentId": "dept-1",
+  "name": "ПФ АС",
+  "statusConfig": [
+    { "code": "Д", "label": "Дневная смена", "color": "#d4edda", "descriptin": "с 8 до 16.30" },
+    { "code": "Н1", "label": "Ночная смена первая", "color": "#cfe2ff" },
+    { "code": "В", "label": "Выходной", "color": "#f8d7da" }
+  ]
+}
+```
+
+**3. Schedule Data** (`data-dept-X-YYYY.json`):
+```json
+{
+  "data": [
+    {
+      "id": 1000,
+      "fio": {
+        "name1": "Александр",
+        "family": "Смирнов",
+        "name2": "Сергеевич"
+      },
+      "schedule": {
+        "01-01": "Д",
+        "01-02": "Д",
+        "01-03": "В"
+      }
+    }
+  ]
+}
+```
+
+**Data Normalization Flow:**
+
+Raw JSON → `scheduleStore.normalizeScheduleData()` → Two flat maps:
+
+1. **employeeMap**: `{ "1000": { id: "1000", name: "Смирнов А.С.", fullName: "..." } }`
+2. **scheduleMap**: `{ "1000-2025-01-01": "Д", "1000-2025-01-02": "Д" }`
+
+This normalization enables O(1) lookups for any cell in the schedule table.
 
 ### Component Organization
 
@@ -125,6 +215,49 @@ Custom hooks follow the `use*` naming convention:
 - `useDateRange` - Calculates date ranges for different periods
 - `useWebSocket` - WebSocket connection for real-time updates
 - `useDepartments` - Department list management
+
+### Performance Optimization
+
+**React.memo for Components:**
+
+```jsx
+// ScheduleCell - memoized with custom comparator
+const ScheduleCell = memo(({ employeeId, date }) => {
+  // Only re-renders if employeeId or date changes
+  // ...
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.employeeId === nextProps.employeeId &&
+    prevProps.date === nextProps.date
+  );
+});
+```
+
+**useMemo for Expensive Calculations:**
+
+```jsx
+// ScheduleTable - memoize filtering and date generation
+const employees = useMemo(() => {
+  let result = Object.values(employeeMap);
+  if (search) {
+    result = result.filter(e => e.name_long.toLowerCase().includes(search));
+  }
+  return result.sort((a, b) => a.name.localeCompare(b.name));
+}, [employeeMap, search]);
+
+const [dates, monthGroups] = useMemo(() => {
+  return getDateRange(period, baseDate);
+}, [period, baseDate]);
+```
+
+**Why This Matters:**
+- 100 employees × 90 days = 9,000 cells
+- Without memo: changing 1 cell re-renders all 9,000
+- With memo: changing 1 cell re-renders only that 1 cell
+
+**Virtualization (Future):**
+- For 500+ employees, consider `react-window` or `react-virtual`
+- Only renders visible rows, dramatically improves scroll performance
 
 ---
 
@@ -212,10 +345,13 @@ const unusedVar = 'test';
    - Keep components small and focused
 
 3. **State management guidelines:**
-   - Schedule data → `scheduleStore`
+   - Schedule data (employeeMap, scheduleMap) → `scheduleStore`
    - Admin/auth → `adminStore`
-   - UI state → Local component state or dedicated store
-   - Never duplicate state across stores
+   - Metadata (departments, configs) → `metaStore`
+   - UI workspace state (current dept/year) → `workspaceStore`
+   - Component-only UI state → Local useState
+   - **Never duplicate state across stores**
+   - **No React Context** - Zustand handles all global state
 
 4. **Component creation:**
    - Place in appropriate `/components/{Feature}/` directory
@@ -317,16 +453,17 @@ WS   /ws/schedule  // Real-time updates
 
 ## 🚨 Common Pitfalls & Solutions
 
-### 1. Missing Context Provider
+### 1. Direct Store Access
 
-**Problem:** `useSchedule()` returns undefined
-**Solution:** Ensure `<ScheduleProvider>` wraps the component tree in `App.jsx`
+**Best Practice:** Access Zustand stores directly - no Context needed
 
 ```jsx
-// ✅ Correct
-<ScheduleProvider>
-  <Main />
-</ScheduleProvider>
+// ✅ Correct - direct Zustand access
+import { useScheduleStore } from './store/scheduleStore';
+const employees = useScheduleStore(state => state.getAllEmployees());
+
+// ❌ Wrong - don't create Context wrappers
+import { useSchedule } from './context/ScheduleContext'; // Don't do this!
 ```
 
 ### 2. Zustand Store Import Issues
@@ -375,26 +512,90 @@ useEffect(() => {
 }, []);
 ```
 
+### 6. Data Loading Flow
+
+**Correct loading sequence:**
+
+```jsx
+// 1. App.jsx - Load departments list on mount
+useEffect(() => {
+  useMetaStore.getState().loadDepartmentsList();
+}, []);
+
+// 2. User selects department via DepartmentTabs
+// This triggers workspaceStore.setDepartment()
+
+// 3. setDepartment() orchestrates:
+const setDepartment = async (departmentId) => {
+  set({ currentDepartmentId: departmentId });
+
+  // Load config and schedule in parallel
+  await metaStore.loadDepartmentConfig(departmentId);
+  await scheduleStore.loadSchedule(departmentId, currentYear);
+};
+```
+
 ---
 
 ## 🔄 Making Changes
 
 ### Adding a New Schedule Status
 
-1. Update `src/constants/index.js`:
-   ```javascript
-   export const STATUS_COLORS = {
-     'НовыйСтатус': 'new-status-class',
-     // ...
+1. Update department config in `public/departments-config-dept-X.json`:
+   ```json
+   {
+     "statusConfig": [
+       { "code": "НС", "label": "Новый статус", "color": "#hexcolor", "descriptin": "описание" }
+     ]
+   }
+   ```
+
+2. Update `ScheduleCell.jsx` color mapping if needed:
+   ```jsx
+   const getBackgroundColor = (status) => {
+     switch(status) {
+       case 'НС': return '#hexcolor';
+       // ...
+     }
    };
    ```
 
-2. Add styling in the component or CSS Module:
-   ```jsx
-   const bgColor = status === 'НовыйСтатус' ? '#hexcolor' : '...';
+3. Update Legend component to display new status
+
+### Adding a New Department
+
+1. Add department to `public/department-list.json`:
+   ```json
+   {
+     "departments": [
+       { "id": "dept-5", "name": "Новый отдел" }
+     ]
+   }
    ```
 
-3. Update Legend component to display new status
+2. Create config file `public/departments-config-dept-5.json`:
+   ```json
+   {
+     "departmentId": "dept-5",
+     "name": "Новый отдел",
+     "statusConfig": [ /* ... */ ]
+   }
+   ```
+
+3. Create schedule data `public/data-dept-5-2025.json`:
+   ```json
+   {
+     "data": [
+       {
+         "id": 2000,
+         "fio": { "name1": "Иван", "family": "Иванов", "name2": "Иванович" },
+         "schedule": { "01-01": "Д", "01-02": "В" }
+       }
+     ]
+   }
+   ```
+
+4. Department automatically appears in DepartmentTabs selector
 
 ### Adding a New Store
 
