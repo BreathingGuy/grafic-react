@@ -1,4 +1,4 @@
-import create from 'zustand';
+import {create} from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 
 export const useAdminStore = create(
@@ -185,3 +185,5 @@ export const useAdminStore = create(
     { name: 'AdminStore' }
   )
 );
+
+export default useAdminStore;

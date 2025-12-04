@@ -1,0 +1,113 @@
+body {
+    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+    margin: 20px;
+    padding: 0;
+}
+
+/*###### ТАБЛИЦА */
+.container {
+    display: flex;
+    align-items: baseline;
+}
+
+/* ## колонки */
+.fixed_column,
+.scrollable_column {
+    border-collapse: collapse;
+}
+
+.scrollable_column {
+    min-width: 1500px;
+}
+
+.fixed_column {
+    width: 250px;
+    table-layout: fixed;
+    text-align: left;
+}
+
+/* ## ячейки */
+.fixed_column th,
+.fixed_column td,
+.scrollable_column th,
+.scrollable_column td {
+    border: 1px solid #ccc;
+    padding: 4px;
+    height: 20px; 
+}
+
+.scrollable_column th,
+.scrollable_column td {
+    text-align: center;
+    width: 20px;
+    min-width: 20px;
+    max-width: 20px;
+}
+
+.fixed_column td {
+    width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-left: 15px;
+}
+
+.scrollable_container {
+    overflow-x: auto ;
+    border-right: 1px solid #ccc;
+    max-width: calc(100% - 250px);
+    -ms-overflow-style: none; 
+    scrollbar-width: thin;
+    scrollbar-color: rgb(113, 112, 112) #f9f9fd;
+}
+
+.scrollable_container::-webkit-scrollbar {
+    display: none;
+    background-color: #f9f9fd;
+    border-radius: 10px;
+}
+
+.scrollable_container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.working {
+    background: #d4edda;
+}
+
+.dayoff {
+    background: #f8d7da;
+}
+
+.study {
+    background: #fff3cd;
+}
+
+.vacation {
+    background: #d1ecf1;
+}
+
+input,
+select {
+    padding: 4px;
+    margin: 10px 0;
+    box-sizing: border-box;
+}
+
+input {
+    width: 250px;
+    border: 1px solid #ccc;
+}
+
+button {
+    padding: 4px 12px;
+    margin: 10px 5px;
+    border: 1px solid #ccc;
+    background: #f2f2f2;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #e0e0e0;
+}

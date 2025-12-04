@@ -6,8 +6,8 @@ export const getDateRange = (period, currentStartDate = new Date()) => {
 
     if (period === '3months') {
         const quarter = Math.floor(currentStartDate.getMonth() / 3);
-        startDate = new Date(currentStartDate.getFullYear(),quarter * 3, 1);
-        endDate = new Date(currentStartDate.getFullYear(),quarter * 3 + 3, 0);
+        startDate = new Date(currentStartDate.getFullYear(), quarter * 3, 1);
+        endDate = new Date(currentStartDate.getFullYear(), quarter * 3 + 3, 0);
     } else if (period === '1month') {
         startDate = new Date(currentStartDate.getFullYear(), currentStartDate.getMonth(), 1);
         endDate = new Date(currentStartDate.getFullYear(), currentStartDate.getMonth() + 1, 0);
@@ -18,6 +18,9 @@ export const getDateRange = (period, currentStartDate = new Date()) => {
         startDate.setDate(currentStartDate.getDate() + mondayOffset);
         endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
+    } else if (period === '1year') {
+        startDate = new Date(currentStartDate.getFullYear(), 0, 1);
+        endDate = new Date(currentStartDate.getFullYear(), 12, 0);
     }
 
     // Генерируем даты

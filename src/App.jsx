@@ -1,4 +1,5 @@
 import {DepartmentSelector} from './components/Tabs/DepartmentTabs'
+import ScheduleTable from './components/Table/ScheduleTable'
 
 import { useEffect } from 'react';
 
@@ -15,7 +16,10 @@ function Main() {
   }, []);
 
   return (
-    <DepartmentSelector />
+    <>
+      <DepartmentSelector />
+      <ScheduleTable period={'1year'}/>
+    </>
   );
 }
 
