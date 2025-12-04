@@ -1,111 +1,125 @@
+import { useState, useMemo } from 'react';
 import { useSchedule } from '../../context/ScheduleContext';
 import { getDateRange } from '../../utils/dateHelpers';
-import { STATUS_COLORS } from '../../constants/index';
-import { useState } from 'react';
+import EmployeeRow from './EmployeeRow';
+import styles from './Table.module.css';
 
 export default function ScheduleTable({ period, search }) {
-  const { employeesMap, getStatus, loading } = useSchedule();
-  const [baseDate] = useState(new Date('2025-11-30')); // фиксируем 30 ноября 2025
+  const { employeesMap, loading } = useSchedule();
+  const [baseDate, setBaseDate] = useState(new Date('2025-11-30')); // фиксируем 30 ноября 2025
 
-  let employees = Object.values(employeesMap);
-  
-  if (search) {
-    const s = search.toLowerCase();
-    employees = employees.filter(e => e.name_long.toLowerCase().includes(s));
-  }
-  
-  employees.sort((a, b) => a.name.localeCompare(b.name));
+  // useMemo - фильтрация и сортировка только при изменении employeesMap или search
+  const employees = useMemo(() => {
+    let result = Object.values(employeesMap);
 
-  const { dates, groups } = getDateRange(period, baseDate);
+    if (search) {
+      const s = search.toLowerCase();
+      result = result.filter(e => e.name_long.toLowerCase().includes(s));
+    }
+
+    result.sort((a, b) => a.name.localeCompare(b.name));
+    return result;
+  }, [employeesMap, search]);
+
+  // useMemo - генерация дат только при изменении period или baseDate
+  const [dates, monthGroups] = useMemo(() => {
+    return getDateRange(period, baseDate);
+  }, [period, baseDate]);
 
   const shift = (direction) => {
-    const amount = period === '3months' ? 3 : period === '1month' ? 1 : 7;
     const newDate = new Date(baseDate);
-    newDate.setMonth(newDate.getMonth() + (direction === 'next' ? amount : -amount));
-    if (period === '7days') newDate.setDate(newDate.getDate() + (direction === 'next' ? amount : -amount));
-    // Здесь просто меняем baseDate в состоянии родителя или через контекст, но для простоты пока оставим фиксированную дату
-    // В полной версии добавишь setBaseDate
+
+    if (period === '3months') {
+      newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 3 : -3));
+    } else if (period === '1month') {
+      newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
+    } else if (period === '7days') {
+      newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
+    }
+
+    setBaseDate(newDate);
   };
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading) {
+    return <div className={styles.loading}>Загрузка...</div>;
+  }
 
   return (
-    <>
-      <div style={{ marginBottom: '15px' }}>
-        <button onClick={() => shift('prev')}>← Назад</button>
-        <button onClick={() => shift('next')} style={{ marginLeft: '8px' }}>Вперёд →</button>
+    <div className={styles.tableContainer}>
+      {/* Кнопки навигации */}
+      <div className={styles.navigation}>
+        <button onClick={() => shift('prev')} className={styles.navButton}>
+          ← Назад
+        </button>
+        <button onClick={() => shift('next')} className={styles.navButton}>
+          Вперёд →
+        </button>
       </div>
 
-      <div style={{ display: 'flex' }}>
-        <table style={{ borderCollapse: 'collapse', width: '250px' }}>
-          <thead>
-            <tr><th></th></tr>
-            <tr><th style={{ textAlign: 'left', paddingLeft: '15px' }}>Сотрудник</th></tr>
-          </thead>
-          <tbody>
-            {employees.map(emp => (
-              <tr key={emp.id}>
-                <td title={emp.name_long} style={{ paddingLeft: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {emp.name}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div style={{ overflowX: 'auto', flex: 1 }}>
-          <table style={{ borderCollapse: 'collapse' }}>
+      <div className={styles.tableWrapper}>
+        {/* Левая фиксированная колонка с именами */}
+        <div className={styles.fixedColumn}>
+          <table className={styles.employeeTable}>
             <thead>
               <tr>
-                {groups.map((g, i) => (
-                  <th key={i} colSpan={g.colspan} style={{ border: '1px solid #ccc', padding: '4px' }}>
-                    {g.month}
+                <th className={styles.emptyHeader}></th>
+              </tr>
+              <tr>
+                <th className={styles.employeeHeader}>Сотрудник</th>
+              </tr>
+            </thead>
+            <tbody>
+              {employees.map(emp => (
+                <tr key={emp.id}>
+                  <td
+                    className={styles.employeeCell}
+                    title={emp.name_long}
+                  >
+                    {emp.name}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Прокручиваемая часть с датами и расписанием */}
+        <div className={styles.scrollableArea}>
+          <table className={styles.scheduleTable}>
+            <thead>
+              {/* Первая строка - месяцы */}
+              <tr>
+                {monthGroups.map((group, i) => (
+                  <th
+                    key={i}
+                    colSpan={group.colspan}
+                    className={styles.monthHeader}
+                  >
+                    {group.month}
                   </th>
                 ))}
               </tr>
+              {/* Вторая строка - дни */}
               <tr>
-                {dates.map(d => (
-                  <th key={d} style={{ border: '1px solid #ccc', width: '20px', minWidth: '20px' }}>
-                    {new Date(d).getDate()}
+                {dates.map(date => (
+                  <th key={date} className={styles.dayHeader}>
+                    {new Date(date).getDate()}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {employees.map(emp => (
-                <tr key={emp.id}>
-                  {dates.map(date => {
-                    const status = getStatus(emp.id, date);
-                    const colorClass = STATUS_COLORS[status] || '';
-                    const bgColor = 
-                      status === 'Д' ? '#d4edda' :
-                      status === 'В' ? '#f8d7da' :
-                      status === 'У' ? '#fff3cd' :
-                      status === 'О' || status === 'ОВ' ? '#d1ecf1' :
-                      status === 'Н1' || status === 'Н2' ? '#9c27b0' :
-                      status === 'ЭУ' ? '#ff9800' : '';
-                    return (
-                      <td
-                        key={date}
-                        style={{
-                          border: '1px solid #ccc',
-                          textAlign: 'center',
-                          width: '20px',
-                          minWidth: '20px',
-                          backgroundColor: bgColor,
-                          color: status === 'Н1' || status === 'Н2' || status === 'ЭУ' ? 'white' : 'black'
-                        }}
-                      >
-                        {status}
-                      </td>
-                    );
-                  })}
-                </tr>
+                <EmployeeRow
+                  key={emp.id}
+                  employee={emp}
+                  dates={dates}
+                />
               ))}
             </tbody>
           </table>
         </div>
       </div>
-    </>
+    </div>
   );
 }
