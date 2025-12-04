@@ -1,8 +1,7 @@
-import { ScheduleProvider } from './context/ScheduleContext';
 import ScheduleTable from './components/Table/ScheduleTable';
 import { useState } from 'react';
 
-function Main() {
+export default function App() {
   const [period, setPeriod] = useState('1month');
   const [search, setSearch] = useState('');
 
@@ -24,13 +23,5 @@ function Main() {
       </div>
       <ScheduleTable period={period} search={search} />
     </div>
-  );
-}
-
-export default function App() {
-  return (
-    <ScheduleProvider>
-      <Main />
-    </ScheduleProvider>
   );
 }

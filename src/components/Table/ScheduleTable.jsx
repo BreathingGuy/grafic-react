@@ -1,12 +1,20 @@
 import { useState, useMemo } from 'react';
-import { useSchedule } from '../../context/ScheduleContext';
+import { useScheduleStore } from '../../store/scheduleStore';
 import { getDateRange } from '../../utils/dateHelpers';
 import EmployeeRow from './EmployeeRow';
 import styles from './Table.module.css';
 
 export default function ScheduleTable({ period, search }) {
-  const { employeesMap, loading } = useSchedule();
-  const [baseDate, setBaseDate] = useState(new Date('2025-11-30')); // фиксируем 30 ноября 2025
+  // Напрямую из Zustand store - никаких лишних слоёв
+  const loading = useScheduleStore(state => state.loading);
+  const [baseDate, setBaseDate] = useState(new Date('2025-11-30'));
+
+  // TODO: Заменить мок данными из API/store
+  const employeesMap = useMemo(() => ({
+    10001: { id: 10001, name: 'Иванов И.И.', name_long: 'Иванов Иван Иванович', department: 'Отдел А' },
+    10002: { id: 10002, name: 'Петров П.П.', name_long: 'Петров Петр Петрович', department: 'Отдел А' },
+    10003: { id: 10003, name: 'Сидоров С.С.', name_long: 'Сидоров Сергей Сергеевич', department: 'Отдел Б' },
+  }), []);
 
   // useMemo - фильтрация и сортировка только при изменении employeesMap или search
   const employees = useMemo(() => {
