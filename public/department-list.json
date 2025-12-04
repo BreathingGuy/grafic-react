@@ -1,0 +1,8 @@
+{
+  "departments": [
+    { "id": "dept-1", "name": "ПФ АС МР" },
+    { "id": "dept-2", "name": "ПФ АС НН" },
+    { "id": "dept-3", "name": "ПБО" },
+    { "id": "dept-4", "name": "ПЛЦР" }
+  ]
+}
