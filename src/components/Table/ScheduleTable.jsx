@@ -1,7 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
+import { useAdminStore } from '../../store/adminStore';
 import { getDateRange } from '../../utils/dateHelpers';
 import EmployeeRow from './EmployeeRow';
+import ViewScheduleCell from './ViewScheduleCell';
+import EditableScheduleCell from './EditableScheduleCell';
 import styles from './Table.module.css';
 
 export default function ScheduleTable({ period, search }) {
@@ -12,6 +15,9 @@ export default function ScheduleTable({ period, search }) {
 
   // Подписка на employeeMap - объект { "1000": {id, name, fullName}, ... }
   const employeeMap = useScheduleStore(state => state.employeeMap);
+
+  // ОПТИМИЗАЦИЯ: Одна подписка на editMode вместо 100 (по одной на каждую строку)
+  const editMode = useAdminStore(state => state.editMode);
 
   // Локальное состояние для навигации по датам
   const [baseDate, setBaseDate] = useState(new Date());
@@ -44,6 +50,15 @@ export default function ScheduleTable({ period, search }) {
   const [dates, monthGroups] = useMemo(() => {
     return getDateRange(period, baseDate);
   }, [period, baseDate]);
+
+  // === ВЫБОР КОМПОНЕНТА ЯЧЕЙКИ (ОПТИМИЗАЦИЯ) ===
+  //
+  // Определяем компонент ячейки ОДИН РАЗ для всех строк
+  // Вместо 100 подписок на editMode (по одной в каждой EmployeeRow)
+  //
+  // - ViewScheduleCell: лёгкая версия для просмотра (90%+ пользователей)
+  // - EditableScheduleCell: полная версия для админов с редактированием
+  const CellComponent = editMode ? EditableScheduleCell : ViewScheduleCell;
 
   // === НАВИГАЦИЯ ПО ДАТАМ ===
 
@@ -150,6 +165,7 @@ export default function ScheduleTable({ period, search }) {
                   key={emp.id}
                   employee={emp}
                   dates={dates}
+                  CellComponent={CellComponent}
                 />
               ))}
             </tbody>

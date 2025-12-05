@@ -1,9 +1,18 @@
 import { memo } from 'react';
-import { useAdminStore } from '../../store/adminStore';
-import ViewScheduleCell from './ViewScheduleCell';
-import EditableScheduleCell from './EditableScheduleCell';
 
-const EmployeeRow = memo(({ employee, dates }) => {
+/**
+ * EmployeeRow - Строка таблицы с ячейками расписания сотрудника
+ *
+ * ОПТИМИЗАЦИЯ:
+ * - Получает CellComponent как prop из ScheduleTable
+ * - НЕ подписывается на editMode (избегаем 100 подписок)
+ * - React.memo с кастомным компаратором
+ *
+ * @param {object} employee - Объект сотрудника из employeeMap
+ * @param {string[]} dates - Массив дат в формате YYYY-MM-DD
+ * @param {React.Component} CellComponent - ViewScheduleCell или EditableScheduleCell
+ */
+const EmployeeRow = memo(({ employee, dates, CellComponent }) => {
   // === PROPS ===
   //
   // employee: объект сотрудника из employeeMap
@@ -16,15 +25,10 @@ const EmployeeRow = memo(({ employee, dates }) => {
   // dates: массив дат в формате YYYY-MM-DD
   //   ["2025-01-01", "2025-01-02", ..., "2025-01-31"]
   //   Генерируется в ScheduleTable через getDateRange()
-
-  // === УСЛОВНЫЙ РЕНДЕР ЯЧЕЕК ===
-  // Определяем режим редактирования из adminStore
-  const editMode = useAdminStore(state => state.editMode);
-
-  // Выбираем компонент ячейки в зависимости от режима:
-  // - editMode = true → EditableScheduleCell (админ, полная функциональность)
-  // - editMode = false → ViewScheduleCell (просмотр, облегчённая версия)
-  const CellComponent = editMode ? EditableScheduleCell : ViewScheduleCell;
+  //
+  // CellComponent: ViewScheduleCell или EditableScheduleCell
+  //   Определяется ОДИН РАЗ в ScheduleTable, а не 100 раз в каждой строке!
+  //   Это избегает 100 подписок на editMode
 
   // === РЕНДЕР ===
 
@@ -33,7 +37,7 @@ const EmployeeRow = memo(({ employee, dates }) => {
       {/*
         ОПТИМИЗАЦИЯ ПРОИЗВОДИТЕЛЬНОСТИ:
 
-        Условный рендер компонента ячейки:
+        CellComponent передаётся из ScheduleTable:
         - ViewScheduleCell (просмотр):
           * 1 Zustand подписка (вместо 3)
           * 2 useMemo (вместо 4)
@@ -70,10 +74,12 @@ const EmployeeRow = memo(({ employee, dates }) => {
   // Компонент НЕ обновляется если:
   // 1. employee - та же ССЫЛКА на объект (не изменился)
   // 2. dates - та же ССЫЛКА на массив (не изменился)
+  // 3. CellComponent - тот же компонент (не изменился режим)
   //
   // Почему сравниваем по ссылке (===), а не deep equal?
   // - ScheduleTable создаёт employees через useMemo
   // - dates тоже создаётся через useMemo
+  // - CellComponent - это либо ViewScheduleCell, либо EditableScheduleCell
   // - Если данные не изменились - ссылки остаются теми же
   // - Сравнение по ссылке НАМНОГО быстрее глубокого сравнения
   //
@@ -81,12 +87,14 @@ const EmployeeRow = memo(({ employee, dates }) => {
   // Если изменилась ячейка для другого сотрудника:
   // - employee === та же ссылка ✅
   // - dates === та же ссылка ✅
+  // - CellComponent === тот же компонент ✅
   // - EmployeeRow НЕ обновляется ✅
   // - Но ScheduleCell обновится через свою Zustand подписку ✅
 
   return (
     prevProps.employee === nextProps.employee &&
-    prevProps.dates === nextProps.dates
+    prevProps.dates === nextProps.dates &&
+    prevProps.CellComponent === nextProps.CellComponent
   );
 });
 
