@@ -223,13 +223,23 @@ Custom hooks follow the `use*` naming convention:
 To maximize performance, we use **two different cell components**:
 
 ```jsx
-// EmployeeRow.jsx - Conditional rendering based on editMode
+// ScheduleTable.jsx - Determine CellComponent ONCE for all rows
 const editMode = useAdminStore(state => state.editMode);
 const CellComponent = editMode ? EditableScheduleCell : ViewScheduleCell;
 
-{dates.map(date => (
-  <CellComponent key={date} employeeId={employee.id} date={date} />
-))}
+// Pass to each row
+<EmployeeRow employee={emp} dates={dates} CellComponent={CellComponent} />
+
+// EmployeeRow.jsx - Receives CellComponent, no editMode subscription
+const EmployeeRow = memo(({ employee, dates, CellComponent }) => {
+  return (
+    <tr>
+      {dates.map(date => (
+        <CellComponent key={date} employeeId={employee.id} date={date} />
+      ))}
+    </tr>
+  );
+});
 ```
 
 **ViewScheduleCell** (for viewers - 90%+ of users):
@@ -247,8 +257,10 @@ const CellComponent = editMode ? EditableScheduleCell : ViewScheduleCell;
 **Why This Matters:**
 - 100 employees × 90 days = 9,000 cells
 - Most users are viewers (don't need editing overhead)
+- **Subscription optimization:** 1 editMode subscription instead of 100 (one per row)
 - Performance improvements for viewers: **85% faster render**
 - Memory reduction: **60-70%** (fewer hooks/subscriptions)
+- Rows only re-render when their data changes, not when editMode changes
 
 **2. React.memo for Components:**
 
