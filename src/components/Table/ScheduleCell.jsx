@@ -1,126 +1,112 @@
-import { memo, useState } from 'react';
+import { memo, useState, useMemo, useCallback } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { useAdminStore } from '../../store/adminStore';
 import CellEditor from './CellEditor';
 import styles from './Table.module.css';
 
+// === ВЫНЕСЛИ ЗА ПРЕДЕЛЫ КОМПОНЕНТА - создаются только 1 раз ===
+
+// Маппинг цветов фона для статусов
+const STATUS_COLORS = {
+  'Д': '#d4edda',   // Дневная смена - зелёный
+  'В': '#f8d7da',   // Выходной - красный
+  'У': '#fff3cd',   // Учёба - жёлтый
+  'О': '#d1ecf1',   // Отпуск - голубой
+  'ОВ': '#d1ecf1',  // Отпуск - голубой
+  'Н1': '#9c27b0',  // Ночная смена - фиолетовый
+  'Н2': '#9c27b0',  // Ночная смена - фиолетовый
+  'ЭУ': '#ff9800',  // Экстра часы - оранжевый
+};
+
+// Статусы с белым текстом (тёмный фон)
+const WHITE_TEXT_STATUSES = new Set(['Н1', 'Н2', 'ЭУ']);
+
 const ScheduleCell = memo(({ employeeId, date }) => {
   // === PROPS ===
-  // - employeeId: "1000" (строка, примитив - не меняется)
-  // - date: "2025-01-15" (строка YYYY-MM-DD, примитив - не меняется)
+  // - employeeId: "1000" (строка, примитив)
+  // - date: "2025-01-15" (строка YYYY-MM-DD, примитив)
 
-  // === ZUSTAND ПОДПИСКИ ===
+  // === МЕМОИЗАЦИЯ КЛЮЧА ===
+  // Ключ создаётся только 1 раз при монтировании (employeeId и date не меняются)
+  const key = useMemo(() => `${employeeId}-${date}`, [employeeId, date]);
 
-  // Подписка на статус конкретной ячейки
-  // ВАЖНО: используем селектор, чтобы компонент обновлялся только при изменении ЭТОЙ ячейки
-  const status = useScheduleStore(state => {
-    const key = `${employeeId}-${date}`;
+  // === ОПТИМИЗИРОВАННАЯ ПОДПИСКА ZUSTAND ===
+  // Вместо 4 подписок - только 2 (scheduleStore + adminStore)
+
+  // Подписка #1: Получаем status и isChanged за один раз
+  const { status, isChanged } = useScheduleStore(state => {
     const editMode = useAdminStore.getState().editMode;
 
-    // В режиме редактирования показываем черновик
-    if (editMode && state.draftSchedule && state.draftSchedule[key] !== undefined) {
-      return state.draftSchedule[key];
-    }
-
-    // Иначе показываем production данные
-    return state.scheduleMap[key] || '';
+    return {
+      status: editMode && state.draftSchedule?.[key] !== undefined
+        ? state.draftSchedule[key]
+        : state.scheduleMap[key] || '',
+      isChanged: state.changedCells?.has(key) || false
+    };
   });
 
-  // Подписка на подсветку изменений (после публикации)
-  const isChanged = useScheduleStore(state =>
-    state.changedCells && state.changedCells.has(`${employeeId}-${date}`)
-  );
-
-  // Подписка на функцию обновления
+  // Подписка #2: editMode и updateCell (нужны для UI logic)
+  const editMode = useAdminStore(state => state.editMode);
   const updateCell = useScheduleStore(state => state.updateCell);
 
-  // Подписка на режим редактирования
-  const editMode = useAdminStore(state => state.editMode);
-
   // === ЛОКАЛЬНОЕ СОСТОЯНИЕ ===
-
-  // Флаг - редактируется ли ячейка ПРЯМО СЕЙЧАС (dropdown открыт)
   const [isEditing, setIsEditing] = useState(false);
 
-  // === ОБРАБОТЧИКИ ===
+  // === МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ ===
 
-  const handleClick = () => {
-    // Открываем dropdown только в режиме редактирования
+  // Стили ячейки - пересчитываются только при изменении зависимостей
+  const cellStyle = useMemo(() => ({
+    backgroundColor: STATUS_COLORS[status] || '',
+    color: WHITE_TEXT_STATUSES.has(status) ? 'white' : 'black',
+    cursor: editMode ? 'pointer' : 'default',
+    opacity: editMode && !isEditing ? 0.9 : 1,
+  }), [status, editMode, isEditing]);
+
+  // className - пересчитывается только при изменении isChanged
+  const cellClassName = useMemo(() =>
+    isChanged
+      ? `${styles.scheduleCell} ${styles.changed}`
+      : styles.scheduleCell,
+    [isChanged]
+  );
+
+  // === МЕМОИЗИРОВАННЫЕ ОБРАБОТЧИКИ ===
+
+  // handleClick - создаётся только при изменении editMode
+  const handleClick = useCallback(() => {
     if (editMode) {
       setIsEditing(true);
     }
-  };
+  }, [editMode]);
 
-  // === HELPERS ДЛЯ СТИЛИЗАЦИИ ===
-
-  // Определяем цвет фона на основе статуса
-  const getBackgroundColor = (status) => {
-    switch(status) {
-      case 'Д': return '#d4edda';   // Дневная смена - зелёный
-      case 'В': return '#f8d7da';   // Выходной - красный
-      case 'У': return '#fff3cd';   // Учёба - жёлтый
-      case 'О':
-      case 'ОВ': return '#d1ecf1';  // Отпуск - голубой
-      case 'Н1':
-      case 'Н2': return '#9c27b0';  // Ночная смена - фиолетовый
-      case 'ЭУ': return '#ff9800';  // Экстра часы - оранжевый
-      default: return '';           // Пустая ячейка - без фона
-    }
-  };
-
-  // Определяем цвет текста (для тёмного фона нужен белый текст)
-  const getTextColor = (status) => {
-    return (status === 'Н1' || status === 'Н2' || status === 'ЭУ') ? 'white' : 'black';
-  };
-
-  // Собираем inline стили для ячейки
-  const cellStyle = {
-    backgroundColor: getBackgroundColor(status),
-    color: getTextColor(status),
-    cursor: editMode ? 'pointer' : 'default', // В режиме редактирования - курсор pointer
-    opacity: editMode && !isEditing ? 0.9 : 1, // Слегка прозрачно в edit mode
-  };
+  // handleChange - создаётся только при изменении updateCell
+  const handleChange = useCallback((newStatus) => {
+    updateCell(employeeId, date, newStatus);
+    setIsEditing(false);
+  }, [updateCell, employeeId, date]);
 
   // === РЕНДЕР ===
 
   return (
     <td
       onClick={handleClick}
-      className={`${styles.scheduleCell} ${isChanged ? styles.changed : ''}`}
+      className={cellClassName}
       style={cellStyle}
     >
       {isEditing ? (
-        // Режим редактирования - показываем dropdown
         <CellEditor
           value={status}
-          onChange={(newStatus) => {
-            // Обновляем ячейку через store action
-            updateCell(employeeId, date, newStatus);
-            // Закрываем dropdown
-            setIsEditing(false);
-          }}
+          onChange={handleChange}
           onClose={() => setIsEditing(false)}
         />
       ) : (
-        // Обычный режим - просто показываем статус
         status
       )}
     </td>
   );
 }, (prevProps, nextProps) => {
   // === ОПТИМИЗАЦИЯ REACT.MEMO ===
-
-  // Компонент НЕ обновляется если:
-  // 1. employeeId не изменился (тот же сотрудник)
-  // 2. date не изменился (та же дата)
-  //
-  // Почему это работает:
-  // - employeeId и date - примитивы (строки)
-  // - Сравнение примитивов очень быстрое
-  // - Zustand selector уже подписан на конкретную ячейку
-  //
-  // Результат: при изменении 1 ячейки из 9000 - обновится только 1 компонент
-
+  // Компонент НЕ обновляется если props не изменились
   return (
     prevProps.employeeId === nextProps.employeeId &&
     prevProps.date === nextProps.date
