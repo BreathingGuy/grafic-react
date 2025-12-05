@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
+import { shallow } from 'zustand/shallow';
 import styles from './Table.module.css';
 
 // === КОНСТАНТЫ ВЫНЕСЕНЫ ЗА ПРЕДЕЛЫ КОМПОНЕНТА - создаются только 1 раз ===
@@ -44,10 +45,11 @@ const ViewScheduleCell = memo(({ employeeId, date }) => {
 
   // === ЕДИНСТВЕННАЯ ПОДПИСКА ZUSTAND ===
   // Получаем только status и isChanged - БЕЗ логики редактирования
+  // ВАЖНО: используем shallow для сравнения объекта, иначе бесконечный цикл
   const { status, isChanged } = useScheduleStore(state => ({
     status: state.scheduleMap[key] || '',
     isChanged: state.changedCells?.has(key) || false
-  }));
+  }), shallow);
 
   // === МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ ===
 

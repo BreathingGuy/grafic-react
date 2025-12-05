@@ -1,6 +1,7 @@
 import { memo, useState, useMemo, useCallback } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { useAdminStore } from '../../store/adminStore';
+import { shallow } from 'zustand/shallow';
 import CellEditor from './CellEditor';
 import styles from './Table.module.css';
 
@@ -49,6 +50,7 @@ const EditableScheduleCell = memo(({ employeeId, date }) => {
   // === ОПТИМИЗИРОВАННЫЕ ПОДПИСКИ ZUSTAND ===
 
   // Подписка #1: Получаем status и isChanged за один раз
+  // ВАЖНО: используем shallow для сравнения объекта, иначе бесконечный цикл
   const { status, isChanged } = useScheduleStore(state => {
     const editMode = useAdminStore.getState().editMode;
 
@@ -58,7 +60,7 @@ const EditableScheduleCell = memo(({ employeeId, date }) => {
         : state.scheduleMap[key] || '',
       isChanged: state.changedCells?.has(key) || false
     };
-  });
+  }, shallow);
 
   // Подписка #2: editMode и updateCell (нужны для UI logic)
   const editMode = useAdminStore(state => state.editMode);
