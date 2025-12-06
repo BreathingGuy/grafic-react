@@ -50,22 +50,37 @@ export const useDateStore = create(
 
     // Текущее состояние навигации
     currentYear: new Date().getFullYear(),
-    period: '1year',                        // '7days' | '1month' | '3months' | '1year'
+    period: '3months',                      // По умолчанию 3 месяца
     baseDate: new Date(),                   // Базовая дата для расчета диапазона
 
-    // Кэшированные вычисляемые значения
-    visibleDates: [],
+    // 🎯 СИСТЕМА СЛОТОВ - ключевая оптимизация!
+    // visibleSlots - ФИКСИРОВАННЫЙ массив индексов (никогда не меняется!)
+    // При навигации меняется только slotToDate mapping
+    visibleSlots: Array.from({ length: 90 }, (_, i) => i),  // [0, 1, 2, ..., 89] - 90 дней (~3 месяца)
+    slotToDate: {},                         // { 0: "2025-01-01", 1: "2025-01-02", ... }
+
+    // Для заголовков таблицы
     monthGroups: [],
 
     // === ИНИЦИАЛИЗАЦИЯ ===
 
     initialize: () => {
       const { period, baseDate, currentYear } = get();
+
+      // Вычисляем даты для текущего периода
       const dates = get().calculateVisibleDates(period, baseDate, currentYear);
+
+      // Создаем mapping слот → дата
+      const slotToDate = {};
+      dates.forEach((date, index) => {
+        slotToDate[index] = date;
+      });
+
+      // Вычисляем группировку по месяцам
       const groups = get().calculateMonthGroups(dates);
 
       set({
-        visibleDates: dates,
+        slotToDate,
         monthGroups: groups
       });
     },
@@ -175,15 +190,23 @@ export const useDateStore = create(
 
       // Пересчитать видимые даты
       const dates = get().calculateVisibleDates(newPeriod, baseDate, currentYear);
+
+      // Обновить mapping слот → дата
+      const slotToDate = {};
+      dates.forEach((date, index) => {
+        slotToDate[index] = date;
+      });
+
       const groups = get().calculateMonthGroups(dates);
 
       set({
-        visibleDates: dates,
+        slotToDate,
         monthGroups: groups
       });
     },
 
-    // Навигация (вперед/назад)
+    // Навигация (вперед/назад) - КЛЮЧЕВОЙ МЕТОД!
+    // Меняется только slotToDate, visibleSlots остается неизменным
     shiftDates: (direction) => {
       const { period, baseDate, currentYear } = get();
       const newDate = new Date(baseDate);
@@ -210,10 +233,17 @@ export const useDateStore = create(
 
       // Пересчитать видимые даты
       const dates = get().calculateVisibleDates(period, newDate, newYear);
+
+      // 🎯 Обновляем только slotToDate - visibleSlots остается [0,1,2,...89]!
+      const slotToDate = {};
+      dates.forEach((date, index) => {
+        slotToDate[index] = date;
+      });
+
       const groups = get().calculateMonthGroups(dates);
 
       set({
-        visibleDates: dates,
+        slotToDate,       // ← Меняется только это!
         monthGroups: groups
       });
     },
@@ -231,10 +261,16 @@ export const useDateStore = create(
 
       // Пересчитать видимые даты
       const dates = get().calculateVisibleDates(period, newDate, newYear);
+
+      const slotToDate = {};
+      dates.forEach((date, index) => {
+        slotToDate[index] = date;
+      });
+
       const groups = get().calculateMonthGroups(dates);
 
       set({
-        visibleDates: dates,
+        slotToDate,
         monthGroups: groups
       });
     },
@@ -251,10 +287,16 @@ export const useDateStore = create(
       // Пересчитать видимые даты
       const { period } = get();
       const dates = get().calculateVisibleDates(period, newBaseDate, year);
+
+      const slotToDate = {};
+      dates.forEach((date, index) => {
+        slotToDate[index] = date;
+      });
+
       const groups = get().calculateMonthGroups(dates);
 
       set({
-        visibleDates: dates,
+        slotToDate,
         monthGroups: groups
       });
     },
@@ -272,10 +314,16 @@ export const useDateStore = create(
       // Пересчитать видимые даты
       const { period } = get();
       const dates = get().calculateVisibleDates(period, newBaseDate, currentYear);
+
+      const slotToDate = {};
+      dates.forEach((date, index) => {
+        slotToDate[index] = date;
+      });
+
       const groups = get().calculateMonthGroups(dates);
 
       set({
-        visibleDates: dates,
+        slotToDate,
         monthGroups: groups
       });
     },

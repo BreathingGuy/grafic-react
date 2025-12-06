@@ -1,11 +1,18 @@
 import { memo, useState } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
+import { useDateStore } from '../../store/dateStore';
 import { useAdminStore } from '../../store/adminStore';
 import CellEditor from './CellEditor';
 import styles from './Table.module.css';
 
-const ScheduleCell = memo(({ employeeId, date }) => {
+// 🎯 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Принимаем slotIndex вместо date!
+const ScheduleCell = memo(({ employeeId, slotIndex }) => {
+  // Получаем дату из dateStore по индексу слота
+  const date = useDateStore(state => state.slotToDate[slotIndex]);
+
   const status = useScheduleStore(state => {
+    if (!date) return '';  // Если дата не определена, ячейка пустая
+
     const key = `${employeeId}-${date}`;
     const editMode = useAdminStore.getState().editMode;
 
@@ -15,9 +22,12 @@ const ScheduleCell = memo(({ employeeId, date }) => {
 
     return state.scheduleMap[key] || '';
   });
-  const isChanged = useScheduleStore(state =>
-    state.changedCells && state.changedCells.has(`${employeeId}-${date}`)
-  );
+
+  const isChanged = useScheduleStore(state => {
+    if (!date) return false;
+    return state.changedCells && state.changedCells.has(`${employeeId}-${date}`);
+  });
+
   const updateCell = useScheduleStore(state => state.updateCell);
   const editMode = useAdminStore(state => state.editMode);
 
@@ -83,9 +93,12 @@ const ScheduleCell = memo(({ employeeId, date }) => {
     </td>
   );
 }, (prevProps, nextProps) => {
+  // Сравниваем только employeeId и slotIndex
+  // Если они не изменились, компонент НЕ перерендерится
+  // Даже если дата в слоте изменилась, это обрабатывается через подписку на dateStore
   return (
     prevProps.employeeId === nextProps.employeeId &&
-    prevProps.date === nextProps.date
+    prevProps.slotIndex === nextProps.slotIndex
   );
 });
 

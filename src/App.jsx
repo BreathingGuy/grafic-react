@@ -23,7 +23,7 @@ function Main() {
   return (
     <>
       <DepartmentSelector />
-      <ScheduleTable period={'1year'}/>
+      <ScheduleTable period={'3months'}/>
     </>
   );
 }

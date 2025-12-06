@@ -14,8 +14,9 @@ export default function ScheduleTable({ period, search }) {
   // Подписка на employeeMap - объект { "1000": {id, name, fullName}, ... }
   const employeeMap = useScheduleStore(state => state.employeeMap);
 
-  // Получаем даты и навигацию из dateStore
-  const visibleDates = useDateStore(state => state.visibleDates);
+  // Получаем данные из dateStore
+  const visibleSlots = useDateStore(state => state.visibleSlots);
+  const slotToDate = useDateStore(state => state.slotToDate);
   const monthGroups = useDateStore(state => state.monthGroups);
   const currentYear = useDateStore(state => state.currentYear);
   const shiftDates = useDateStore(state => state.shiftDates);
@@ -127,20 +128,23 @@ export default function ScheduleTable({ period, search }) {
                 ))}
               </tr>
               <tr>
-                {visibleDates.map(date => (
-                  <th key={date}>
-                    {new Date(date).getDate()}
-                  </th>
-                ))}
+                {visibleSlots.map(slotIndex => {
+                  const date = slotToDate[slotIndex];
+                  return (
+                    <th key={slotIndex}>
+                      {date ? new Date(date).getDate() : ''}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
               {/* Каждая строка = сотрудник */}
+              {/* 🎯 Передаем ТОЛЬКО employee - без dates! */}
               {employees.map(emp => (
                 <EmployeeRow
                   key={emp.id}
                   employee={emp}
-                  dates={visibleDates}
                 />
               ))}
             </tbody>
