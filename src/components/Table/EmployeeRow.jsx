@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import ScheduleCell from './ScheduleCell';
 
 const EmployeeRow = memo(({ employee, dates }) => {

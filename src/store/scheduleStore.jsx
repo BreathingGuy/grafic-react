@@ -10,33 +10,74 @@ export const useScheduleStore = create(
     employeeMap: {},
     changedCells: new Set(),       // Подсветка изменённых ячеек
     loading: false,
-    
+
+    // Кэширование загруженных годов
+    // Структура: { "departmentId-year": { scheduleMap, employeeMap } }
+    cachedYears: {},
+    loadedYear: null,              // Текущий загруженный год
+    loadedDepartment: null,        // Текущий загруженный отдел
+
     // WebSocket
     ws: null,
     isConnected: false,
     
     // === ACTIONS ===
     
-    // Загрузка расписания
+    // Загрузка расписания с кэшированием
     loadSchedule: async (departmentId, year) => {
+      const cacheKey = `${departmentId}-${year}`;
+      const { cachedYears, loadedYear, loadedDepartment } = get();
+
+      // Проверяем, уже загружен ли этот год для этого отдела
+      if (loadedDepartment === departmentId && loadedYear === year) {
+        console.log(`📦 Год ${year} для отдела ${departmentId} уже загружен`);
+        return; // Уже загружено
+      }
+
+      // Проверяем кэш
+      if (cachedYears[cacheKey]) {
+        console.log(`🔄 Восстановление из кэша: ${cacheKey}`);
+        const cached = cachedYears[cacheKey];
+
+        set({
+          scheduleMap: cached.scheduleMap,
+          employeeMap: cached.employeeMap,
+          loadedYear: year,
+          loadedDepartment: departmentId,
+          loading: false
+        });
+
+        return;
+      }
+
+      // Загружаем с сервера
+      console.log(`🌐 Загрузка с сервера: ${cacheKey}`);
       set({ loading: true });
-      
+
       try {
         const response = await fetch(
           `../../public/data-${departmentId}-${year}.json`
         );
         const data = await response.json();
-        const {employeeMap, scheduleMap} = get().normalizeScheduleData(data, year)
-        
-        set({ 
+        const { employeeMap, scheduleMap } = get().normalizeScheduleData(data, year);
+
+        // Сохраняем в кэш
+        set(state => ({
           scheduleMap: scheduleMap || {},
           employeeMap: employeeMap || {},
-          loading: false 
-        });
+          loadedYear: year,
+          loadedDepartment: departmentId,
+          cachedYears: {
+            ...state.cachedYears,
+            [cacheKey]: { scheduleMap, employeeMap }
+          },
+          loading: false
+        }));
 
+        console.log(`✅ Данные загружены и закэшированы: ${cacheKey}`);
         console.log(employeeMap);
         console.log(scheduleMap);
-        
+
       } catch (error) {
         console.error('Failed to load schedule:', error);
         set({ loading: false });
@@ -93,12 +134,26 @@ export const useScheduleStore = create(
       return get().changedCells.has(key);
     },
     
-    // Очистить расписание
+    // Очистить расписание (но сохранить кэш)
     clearSchedule: () => {
-      set({ 
+      set({
         employeeMap: {},
         scheduleMap: {},
-        changedCells: new Set()
+        changedCells: new Set(),
+        loadedYear: null,
+        loadedDepartment: null
+      });
+    },
+
+    // Полностью очистить кэш (при смене отдела или выходе)
+    clearCache: () => {
+      set({
+        employeeMap: {},
+        scheduleMap: {},
+        changedCells: new Set(),
+        cachedYears: {},
+        loadedYear: null,
+        loadedDepartment: null
       });
     },
     

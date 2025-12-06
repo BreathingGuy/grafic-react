@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
-import { getDateRange } from '../../utils/dateHelpers';
+import { useDateStore } from '../../store/dateStore';
+import { useWorkspaceStore } from '../../store/workspaceStore';
 import EmployeeRow from './EmployeeRow';
 import styles from './Table.module.css';
 
 export default function ScheduleTable({ period, search }) {
-  // === ДАННЫЕ ИЗ ZUSTAND STORE ===
+  // === ДАННЫЕ ИЗ ZUSTAND STORES ===
 
   // Подписка на loading state
   const loading = useScheduleStore(state => state.loading);
@@ -13,8 +14,27 @@ export default function ScheduleTable({ period, search }) {
   // Подписка на employeeMap - объект { "1000": {id, name, fullName}, ... }
   const employeeMap = useScheduleStore(state => state.employeeMap);
 
-  // Локальное состояние для навигации по датам
-  const [baseDate, setBaseDate] = useState(new Date());
+  // Получаем даты и навигацию из dateStore
+  const visibleDates = useDateStore(state => state.visibleDates);
+  const monthGroups = useDateStore(state => state.monthGroups);
+  const currentYear = useDateStore(state => state.currentYear);
+  const shiftDates = useDateStore(state => state.shiftDates);
+  const setPeriod = useDateStore(state => state.setPeriod);
+
+  // Workspace store для загрузки данных при смене года
+  const loadYearData = useWorkspaceStore(state => state.loadYearData);
+
+  // === ЭФФЕКТЫ ===
+
+  // Синхронизация периода из пропса с dateStore
+  useEffect(() => {
+    setPeriod(period);
+  }, [period, setPeriod]);
+
+  // Загрузка данных при смене года
+  useEffect(() => {
+    loadYearData(currentYear);
+  }, [currentYear, loadYearData]);
 
   // === МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ ===
 
@@ -39,34 +59,6 @@ export default function ScheduleTable({ period, search }) {
     return result;
   }, [employeeMap, search]);
 
-  // useMemo: генерация массива дат для выбранного периода
-  // Перерасчёт только при изменении period или baseDate
-  const [dates, monthGroups] = useMemo(() => {
-    return getDateRange(period, baseDate);
-  }, [period, baseDate]);
-
-  // === НАВИГАЦИЯ ПО ДАТАМ ===
-
-  const shift = (direction) => {
-    const newDate = new Date(baseDate);
-
-    if (period === '3months') {
-      // Переход на 3 месяца вперёд/назад
-      newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 3 : -3));
-    } else if (period === '1month') {
-      // Переход на 1 месяц вперёд/назад
-      newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
-    } else if (period === '7days') {
-      // Переход на 7 дней вперёд/назад
-      newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
-    } else if (period === '1year') {
-      // Переход на 7 дней вперёд/назад
-      newDate.setDate(newDate.getYear() + (direction === 'next' ? 1 : -1));
-    }
-
-    setBaseDate(newDate);
-  };
-
   // === РЕНДЕР ===
 
   if (loading) {
@@ -86,13 +78,13 @@ export default function ScheduleTable({ period, search }) {
     <div className={styles.tableContainer}>
       {/* Кнопки навигации по датам */}
       <div className={styles.navigation}>
-        <button onClick={() => shift('prev')} className={styles.navButton}>
+        <button onClick={() => shiftDates('prev')} className={styles.navButton}>
           ← Назад
         </button>
-        <button onClick={() => shift('next')} className={styles.navButton}>
+        <button onClick={() => shiftDates('next')} className={styles.navButton}>
           Вперёд →
         </button>
-        
+        <span className={styles.yearLabel}>Год: {currentYear}</span>
       </div>
 
       <div className={styles.container}>
@@ -135,7 +127,7 @@ export default function ScheduleTable({ period, search }) {
                 ))}
               </tr>
               <tr>
-                {dates.map(date => (
+                {visibleDates.map(date => (
                   <th key={date}>
                     {new Date(date).getDate()}
                   </th>
@@ -148,7 +140,7 @@ export default function ScheduleTable({ period, search }) {
                 <EmployeeRow
                   key={emp.id}
                   employee={emp}
-                  dates={dates}
+                  dates={visibleDates}
                 />
               ))}
             </tbody>
