@@ -1,6 +1,7 @@
 import { MONTHS as months} from '../constants/index';
 
 export const getDateRange = (period, currentStartDate = new Date()) => {
+    console.time('generateYearDates'); // ← Начало замера
     let startDate = new Date();
     let endDate = new Date();
 
@@ -54,5 +55,6 @@ export const getDateRange = (period, currentStartDate = new Date()) => {
         monthGroups.push({ month: months[currentMonth], colspan });
     }
 
+    console.timeEnd('generateYearDates'); // ← Конец замера + вывод
     return [dates, monthGroups];
 }
