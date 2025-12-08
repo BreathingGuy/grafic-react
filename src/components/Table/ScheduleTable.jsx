@@ -1,98 +1,56 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
-import { getDateRange } from '../../utils/dateHelpers';
+import { useDateStore } from '../../store/dateStore';
+import { useWorkspaceStore } from '../../store/workspaceStore';
 import EmployeeRow from './EmployeeRow';
 import styles from './Table.module.css';
 
-export default function ScheduleTable({ period, search }) {
-  // === ДАННЫЕ ИЗ ZUSTAND STORE ===
+export default function ScheduleTable({ period }) {
+  // === ДАННЫЕ ИЗ ZUSTAND STORES ===
 
-  // Подписка на loading state
   const loading = useScheduleStore(state => state.loading);
+  const employees = useScheduleStore(state => state.employeeMap);
 
-  // Подписка на employeeMap - объект { "1000": {id, name, fullName}, ... }
-  const employeeMap = useScheduleStore(state => state.employeeMap);
+  // Получаем данные из dateStore
+  const visibleSlots = useDateStore(state => state.visibleSlots);
+  const slotToDate = useDateStore(state => state.slotToDate);
+  const monthGroups = useDateStore(state => state.monthGroups);
+  const currentYear = useDateStore(state => state.currentYear);
+  const shiftDates = useDateStore(state => state.shiftDates);
+  const setPeriod = useDateStore(state => state.setPeriod);
 
-  // Локальное состояние для навигации по датам
-  const [baseDate, setBaseDate] = useState(new Date());
+  // Workspace store для загрузки данных при смене года
+  const loadYearData = useWorkspaceStore(state => state.loadYearData);
+
+  // === ЭФФЕКТЫ ===
+
+  // Синхронизация периода из пропса с dateStore
+  useEffect(() => {
+    setPeriod(period);
+  }, [period, setPeriod]);
+
+  // Загрузка данных при смене года
+  useEffect(() => {
+    loadYearData(currentYear);
+  }, [currentYear, loadYearData]);
 
   // === МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ ===
 
-  // useMemo: фильтрация и сортировка сотрудников
-  // Перерасчёт только при изменении employeeMap или search
-  const employees = useMemo(() => {
-    // Получаем массив сотрудников из employeeMap
-    let result = Object.values(employeeMap);
-
-    // Фильтрация по поиску
-    if (search) {
-      const s = search.toLowerCase();
-      result = result.filter(emp =>
-        emp.fullName?.toLowerCase().includes(s) ||
-        emp.name?.toLowerCase().includes(s)
-      );
-    }
-
-    // Сортировка по фамилии
-    result.sort((a, b) => a.name.localeCompare(b.name));
-
-    return result;
-  }, [employeeMap, search]);
-
-  // useMemo: генерация массива дат для выбранного периода
-  // Перерасчёт только при изменении period или baseDate
-  const [dates, monthGroups] = useMemo(() => {
-    return getDateRange(period, baseDate);
-  }, [period, baseDate]);
-
-  // === НАВИГАЦИЯ ПО ДАТАМ ===
-
-  const shift = (direction) => {
-    const newDate = new Date(baseDate);
-
-    if (period === '3months') {
-      // Переход на 3 месяца вперёд/назад
-      newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 3 : -3));
-    } else if (period === '1month') {
-      // Переход на 1 месяц вперёд/назад
-      newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
-    } else if (period === '7days') {
-      // Переход на 7 дней вперёд/назад
-      newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
-    } else if (period === '1year') {
-      // Переход на 7 дней вперёд/назад
-      newDate.setDate(newDate.getYear() + (direction === 'next' ? 1 : -1));
-    }
-
-    setBaseDate(newDate);
-  };
-
-  // === РЕНДЕР ===
-
   if (loading) {
     return <div className={styles.loading}>Загрузка...</div>;
-  }
-
-  // Если нет сотрудников - показываем заглушку
-  if (employees.length === 0) {
-    return (
-      <div className={styles.loading}>
-        {search ? 'Сотрудники не найдены' : 'Нет данных. Выберите отдел.'}
-      </div>
-    );
   }
 
   return (
     <div className={styles.tableContainer}>
       {/* Кнопки навигации по датам */}
       <div className={styles.navigation}>
-        <button onClick={() => shift('prev')} className={styles.navButton}>
+        <button onClick={() => shiftDates('prev')} className={styles.navButton}>
           ← Назад
         </button>
-        <button onClick={() => shift('next')} className={styles.navButton}>
+        <button onClick={() => shiftDates('next')} className={styles.navButton}>
           Вперёд →
         </button>
-        
+        <span className={styles.yearLabel}>Год: {currentYear}</span>
       </div>
 
       <div className={styles.container}>
@@ -135,20 +93,23 @@ export default function ScheduleTable({ period, search }) {
                 ))}
               </tr>
               <tr>
-                {dates.map(date => (
-                  <th key={date}>
-                    {new Date(date).getDate()}
-                  </th>
-                ))}
+                {visibleSlots.map(slotIndex => {
+                  const date = slotToDate[slotIndex];
+                  return (
+                    <th key={slotIndex}>
+                      {date ? new Date(date).getDate() : ''}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
               {/* Каждая строка = сотрудник */}
+              {/* 🎯 Передаем ТОЛЬКО employee - без dates! */}
               {employees.map(emp => (
                 <EmployeeRow
                   key={emp.id}
                   employee={emp}
-                  dates={dates}
                 />
               ))}
             </tbody>
