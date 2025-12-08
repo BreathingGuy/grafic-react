@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useCallback, useRef } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { useDateStore } from '../../store/dateStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
@@ -19,7 +19,9 @@ export default function ScheduleTable({ period, search }) {
   const slotToDate = useDateStore(state => state.slotToDate);
   const monthGroups = useDateStore(state => state.monthGroups);
   const currentYear = useDateStore(state => state.currentYear);
+  const viewportOffset = useDateStore(state => state.viewportOffset);
   const shiftDates = useDateStore(state => state.shiftDates);
+  const shiftViewport = useDateStore(state => state.shiftViewport);
   const setPeriod = useDateStore(state => state.setPeriod);
 
   // Workspace store для загрузки данных при смене года
@@ -36,6 +38,41 @@ export default function ScheduleTable({ period, search }) {
   useEffect(() => {
     loadYearData(currentYear);
   }, [currentYear, loadYearData]);
+
+  // === ПРОКРУТКА КОЛЕСИКОМ ===
+
+  const tableContainerRef = useRef(null);
+
+  // Обработчик колесика мыши с throttle
+  const handleWheel = useCallback((e) => {
+    // Проверяем что прокручиваем горизонтально (или зажат Shift)
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey) {
+      e.preventDefault();
+
+      // Определяем направление и количество дней для сдвига
+      let shiftAmount = 7;  // По умолчанию неделя
+
+      if (e.ctrlKey || e.metaKey) {
+        shiftAmount = 1;  // С Ctrl - точная навигация по дням
+      }
+
+      const direction = (e.deltaX || e.deltaY) > 0 ? 1 : -1;
+      shiftViewport(direction * shiftAmount);
+    }
+  }, [shiftViewport]);
+
+  // Подключаем обработчик wheel
+  useEffect(() => {
+    const container = tableContainerRef.current;
+    if (!container) return;
+
+    // passive: false чтобы можно было preventDefault
+    container.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [handleWheel]);
 
   // === МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ ===
 
@@ -76,7 +113,7 @@ export default function ScheduleTable({ period, search }) {
   }
 
   return (
-    <div className={styles.tableContainer}>
+    <div className={styles.tableContainer} ref={tableContainerRef}>
       {/* Кнопки навигации по датам */}
       <div className={styles.navigation}>
         <button onClick={() => shiftDates('prev')} className={styles.navButton}>
@@ -85,7 +122,18 @@ export default function ScheduleTable({ period, search }) {
         <button onClick={() => shiftDates('next')} className={styles.navButton}>
           Вперёд →
         </button>
-        <span className={styles.yearLabel}>Год: {currentYear}</span>
+        <button onClick={() => shiftViewport(-7)} className={styles.navButton}>
+          ← Неделя
+        </button>
+        <button onClick={() => shiftViewport(7)} className={styles.navButton}>
+          Неделя →
+        </button>
+        <span className={styles.yearLabel}>
+          Год: {currentYear} | Смещение: {viewportOffset} дней
+        </span>
+        <span className={styles.hint}>
+          💡 Shift+колесико для прокрутки
+        </span>
       </div>
 
       <div className={styles.container}>

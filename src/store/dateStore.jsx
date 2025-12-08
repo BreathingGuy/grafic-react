@@ -53,11 +53,11 @@ export const useDateStore = create(
     period: '3months',                      // По умолчанию 3 месяца
     baseDate: new Date(),                   // Базовая дата для расчета диапазона
 
-    // 🎯 СИСТЕМА СЛОТОВ - ключевая оптимизация!
-    // visibleSlots - ФИКСИРОВАННЫЙ массив индексов (никогда не меняется!)
-    // При навигации меняется только slotToDate mapping
-    visibleSlots: Array.from({ length: 90 }, (_, i) => i),  // [0, 1, 2, ..., 89] - 90 дней (~3 месяца)
-    slotToDate: {},                         // { 0: "2025-01-01", 1: "2025-01-02", ... }
+    // 🎯 ВИРТУАЛИЗАЦИЯ КОЛОНОК - рендерим только видимые!
+    totalSlots: 90,                         // Всего дней в периоде (3 месяца)
+    visibleSlots: Array.from({ length: 40 }, (_, i) => i),  // [0, 1, 2, ..., 39] - ФИКСИРОВАННЫЕ слоты
+    viewportOffset: 0,                      // Смещение "окна" в общем массиве дат
+    slotToDate: {},                         // Все даты периода { 0: "2025-01-01", ..., 89: "2025-03-31" }
 
     // Для заголовков таблицы
     monthGroups: [],
@@ -65,23 +65,25 @@ export const useDateStore = create(
     // === ИНИЦИАЛИЗАЦИЯ ===
 
     initialize: () => {
-      const { period, baseDate, currentYear } = get();
+      const { period, baseDate, currentYear, visibleSlots } = get();
 
-      // Вычисляем даты для текущего периода
-      const dates = get().calculateVisibleDates(period, baseDate, currentYear);
+      // Вычисляем ВСЕ даты для текущего периода (90 дней)
+      const allDates = get().calculateVisibleDates(period, baseDate, currentYear);
 
-      // Создаем mapping слот → дата
+      // Создаем mapping слот → дата для ВСЕХ слотов
       const slotToDate = {};
-      dates.forEach((date, index) => {
+      allDates.forEach((date, index) => {
         slotToDate[index] = date;
       });
 
-      // Вычисляем группировку по месяцам
-      const groups = get().calculateMonthGroups(dates);
+      // Вычисляем группировку по месяцам только для ВИДИМЫХ дат
+      const visibleDates = visibleSlots.map(slotIndex => allDates[slotIndex]).filter(Boolean);
+      const groups = get().calculateMonthGroups(visibleDates);
 
       set({
         slotToDate,
-        monthGroups: groups
+        monthGroups: groups,
+        viewportOffset: 0  // Сбрасываем offset при инициализации
       });
     },
 
@@ -184,31 +186,34 @@ export const useDateStore = create(
 
     // Установить период
     setPeriod: (newPeriod) => {
-      const { baseDate, currentYear } = get();
+      const { baseDate, currentYear, visibleSlots } = get();
 
       set({ period: newPeriod });
 
-      // Пересчитать видимые даты
-      const dates = get().calculateVisibleDates(newPeriod, baseDate, currentYear);
+      // Пересчитать ВСЕ даты для нового периода
+      const allDates = get().calculateVisibleDates(newPeriod, baseDate, currentYear);
 
-      // Обновить mapping слот → дата
+      // Обновить mapping слот → дата для ВСЕХ слотов
       const slotToDate = {};
-      dates.forEach((date, index) => {
+      allDates.forEach((date, index) => {
         slotToDate[index] = date;
       });
 
-      const groups = get().calculateMonthGroups(dates);
+      // Группировка только для видимых дат
+      const visibleDates = visibleSlots.map(slotIndex => allDates[slotIndex]).filter(Boolean);
+      const groups = get().calculateMonthGroups(visibleDates);
 
       set({
         slotToDate,
-        monthGroups: groups
+        monthGroups: groups,
+        viewportOffset: 0  // Сбрасываем offset при смене периода
       });
     },
 
-    // Навигация (вперед/назад) - КЛЮЧЕВОЙ МЕТОД!
-    // Меняется только slotToDate, visibleSlots остается неизменным
+    // Навигация (вперед/назад) - переход на новый период
+    // Меняется slotToDate, viewportOffset сбрасывается
     shiftDates: (direction) => {
-      const { period, baseDate, currentYear } = get();
+      const { period, baseDate, currentYear, visibleSlots } = get();
       const newDate = new Date(baseDate);
       let newYear = currentYear;
 
@@ -231,20 +236,23 @@ export const useDateStore = create(
         currentYear: newYear
       });
 
-      // Пересчитать видимые даты
-      const dates = get().calculateVisibleDates(period, newDate, newYear);
+      // Пересчитать ВСЕ даты для нового периода
+      const allDates = get().calculateVisibleDates(period, newDate, newYear);
 
-      // 🎯 Обновляем только slotToDate - visibleSlots остается [0,1,2,...89]!
+      // Обновляем mapping для ВСЕХ слотов
       const slotToDate = {};
-      dates.forEach((date, index) => {
+      allDates.forEach((date, index) => {
         slotToDate[index] = date;
       });
 
-      const groups = get().calculateMonthGroups(dates);
+      // Группировка только для видимых дат
+      const visibleDates = visibleSlots.map(slotIndex => allDates[slotIndex]).filter(Boolean);
+      const groups = get().calculateMonthGroups(visibleDates);
 
       set({
-        slotToDate,       // ← Меняется только это!
-        monthGroups: groups
+        slotToDate,
+        monthGroups: groups,
+        viewportOffset: 0  // Сбрасываем offset при переходе на новый период
       });
     },
 
@@ -331,6 +339,33 @@ export const useDateStore = create(
     // Получить текущий год (для загрузки данных)
     getCurrentYear: () => {
       return get().currentYear;
+    },
+
+    // === ВИРТУАЛИЗАЦИЯ - ПРОКРУТКА VIEWPORT ===
+
+    // Сдвинуть viewport на N дней (для прокрутки колесиком)
+    shiftViewport: (days) => {
+      const { viewportOffset, totalSlots, visibleSlots } = get();
+      const maxOffset = totalSlots - visibleSlots.length;
+
+      // Вычисляем новое смещение с ограничениями
+      const newOffset = Math.max(0, Math.min(viewportOffset + days, maxOffset));
+
+      set({ viewportOffset: newOffset });
+
+      // Пересчитываем monthGroups для видимых дат
+      const visibleDates = visibleSlots.map(slotIndex => {
+        const realIndex = slotIndex + newOffset;
+        return get().slotToDate[realIndex];
+      }).filter(Boolean);
+
+      const groups = get().calculateMonthGroups(visibleDates);
+      set({ monthGroups: groups });
+    },
+
+    // Получить реальный индекс с учетом offset
+    getRealSlotIndex: (virtualIndex) => {
+      return virtualIndex + get().viewportOffset;
     }
 
   }), { name: 'DateStore' })

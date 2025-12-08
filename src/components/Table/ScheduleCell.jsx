@@ -5,10 +5,14 @@ import { useAdminStore } from '../../store/adminStore';
 import CellEditor from './CellEditor';
 import styles from './Table.module.css';
 
-// 🎯 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Принимаем slotIndex вместо date!
+// 🎯 ВИРТУАЛИЗАЦИЯ: Принимаем виртуальный slotIndex (0-39)
 const ScheduleCell = memo(({ employeeId, slotIndex }) => {
-  // Получаем дату из dateStore по индексу слота
-  const date = useDateStore(state => state.slotToDate[slotIndex]);
+  // Получаем реальный индекс с учетом viewport offset
+  const viewportOffset = useDateStore(state => state.viewportOffset);
+  const realIndex = slotIndex + viewportOffset;
+
+  // Получаем дату из dateStore по реальному индексу
+  const date = useDateStore(state => state.slotToDate[realIndex]);
 
   const status = useScheduleStore(state => {
     if (!date) return '';  // Если дата не определена, ячейка пустая
