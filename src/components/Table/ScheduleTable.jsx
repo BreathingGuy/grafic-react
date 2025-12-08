@@ -43,20 +43,21 @@ export default function ScheduleTable({ period, search }) {
 
   const tableContainerRef = useRef(null);
 
-  // Обработчик колесика мыши с throttle
+  // Обработчик колесика мыши
   const handleWheel = useCallback((e) => {
-    // Проверяем что прокручиваем горизонтально (или зажат Shift)
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey) {
+    // Если зажат Shift - обрабатываем как горизонтальную прокрутку
+    if (e.shiftKey) {
       e.preventDefault();
 
-      // Определяем направление и количество дней для сдвига
+      // Определяем количество дней для сдвига
       let shiftAmount = 7;  // По умолчанию неделя
 
       if (e.ctrlKey || e.metaKey) {
         shiftAmount = 1;  // С Ctrl - точная навигация по дням
       }
 
-      const direction = (e.deltaX || e.deltaY) > 0 ? 1 : -1;
+      // Используем deltaY для вертикальной прокрутки
+      const direction = e.deltaY > 0 ? 1 : -1;
       shiftViewport(direction * shiftAmount);
     }
   }, [shiftViewport]);
