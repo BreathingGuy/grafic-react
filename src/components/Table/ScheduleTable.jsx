@@ -45,9 +45,16 @@ export default function ScheduleTable({ period, search }) {
 
   // Обработчик колесика мыши
   const handleWheel = useCallback((e) => {
+    console.log('🔍 Wheel event:', {
+      shiftKey: e.shiftKey,
+      deltaY: e.deltaY,
+      target: e.target.className
+    });
+
     // Если зажат Shift - обрабатываем как горизонтальную прокрутку
     if (e.shiftKey) {
       e.preventDefault();
+      console.log('✅ Shift detected, preventing default');
 
       // Определяем количество дней для сдвига
       let shiftAmount = 7;  // По умолчанию неделя
@@ -58,6 +65,7 @@ export default function ScheduleTable({ period, search }) {
 
       // Используем deltaY для вертикальной прокрутки
       const direction = e.deltaY > 0 ? 1 : -1;
+      console.log('📊 Shifting viewport:', direction * shiftAmount);
       shiftViewport(direction * shiftAmount);
     }
   }, [shiftViewport]);
@@ -65,12 +73,19 @@ export default function ScheduleTable({ period, search }) {
   // Подключаем обработчик wheel
   useEffect(() => {
     const container = tableContainerRef.current;
-    if (!container) return;
+    console.log('🎯 Setting up wheel listener, container:', container?.className);
+
+    if (!container) {
+      console.warn('❌ Container ref is null!');
+      return;
+    }
 
     // passive: false чтобы можно было preventDefault
     container.addEventListener('wheel', handleWheel, { passive: false });
+    console.log('✅ Wheel listener attached');
 
     return () => {
+      console.log('🗑️ Removing wheel listener');
       container.removeEventListener('wheel', handleWheel);
     };
   }, [handleWheel]);
