@@ -19,8 +19,8 @@ export default function ScheduleTable({ period }) {
   const shiftDates = useDateStore(state => state.shiftDates);
   const setPeriod = useDateStore(state => state.setPeriod);
 
-  // Workspace store для загрузки данных при смене года
-  const loadYearData = useWorkspaceStore(state => state.loadYearData);
+  // Workspace store для загрузки данных
+  const loadVisibleYearsData = useWorkspaceStore(state => state.loadVisibleYearsData);
 
   // === ЭФФЕКТЫ ===
 
@@ -29,10 +29,10 @@ export default function ScheduleTable({ period }) {
     setPeriod(period);
   }, [period, setPeriod]);
 
-  // Загрузка данных при смене года
+  // Загрузка данных для всех видимых годов при изменении слотов
   useEffect(() => {
-    loadYearData(currentYear);
-  }, [currentYear, loadYearData]);
+    loadVisibleYearsData();
+  }, [visibleSlots.length, loadVisibleYearsData]);
 
   // === МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ ===
 

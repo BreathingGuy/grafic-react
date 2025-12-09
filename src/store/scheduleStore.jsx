@@ -14,7 +14,7 @@ export const useScheduleStore = create(
     // Кэширование загруженных годов
     // Структура: { "departmentId-year": { scheduleMap, employeeMap } }
     cachedYears: {},
-    loadedYear: null,              // Текущий загруженный год
+    loadedYears: new Set(),        // Множество загруженных годов
     loadedDepartment: null,        // Текущий загруженный отдел
 
     // WebSocket
@@ -23,13 +23,13 @@ export const useScheduleStore = create(
     
     // === ACTIONS ===
     
-    // Загрузка расписания с кэшированием
+    // Загрузка расписания с кэшированием (поддержка множественных годов)
     loadSchedule: async (departmentId, year) => {
       const cacheKey = `${departmentId}-${year}`;
-      const { cachedYears, loadedYear, loadedDepartment } = get();
+      const { cachedYears, loadedYears, loadedDepartment } = get();
 
       // Проверяем, уже загружен ли этот год для этого отдела
-      if (loadedDepartment === departmentId && loadedYear === year) {
+      if (loadedDepartment === departmentId && loadedYears.has(year)) {
         console.log(`📦 Год ${year} для отдела ${departmentId} уже загружен`);
         return; // Уже загружено
       }
@@ -39,13 +39,17 @@ export const useScheduleStore = create(
         console.log(`🔄 Восстановление из кэша: ${cacheKey}`);
         const cached = cachedYears[cacheKey];
 
-        set({
-          scheduleMap: cached.scheduleMap,
-          employeeMap: cached.employeeMap,
-          loadedYear: year,
+        // Добавляем данные к существующим (merge)
+        set(state => ({
+          scheduleMap: {
+            ...state.scheduleMap,
+            ...cached.scheduleMap
+          },
+          employeeMap: state.employeeMap.length > 0 ? state.employeeMap : cached.employeeMap,
+          loadedYears: new Set([...state.loadedYears, year]),
           loadedDepartment: departmentId,
           loading: false
-        });
+        }));
 
         return;
       }
@@ -61,11 +65,14 @@ export const useScheduleStore = create(
         const data = await response.json();
         const { employeeMap, scheduleMap } = get().normalizeScheduleData(data, year);
 
-        // Сохраняем в кэш
+        // Сохраняем в кэш и добавляем к существующим данным
         set(state => ({
-          scheduleMap: scheduleMap || {},
-          employeeMap: employeeMap || {},
-          loadedYear: year,
+          scheduleMap: {
+            ...state.scheduleMap,
+            ...scheduleMap
+          },
+          employeeMap: state.employeeMap.length > 0 ? state.employeeMap : (employeeMap || []),
+          loadedYears: new Set([...state.loadedYears, year]),
           loadedDepartment: departmentId,
           cachedYears: {
             ...state.cachedYears,
@@ -75,8 +82,8 @@ export const useScheduleStore = create(
         }));
 
         console.log(`✅ Данные загружены и закэшированы: ${cacheKey}`);
-        console.log(employeeMap);
-        console.log(scheduleMap);
+        console.log('EmployeeMap:', employeeMap);
+        console.log('ScheduleMap для года', year, ':', scheduleMap);
 
       } catch (error) {
         console.error('Failed to load schedule:', error);
@@ -137,10 +144,10 @@ export const useScheduleStore = create(
     // Очистить расписание (но сохранить кэш)
     clearSchedule: () => {
       set({
-        employeeMap: {},
+        employeeMap: [],
         scheduleMap: {},
         changedCells: new Set(),
-        loadedYear: null,
+        loadedYears: new Set(),
         loadedDepartment: null
       });
     },
@@ -148,11 +155,11 @@ export const useScheduleStore = create(
     // Полностью очистить кэш (при смене отдела или выходе)
     clearCache: () => {
       set({
-        employeeMap: {},
+        employeeMap: [],
         scheduleMap: {},
         changedCells: new Set(),
         cachedYears: {},
-        loadedYear: null,
+        loadedYears: new Set(),
         loadedDepartment: null
       });
     },

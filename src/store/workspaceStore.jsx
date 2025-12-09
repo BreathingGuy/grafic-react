@@ -50,6 +50,23 @@ export const useWorkspaceStore = create(
         await useScheduleStore.getState().loadSchedule(departmentId, year);
       }
     },
+
+    // Загрузить данные для всех видимых годов
+    loadVisibleYearsData: async () => {
+      const departmentId = get().currentDepartmentId;
+      if (!departmentId) return;
+
+      const dateStore = useDateStore.getState();
+      const visibleYears = dateStore.getVisibleYears();
+      const scheduleStore = useScheduleStore.getState();
+
+      // Загружаем данные для каждого года, которого еще нет
+      for (const year of visibleYears) {
+        if (!scheduleStore.loadedYears.has(year)) {
+          await scheduleStore.loadSchedule(departmentId, year);
+        }
+      }
+    },
     
     // Сброс (при выходе или переходе на главную)
     reset: () => {

@@ -53,10 +53,10 @@ export const useDateStore = create(
     period: '3months',                      // По умолчанию 3 месяца
     baseDate: new Date(),                   // Базовая дата для расчета диапазона
 
-    // 🎯 СИСТЕМА СЛОТОВ - ключевая оптимизация!
-    // visibleSlots - ФИКСИРОВАННЫЙ массив индексов (никогда не меняется!)
-    // При навигации меняется только slotToDate mapping
-    visibleSlots: Array.from({ length: 90 }, (_, i) => i),  // [0, 1, 2, ..., 89] - 90 дней (~3 месяца)
+    // 🎯 СИСТЕМА СЛОТОВ - динамический массив для поддержки добавления месяцев
+    // visibleSlots - массив индексов (расширяется при добавлении месяцев)
+    // При навигации может расширяться или заменяться
+    visibleSlots: [],                       // Динамический массив индексов
     slotToDate: {},                         // { 0: "2025-01-01", 1: "2025-01-02", ... }
 
     // Для заголовков таблицы
@@ -70,7 +70,8 @@ export const useDateStore = create(
       // Вычисляем даты для текущего периода
       const dates = get().calculateVisibleDates(period, baseDate, currentYear);
 
-      // Создаем mapping слот → дата
+      // Создаем массив слотов и mapping слот → дата
+      const visibleSlots = Array.from({ length: dates.length }, (_, i) => i);
       const slotToDate = {};
       dates.forEach((date, index) => {
         slotToDate[index] = date;
@@ -80,6 +81,7 @@ export const useDateStore = create(
       const groups = get().calculateMonthGroups(dates);
 
       set({
+        visibleSlots,
         slotToDate,
         monthGroups: groups
       });
@@ -180,7 +182,8 @@ export const useDateStore = create(
       // Пересчитать видимые даты
       const dates = get().calculateVisibleDates(newPeriod, baseDate, currentYear);
 
-      // Обновить mapping слот → дата
+      // Создаем новые слоты и mapping
+      const visibleSlots = Array.from({ length: dates.length }, (_, i) => i);
       const slotToDate = {};
       dates.forEach((date, index) => {
         slotToDate[index] = date;
@@ -189,15 +192,76 @@ export const useDateStore = create(
       const groups = get().calculateMonthGroups(dates);
 
       set({
+        visibleSlots,
         slotToDate,
         monthGroups: groups
       });
     },
 
     // Навигация (вперед/назад) - КЛЮЧЕВОЙ МЕТОД!
-    // Меняется только slotToDate, visibleSlots остается неизменным
+    // Для направления 'next' и периода '3months' - добавляет месяцы вместо замены
     shiftDates: (direction) => {
-      const { period, baseDate, currentYear } = get();
+      const { period, baseDate, currentYear, slotToDate, visibleSlots } = get();
+
+      // 🎯 Для периода '3months' и направления 'next' - добавляем месяцы
+      if (period === '3months' && direction === 'next') {
+        // Находим последнюю дату в текущем диапазоне
+        const lastSlotIndex = visibleSlots[visibleSlots.length - 1];
+        const lastDate = slotToDate[lastSlotIndex];
+
+        if (!lastDate) {
+          console.error('Не удалось найти последнюю дату');
+          return;
+        }
+
+        // Определяем начало следующего периода (следующий день после последней даты)
+        const lastDateObj = new Date(lastDate);
+        const startDate = new Date(lastDateObj);
+        startDate.setDate(startDate.getDate() + 1);
+
+        // Генерируем следующие 3 календарных месяца от startDate
+        const newDates = [];
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + 3);
+
+        const currentDate = new Date(startDate);
+        while (currentDate < endDate) {
+          const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+          newDates.push(dateStr);
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Расширяем slotToDate
+        const newSlotToDate = { ...slotToDate };
+        const startIndex = visibleSlots.length;
+        newDates.forEach((date, i) => {
+          newSlotToDate[startIndex + i] = date;
+        });
+
+        // Расширяем visibleSlots
+        const newVisibleSlots = [
+          ...visibleSlots,
+          ...Array.from({ length: newDates.length }, (_, i) => startIndex + i)
+        ];
+
+        // Пересчитываем группы для всех дат
+        const allDates = newVisibleSlots.map(slot => newSlotToDate[slot]);
+        const groups = get().calculateMonthGroups(allDates);
+
+        // Обновляем baseDate и currentYear
+        const nextYear = startDate.getFullYear();
+        set({
+          visibleSlots: newVisibleSlots,
+          slotToDate: newSlotToDate,
+          monthGroups: groups,
+          baseDate: startDate,
+          currentYear: nextYear
+        });
+
+        return;
+      }
+
+      // Для остальных случаев - стандартная логика замены
       const newDate = new Date(baseDate);
       let newYear = currentYear;
 
@@ -223,16 +287,18 @@ export const useDateStore = create(
       // Пересчитать видимые даты
       const dates = get().calculateVisibleDates(period, newDate, newYear);
 
-      // 🎯 Обновляем только slotToDate - visibleSlots остается [0,1,2,...89]!
-      const slotToDate = {};
+      // Создаем новые слоты и mapping
+      const newVisibleSlots = Array.from({ length: dates.length }, (_, i) => i);
+      const newSlotToDate = {};
       dates.forEach((date, index) => {
-        slotToDate[index] = date;
+        newSlotToDate[index] = date;
       });
 
       const groups = get().calculateMonthGroups(dates);
 
       set({
-        slotToDate,       // ← Меняется только это!
+        visibleSlots: newVisibleSlots,
+        slotToDate: newSlotToDate,
         monthGroups: groups
       });
     },
@@ -251,6 +317,7 @@ export const useDateStore = create(
       // Пересчитать видимые даты
       const dates = get().calculateVisibleDates(period, newDate, newYear);
 
+      const visibleSlots = Array.from({ length: dates.length }, (_, i) => i);
       const slotToDate = {};
       dates.forEach((date, index) => {
         slotToDate[index] = date;
@@ -259,6 +326,7 @@ export const useDateStore = create(
       const groups = get().calculateMonthGroups(dates);
 
       set({
+        visibleSlots,
         slotToDate,
         monthGroups: groups
       });
@@ -277,6 +345,7 @@ export const useDateStore = create(
       const { period } = get();
       const dates = get().calculateVisibleDates(period, newBaseDate, year);
 
+      const visibleSlots = Array.from({ length: dates.length }, (_, i) => i);
       const slotToDate = {};
       dates.forEach((date, index) => {
         slotToDate[index] = date;
@@ -285,6 +354,7 @@ export const useDateStore = create(
       const groups = get().calculateMonthGroups(dates);
 
       set({
+        visibleSlots,
         slotToDate,
         monthGroups: groups
       });
@@ -304,6 +374,7 @@ export const useDateStore = create(
       const { period } = get();
       const dates = get().calculateVisibleDates(period, newBaseDate, currentYear);
 
+      const visibleSlots = Array.from({ length: dates.length }, (_, i) => i);
       const slotToDate = {};
       dates.forEach((date, index) => {
         slotToDate[index] = date;
@@ -312,6 +383,7 @@ export const useDateStore = create(
       const groups = get().calculateMonthGroups(dates);
 
       set({
+        visibleSlots,
         slotToDate,
         monthGroups: groups
       });
@@ -320,6 +392,22 @@ export const useDateStore = create(
     // Получить текущий год (для загрузки данных)
     getCurrentYear: () => {
       return get().currentYear;
+    },
+
+    // Получить все годы в текущем видимом диапазоне
+    getVisibleYears: () => {
+      const { visibleSlots, slotToDate } = get();
+      const years = new Set();
+
+      visibleSlots.forEach(slot => {
+        const date = slotToDate[slot];
+        if (date) {
+          const year = new Date(date).getFullYear();
+          years.add(year);
+        }
+      });
+
+      return Array.from(years);
     }
 
   }), { name: 'DateStore' })
