@@ -130,24 +130,46 @@ button:hover {
     color: #495057;
 }
 
-/* Секция загрузки */
-.loadingSection {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 200px;
-}
-
 /* Заголовок загрузки в таблице */
 .loadingHeader {
     background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.05), transparent);
     color: #6b7280;
     font-size: 12px;
     font-weight: 400;
+    text-align: center;
 }
 
-/* Wrapper для таблицы и индикатора загрузки */
-.scrollContent {
-    display: flex;
-    align-items: flex-start;
+/* Skeleton ячейки */
+.skeletonHeader,
+.skeletonCell {
+    padding: 4px !important;
+}
+
+.skeletonBox {
+    height: 20px;
+    background: linear-gradient(90deg, #f3f4f6 25%, #f9fafb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 3px;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Overlay для индикатора загрузки */
+.loadingIndicatorOverlay {
+    position: sticky;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    pointer-events: none;
+    float: right;
+    margin-top: -50px;
 }

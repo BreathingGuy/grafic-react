@@ -1,9 +1,10 @@
 import { memo } from 'react';
 import { useDateStore } from '../../store/dateStore';
 import ScheduleCell from './ScheduleCell';
+import styles from './Table.module.css';
 
 // 🎯 КЛЮЧЕВАЯ ОПТИМИЗАЦИЯ: Принимаем только employee, без dates!
-const EmployeeRow = memo(({ employee }) => {
+const EmployeeRow = memo(({ employee, isLoadingMore = false }) => {
   // Получаем фиксированный массив слотов из dateStore
   // visibleSlots НИКОГДА НЕ МЕНЯЕТСЯ - всегда [0, 1, 2, ..., 89]
   const visibleSlots = useDateStore(state => state.visibleSlots);
@@ -17,12 +18,20 @@ const EmployeeRow = memo(({ employee }) => {
           slotIndex={slotIndex}   // ← Пропс фиксированный!
         />
       ))}
+      {/* Skeleton ячейки при загрузке следующих месяцев */}
+      {isLoadingMore && (
+        Array.from({ length: 90 }, (_, i) => (
+          <td key={`loading-${i}`} className={styles.skeletonCell}>
+            <div className={styles.skeletonBox}></div>
+          </td>
+        ))
+      )}
     </tr>
   );
 }, (prevProps, nextProps) => {
-  // Сравниваем ТОЛЬКО employee
-  // visibleSlots не передается в пропсах, поэтому не влияет на ререндер
-  return prevProps.employee === nextProps.employee;
+  // Сравниваем employee и isLoadingMore
+  return prevProps.employee === nextProps.employee &&
+         prevProps.isLoadingMore === nextProps.isLoadingMore;
 });
 
 EmployeeRow.displayName = 'EmployeeRow';

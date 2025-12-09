@@ -5,7 +5,6 @@ import { useWorkspaceStore } from '../../store/workspaceStore';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import EmployeeRow from './EmployeeRow';
 import LoadingIndicator from '../Loader/LoadingIndicator';
-import MonthSkeleton from '../Loader/MonthSkeleton';
 import styles from './Table.module.css';
 
 export default function ScheduleTable({ period }) {
@@ -87,72 +86,65 @@ export default function ScheduleTable({ period }) {
 
         {/* 🎯 ВИРТУАЛИЗАЦИЯ - добавляем ref на scrollable_container */}
         <div className={styles.scrollable_container} ref={scrollContainerRef}>
-          <div className={styles.scrollContent}>
-            <table className={styles.scrollable_column}>
-              <thead>
-                <tr>
-                  {monthGroups.map((group, i) => (
-                    <th
-                      key={i}
-                      colSpan={group.colspan}
-                      className={styles.monthHeader}
-                    >
-                      {group.month}
-                    </th>
-                  ))}
-                  {/* Placeholder для индикатора загрузки */}
-                  {(canLoadMore && loadingProgress > 0) && (
-                    <th colSpan={30} className={styles.loadingHeader}>
-                      Загрузка...
-                    </th>
-                  )}
-                </tr>
-                <tr>
-                  {visibleSlots.map(slotIndex => {
-                    const date = slotToDate[slotIndex];
-                    return (
-                      <th key={slotIndex}>
-                        {date ? new Date(date).getDate() : ''}
-                      </th>
-                    );
-                  })}
-                  {/* Placeholder для дней загружаемого месяца */}
-                  {(canLoadMore && loadingProgress > 0) && (
-                    Array.from({ length: 30 }, (_, i) => (
-                      <th key={`loading-day-${i}`}>...</th>
-                    ))
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {/* Каждая строка = сотрудник */}
-                {employees.map(emp => (
-                  <EmployeeRow
-                    key={emp.id}
-                    employee={emp}
-                  />
+          <table className={styles.scrollable_column}>
+            <thead>
+              <tr>
+                {monthGroups.map((group, i) => (
+                  <th
+                    key={i}
+                    colSpan={group.colspan}
+                    className={styles.monthHeader}
+                  >
+                    {group.month}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-
-            {/* 🎯 ИНДИКАТОР ЗАГРУЗКИ - показываем когда приближаемся к концу */}
-            {canLoadMore && (loadingProgress > 0 || isLoadingMore) && (
-              <div className={styles.loadingSection}>
-                <LoadingIndicator
-                  progress={loadingProgress}
-                  isLoading={isLoadingMore}
-                />
-
-                {/* Skeleton пока идет загрузка */}
+                {/* Заголовок для загружаемых месяцев */}
                 {isLoadingMore && (
-                  <MonthSkeleton
-                    employeeCount={employees.length}
-                    daysCount={90}
-                  />
+                  <th colSpan={90} className={styles.loadingHeader}>
+                    Загрузка следующих 3 месяцев...
+                  </th>
                 )}
-              </div>
-            )}
-          </div>
+              </tr>
+              <tr>
+                {visibleSlots.map(slotIndex => {
+                  const date = slotToDate[slotIndex];
+                  return (
+                    <th key={slotIndex}>
+                      {date ? new Date(date).getDate() : ''}
+                    </th>
+                  );
+                })}
+                {/* Дни для загружаемых месяцев */}
+                {isLoadingMore && (
+                  Array.from({ length: 90 }, (_, i) => (
+                    <th key={`loading-day-${i}`} className={styles.skeletonHeader}>
+                      <div className={styles.skeletonBox}></div>
+                    </th>
+                  ))
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {/* Каждая строка = сотрудник */}
+              {employees.map(emp => (
+                <EmployeeRow
+                  key={emp.id}
+                  employee={emp}
+                  isLoadingMore={isLoadingMore}
+                />
+              ))}
+            </tbody>
+          </table>
+
+          {/* 🎯 ИНДИКАТОР ЗАГРУЗКИ - sticky справа */}
+          {canLoadMore && (loadingProgress > 0 || isLoadingMore) && (
+            <div className={styles.loadingIndicatorOverlay}>
+              <LoadingIndicator
+                progress={loadingProgress}
+                isLoading={isLoadingMore}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
