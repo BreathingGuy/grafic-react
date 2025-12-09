@@ -366,6 +366,104 @@ export const useDateStore = create(
     // Получить реальный индекс с учетом offset
     getRealSlotIndex: (virtualIndex) => {
       return virtualIndex + get().viewportOffset;
+    },
+
+    // === INFINITE SCROLL ===
+
+    // Расширить видимые слоты вправо (добавить дней в конец)
+    expandRight: (count = 20) => {
+      const { visibleSlots, totalSlots } = get();
+      const lastSlot = visibleSlots[visibleSlots.length - 1];
+
+      // Проверяем не вышли ли за границы
+      if (lastSlot >= totalSlots - 1) {
+        console.log('⚠️ Reached end of period, cannot expand right');
+        return false;
+      }
+
+      // Добавляем новые слоты
+      const newSlots = [];
+      for (let i = 1; i <= count && lastSlot + i < totalSlots; i++) {
+        newSlots.push(lastSlot + i);
+      }
+
+      const expandedSlots = [...visibleSlots, ...newSlots];
+
+      // Пересчитываем monthGroups для всех видимых дат
+      const { slotToDate, viewportOffset } = get();
+      const visibleDates = expandedSlots.map(slotIndex => {
+        const realIndex = slotIndex + viewportOffset;
+        return slotToDate[realIndex];
+      }).filter(Boolean);
+
+      const groups = get().calculateMonthGroups(visibleDates);
+
+      set({
+        visibleSlots: expandedSlots,
+        monthGroups: groups
+      });
+
+      return true;
+    },
+
+    // Расширить видимые слоты влево (добавить дней в начало)
+    expandLeft: (count = 20) => {
+      const { visibleSlots, viewportOffset } = get();
+      const firstSlot = visibleSlots[0];
+
+      // Проверяем не вышли ли за границы с учетом offset
+      if (viewportOffset === 0 && firstSlot === 0) {
+        console.log('⚠️ Reached start of period, cannot expand left');
+        return false;
+      }
+
+      // Если можно сдвинуть viewport влево
+      if (viewportOffset > 0) {
+        const shiftAmount = Math.min(count, viewportOffset);
+        const newOffset = viewportOffset - shiftAmount;
+
+        // Пересчитываем monthGroups
+        const { slotToDate } = get();
+        const visibleDates = visibleSlots.map(slotIndex => {
+          const realIndex = slotIndex + newOffset;
+          return slotToDate[realIndex];
+        }).filter(Boolean);
+
+        const groups = get().calculateMonthGroups(visibleDates);
+
+        set({
+          viewportOffset: newOffset,
+          monthGroups: groups
+        });
+
+        return true;
+      }
+
+      // Если viewport уже в 0, добавляем слоты в начало массива
+      const newSlots = [];
+      for (let i = count; i > 0 && firstSlot - i >= 0; i--) {
+        newSlots.push(firstSlot - i);
+      }
+
+      if (newSlots.length === 0) return false;
+
+      const expandedSlots = [...newSlots, ...visibleSlots];
+
+      // Пересчитываем monthGroups
+      const { slotToDate, viewportOffset: currentOffset } = get();
+      const visibleDates = expandedSlots.map(slotIndex => {
+        const realIndex = slotIndex + currentOffset;
+        return slotToDate[realIndex];
+      }).filter(Boolean);
+
+      const groups = get().calculateMonthGroups(visibleDates);
+
+      set({
+        visibleSlots: expandedSlots,
+        monthGroups: groups
+      });
+
+      return true;
     }
 
   }), { name: 'DateStore' })

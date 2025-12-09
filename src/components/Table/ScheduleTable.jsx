@@ -1,11 +1,16 @@
-import { useMemo, useEffect, useCallback, useRef } from 'react';
+import { useMemo, useEffect, useCallback, useRef, useState } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { useDateStore } from '../../store/dateStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
-import EmployeeRow from './EmployeeRow';
+import ScheduleCell from './ScheduleCell';
 import styles from './Table.module.css';
 
 export default function ScheduleTable({ period, search }) {
+  // === ЛОКАЛЬНОЕ СОСТОЯНИЕ ===
+
+  const [loadingLeft, setLoadingLeft] = useState(false);
+  const [loadingRight, setLoadingRight] = useState(false);
+
   // === ДАННЫЕ ИЗ ZUSTAND STORES ===
 
   // Подписка на loading state
@@ -21,7 +26,8 @@ export default function ScheduleTable({ period, search }) {
   const currentYear = useDateStore(state => state.currentYear);
   const viewportOffset = useDateStore(state => state.viewportOffset);
   const shiftDates = useDateStore(state => state.shiftDates);
-  const shiftViewport = useDateStore(state => state.shiftViewport);
+  const expandLeft = useDateStore(state => state.expandLeft);
+  const expandRight = useDateStore(state => state.expandRight);
   const setPeriod = useDateStore(state => state.setPeriod);
 
   // Workspace store для загрузки данных при смене года
@@ -39,56 +45,113 @@ export default function ScheduleTable({ period, search }) {
     loadYearData(currentYear);
   }, [currentYear, loadYearData]);
 
-  // === ПРОКРУТКА КОЛЕСИКОМ ===
+  // === INFINITE SCROLL - INTERSECTION OBSERVER ===
 
-  const tableContainerRef = useRef(null);
+  const leftSentinelRef = useRef(null);
+  const rightSentinelRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
-  // Обработчик колесика мыши
-  const handleWheel = useCallback((e) => {
-    console.log('🔍 Wheel event:', {
-      shiftKey: e.shiftKey,
-      deltaY: e.deltaY,
-      target: e.target.className
-    });
+  // Обработчик для левого sentinel - когда пользователь доходит до начала
+  const handleLeftIntersect = useCallback(async () => {
+    if (loadingLeft) return; // Уже загружаем
 
-    // Если зажат Shift - обрабатываем как горизонтальную прокрутку
-    if (e.shiftKey) {
-      e.preventDefault();
-      console.log('✅ Shift detected, preventing default');
+    console.log('⬅️ Left sentinel visible, expanding left...');
+    setLoadingLeft(true);
 
-      // Определяем количество дней для сдвига
-      let shiftAmount = 7;  // По умолчанию неделя
+    // Симулируем задержку загрузки (в реальности данные уже в памяти)
+    await new Promise(resolve => setTimeout(resolve, 300));
 
-      if (e.ctrlKey || e.metaKey) {
-        shiftAmount = 1;  // С Ctrl - точная навигация по дням
-      }
+    // Сохраняем текущую позицию скролла
+    const container = scrollContainerRef.current;
+    const scrollBefore = container?.scrollLeft || 0;
+    const scrollWidthBefore = container?.scrollWidth || 0;
 
-      // Используем deltaY для вертикальной прокрутки
-      const direction = e.deltaY > 0 ? 1 : -1;
-      console.log('📊 Shifting viewport:', direction * shiftAmount);
-      shiftViewport(direction * shiftAmount);
+    // Расширяем влево
+    const expanded = expandLeft(20);
+
+    if (expanded && container) {
+      // После добавления элементов слева, корректируем scroll position
+      // чтобы пользователь остался на той же позиции визуально
+      setTimeout(() => {
+        const scrollWidthAfter = container.scrollWidth;
+        const scrollDiff = scrollWidthAfter - scrollWidthBefore;
+        container.scrollLeft = scrollBefore + scrollDiff;
+        console.log('📍 Scroll adjusted:', { scrollBefore, scrollDiff, newScroll: container.scrollLeft });
+      }, 0);
     }
-  }, [shiftViewport]);
 
-  // Подключаем обработчик wheel
+    setLoadingLeft(false);
+  }, [loadingLeft, expandLeft]);
+
+  // Обработчик для правого sentinel - когда пользователь доходит до конца
+  const handleRightIntersect = useCallback(async () => {
+    if (loadingRight) return; // Уже загружаем
+
+    console.log('➡️ Right sentinel visible, expanding right...');
+    setLoadingRight(true);
+
+    // Симулируем задержку загрузки
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Расширяем вправо (scroll position не нужно корректировать)
+    expandRight(20);
+
+    setLoadingRight(false);
+  }, [loadingRight, expandRight]);
+
+  // Настройка IntersectionObserver для левого sentinel
   useEffect(() => {
-    const container = tableContainerRef.current;
-    console.log('🎯 Setting up wheel listener, container:', container?.className);
+    const leftSentinel = leftSentinelRef.current;
+    if (!leftSentinel) return;
 
-    if (!container) {
-      console.warn('❌ Container ref is null!');
-      return;
-    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            handleLeftIntersect();
+          }
+        });
+      },
+      {
+        root: scrollContainerRef.current,
+        threshold: 0.1,
+        rootMargin: '0px 200px 0px 0px' // Триггерим за 200px до края
+      }
+    );
 
-    // passive: false чтобы можно было preventDefault
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    console.log('✅ Wheel listener attached');
+    observer.observe(leftSentinel);
 
     return () => {
-      console.log('🗑️ Removing wheel listener');
-      container.removeEventListener('wheel', handleWheel);
+      observer.disconnect();
     };
-  }, [handleWheel]);
+  }, [handleLeftIntersect]);
+
+  // Настройка IntersectionObserver для правого sentinel
+  useEffect(() => {
+    const rightSentinel = rightSentinelRef.current;
+    if (!rightSentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            handleRightIntersect();
+          }
+        });
+      },
+      {
+        root: scrollContainerRef.current,
+        threshold: 0.1,
+        rootMargin: '0px 0px 0px 200px' // Триггерим за 200px до края
+      }
+    );
+
+    observer.observe(rightSentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [handleRightIntersect]);
 
   // === МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ ===
 
@@ -129,26 +192,20 @@ export default function ScheduleTable({ period, search }) {
   }
 
   return (
-    <div className={styles.tableContainer} ref={tableContainerRef}>
-      {/* Кнопки навигации по датам */}
+    <div className={styles.tableContainer}>
+      {/* Кнопки навигации по периодам */}
       <div className={styles.navigation}>
         <button onClick={() => shiftDates('prev')} className={styles.navButton}>
-          ← Назад
+          ← Предыдущий период
         </button>
         <button onClick={() => shiftDates('next')} className={styles.navButton}>
-          Вперёд →
-        </button>
-        <button onClick={() => shiftViewport(-7)} className={styles.navButton}>
-          ← Неделя
-        </button>
-        <button onClick={() => shiftViewport(7)} className={styles.navButton}>
-          Неделя →
+          Следующий период →
         </button>
         <span className={styles.yearLabel}>
-          Год: {currentYear} | Смещение: {viewportOffset} дней
+          Год: {currentYear} | Видимых дней: {visibleSlots.length}
         </span>
         <span className={styles.hint}>
-          💡 Shift+колесико для прокрутки
+          💡 Скроллируйте горизонтально для просмотра дат
         </span>
       </div>
 
@@ -177,10 +234,18 @@ export default function ScheduleTable({ period, search }) {
             </tbody>
         </table>
 
-        <div className={styles.scrollable_container}>
+        <div className={styles.scrollable_container} ref={scrollContainerRef}>
           <table className={styles.scrollable_column}>
             <thead>
               <tr>
+                {/* Левый loading header */}
+                {loadingLeft && (
+                  <th colSpan={7} className={styles.sentinelCell}>
+                    ⬅️ Загрузка...
+                  </th>
+                )}
+
+                {/* Заголовки месяцев */}
                 {monthGroups.map((group, i) => (
                   <th
                     key={i}
@@ -190,26 +255,80 @@ export default function ScheduleTable({ period, search }) {
                     {group.month}
                   </th>
                 ))}
+
+                {/* Правый loading header */}
+                {loadingRight && (
+                  <th colSpan={7} className={styles.sentinelCell}>
+                    Загрузка... ➡️
+                  </th>
+                )}
               </tr>
               <tr>
+                {/* Левый sentinel (невидимый) */}
+                <th ref={leftSentinelRef} style={{ width: '1px', padding: 0, border: 'none' }} />
+
+                {/* Левые skeleton даты */}
+                {loadingLeft && Array.from({ length: 7 }).map((_, i) => (
+                  <th key={`skeleton-left-${i}`} className={styles.skeletonHeader}>
+                    <div className={styles.skeletonPulse} />
+                  </th>
+                ))}
+
+                {/* Основные даты */}
                 {visibleSlots.map(slotIndex => {
-                  const date = slotToDate[slotIndex];
+                  const realIndex = slotIndex + viewportOffset;
+                  const date = slotToDate[realIndex];
                   return (
                     <th key={slotIndex}>
                       {date ? new Date(date).getDate() : ''}
                     </th>
                   );
                 })}
+
+                {/* Правые skeleton даты */}
+                {loadingRight && Array.from({ length: 7 }).map((_, i) => (
+                  <th key={`skeleton-right-${i}`} className={styles.skeletonHeader}>
+                    <div className={styles.skeletonPulse} />
+                  </th>
+                ))}
+
+                {/* Правый sentinel (невидимый) */}
+                <th ref={rightSentinelRef} style={{ width: '1px', padding: 0, border: 'none' }} />
               </tr>
             </thead>
             <tbody>
-              {/* Каждая строка = сотрудник */}
-              {/* 🎯 Передаем ТОЛЬКО employee - без dates! */}
+              {/* Основные строки сотрудников */}
               {employees.map(emp => (
-                <EmployeeRow
-                  key={emp.id}
-                  employee={emp}
-                />
+                <tr key={emp.id}>
+                  {/* Левый sentinel для этой строки */}
+                  <td style={{ width: '1px', padding: 0, border: 'none' }} />
+
+                  {/* Левые skeleton ячейки */}
+                  {loadingLeft && Array.from({ length: 7 }).map((_, i) => (
+                    <td key={`skeleton-left-${emp.id}-${i}`} className={styles.skeletonCell}>
+                      <div className={styles.skeletonPulse} />
+                    </td>
+                  ))}
+
+                  {/* Основные ячейки сотрудника */}
+                  {visibleSlots.map(slotIndex => (
+                    <ScheduleCell
+                      key={slotIndex}
+                      employeeId={emp.id}
+                      slotIndex={slotIndex}
+                    />
+                  ))}
+
+                  {/* Правые skeleton ячейки */}
+                  {loadingRight && Array.from({ length: 7 }).map((_, i) => (
+                    <td key={`skeleton-right-${emp.id}-${i}`} className={styles.skeletonCell}>
+                      <div className={styles.skeletonPulse} />
+                    </td>
+                  ))}
+
+                  {/* Правый sentinel для этой строки */}
+                  <td style={{ width: '1px', padding: 0, border: 'none' }} />
+                </tr>
               ))}
             </tbody>
           </table>
