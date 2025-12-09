@@ -146,8 +146,8 @@ button:hover {
     font-weight: 400;
 }
 
-/* Корректировка контейнера для поддержки скролла */
-.scrollable_container {
+/* Wrapper для таблицы и индикатора загрузки */
+.scrollContent {
     display: flex;
     align-items: flex-start;
 }

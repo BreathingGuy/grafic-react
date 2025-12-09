@@ -87,70 +87,72 @@ export default function ScheduleTable({ period }) {
 
         {/* 🎯 ВИРТУАЛИЗАЦИЯ - добавляем ref на scrollable_container */}
         <div className={styles.scrollable_container} ref={scrollContainerRef}>
-          <table className={styles.scrollable_column}>
-            <thead>
-              <tr>
-                {monthGroups.map((group, i) => (
-                  <th
-                    key={i}
-                    colSpan={group.colspan}
-                    className={styles.monthHeader}
-                  >
-                    {group.month}
-                  </th>
-                ))}
-                {/* Placeholder для индикатора загрузки */}
-                {(canLoadMore && loadingProgress > 0) && (
-                  <th colSpan={30} className={styles.loadingHeader}>
-                    Загрузка...
-                  </th>
-                )}
-              </tr>
-              <tr>
-                {visibleSlots.map(slotIndex => {
-                  const date = slotToDate[slotIndex];
-                  return (
-                    <th key={slotIndex}>
-                      {date ? new Date(date).getDate() : ''}
+          <div className={styles.scrollContent}>
+            <table className={styles.scrollable_column}>
+              <thead>
+                <tr>
+                  {monthGroups.map((group, i) => (
+                    <th
+                      key={i}
+                      colSpan={group.colspan}
+                      className={styles.monthHeader}
+                    >
+                      {group.month}
                     </th>
-                  );
-                })}
-                {/* Placeholder для дней загружаемого месяца */}
-                {(canLoadMore && loadingProgress > 0) && (
-                  Array.from({ length: 30 }, (_, i) => (
-                    <th key={`loading-day-${i}`}>...</th>
-                  ))
+                  ))}
+                  {/* Placeholder для индикатора загрузки */}
+                  {(canLoadMore && loadingProgress > 0) && (
+                    <th colSpan={30} className={styles.loadingHeader}>
+                      Загрузка...
+                    </th>
+                  )}
+                </tr>
+                <tr>
+                  {visibleSlots.map(slotIndex => {
+                    const date = slotToDate[slotIndex];
+                    return (
+                      <th key={slotIndex}>
+                        {date ? new Date(date).getDate() : ''}
+                      </th>
+                    );
+                  })}
+                  {/* Placeholder для дней загружаемого месяца */}
+                  {(canLoadMore && loadingProgress > 0) && (
+                    Array.from({ length: 30 }, (_, i) => (
+                      <th key={`loading-day-${i}`}>...</th>
+                    ))
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {/* Каждая строка = сотрудник */}
+                {employees.map(emp => (
+                  <EmployeeRow
+                    key={emp.id}
+                    employee={emp}
+                  />
+                ))}
+              </tbody>
+            </table>
+
+            {/* 🎯 ИНДИКАТОР ЗАГРУЗКИ - показываем когда приближаемся к концу */}
+            {canLoadMore && (loadingProgress > 0 || isLoadingMore) && (
+              <div className={styles.loadingSection}>
+                <LoadingIndicator
+                  progress={loadingProgress}
+                  isLoading={isLoadingMore}
+                />
+
+                {/* Skeleton пока идет загрузка */}
+                {isLoadingMore && (
+                  <MonthSkeleton
+                    employeeCount={employees.length}
+                    daysCount={90}
+                  />
                 )}
-              </tr>
-            </thead>
-            <tbody>
-              {/* Каждая строка = сотрудник */}
-              {employees.map(emp => (
-                <EmployeeRow
-                  key={emp.id}
-                  employee={emp}
-                />
-              ))}
-            </tbody>
-          </table>
-
-          {/* 🎯 ИНДИКАТОР ЗАГРУЗКИ - показываем когда приближаемся к концу */}
-          {canLoadMore && (loadingProgress > 0 || isLoadingMore) && (
-            <div className={styles.loadingSection}>
-              <LoadingIndicator
-                progress={loadingProgress}
-                isLoading={isLoadingMore}
-              />
-
-              {/* Skeleton пока идет загрузка */}
-              {isLoadingMore && (
-                <MonthSkeleton
-                  employeeCount={employees.length}
-                  daysCount={90}
-                />
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
