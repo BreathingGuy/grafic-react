@@ -1,8 +1,11 @@
-import { useMemo, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { useDateStore } from '../../store/dateStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import EmployeeRow from './EmployeeRow';
+import LoadingIndicator from '../Loader/LoadingIndicator';
+import MonthSkeleton from '../Loader/MonthSkeleton';
 import styles from './Table.module.css';
 
 export default function ScheduleTable({ period }) {
@@ -16,11 +19,21 @@ export default function ScheduleTable({ period }) {
   const slotToDate = useDateStore(state => state.slotToDate);
   const monthGroups = useDateStore(state => state.monthGroups);
   const currentYear = useDateStore(state => state.currentYear);
-  const shiftDates = useDateStore(state => state.shiftDates);
   const setPeriod = useDateStore(state => state.setPeriod);
 
   // Workspace store для загрузки данных при смене года
   const loadYearData = useWorkspaceStore(state => state.loadYearData);
+
+  // 🎯 ВИРТУАЛИЗАЦИЯ - infinite scroll
+  const {
+    scrollContainerRef,
+    isLoadingMore,
+    canLoadMore,
+    loadingProgress
+  } = useInfiniteScroll({
+    threshold: 300,      // Показываем индикатор за 300px до конца
+    triggerThreshold: 100 // Триггерим загрузку за 100px до конца
+  });
 
   // === ЭФФЕКТЫ ===
 
@@ -42,14 +55,8 @@ export default function ScheduleTable({ period }) {
 
   return (
     <div className={styles.tableContainer}>
-      {/* Кнопки навигации по датам */}
-      <div className={styles.navigation}>
-        <button onClick={() => shiftDates('prev')} className={styles.navButton}>
-          ← Назад
-        </button>
-        <button onClick={() => shiftDates('next')} className={styles.navButton}>
-          Вперёд →
-        </button>
+      {/* Индикатор текущего года */}
+      <div className={styles.yearIndicator}>
         <span className={styles.yearLabel}>Год: {currentYear}</span>
       </div>
 
@@ -78,7 +85,8 @@ export default function ScheduleTable({ period }) {
             </tbody>
         </table>
 
-        <div className={styles.scrollable_container}>
+        {/* 🎯 ВИРТУАЛИЗАЦИЯ - добавляем ref на scrollable_container */}
+        <div className={styles.scrollable_container} ref={scrollContainerRef}>
           <table className={styles.scrollable_column}>
             <thead>
               <tr>
@@ -91,6 +99,12 @@ export default function ScheduleTable({ period }) {
                     {group.month}
                   </th>
                 ))}
+                {/* Placeholder для индикатора загрузки */}
+                {(canLoadMore && loadingProgress > 0) && (
+                  <th colSpan={30} className={styles.loadingHeader}>
+                    Загрузка...
+                  </th>
+                )}
               </tr>
               <tr>
                 {visibleSlots.map(slotIndex => {
@@ -101,11 +115,16 @@ export default function ScheduleTable({ period }) {
                     </th>
                   );
                 })}
+                {/* Placeholder для дней загружаемого месяца */}
+                {(canLoadMore && loadingProgress > 0) && (
+                  Array.from({ length: 30 }, (_, i) => (
+                    <th key={`loading-day-${i}`}>...</th>
+                  ))
+                )}
               </tr>
             </thead>
             <tbody>
               {/* Каждая строка = сотрудник */}
-              {/* 🎯 Передаем ТОЛЬКО employee - без dates! */}
               {employees.map(emp => (
                 <EmployeeRow
                   key={emp.id}
@@ -114,6 +133,24 @@ export default function ScheduleTable({ period }) {
               ))}
             </tbody>
           </table>
+
+          {/* 🎯 ИНДИКАТОР ЗАГРУЗКИ - показываем когда приближаемся к концу */}
+          {canLoadMore && (loadingProgress > 0 || isLoadingMore) && (
+            <div className={styles.loadingSection}>
+              <LoadingIndicator
+                progress={loadingProgress}
+                isLoading={isLoadingMore}
+              />
+
+              {/* Skeleton пока идет загрузка */}
+              {isLoadingMore && (
+                <MonthSkeleton
+                  employeeCount={employees.length}
+                  daysCount={90}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

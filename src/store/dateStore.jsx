@@ -53,11 +53,15 @@ export const useDateStore = create(
     period: '3months',                      // По умолчанию 3 месяца
     baseDate: new Date(),                   // Базовая дата для расчета диапазона
 
-    // 🎯 СИСТЕМА СЛОТОВ - ключевая оптимизация!
-    // visibleSlots - ФИКСИРОВАННЫЙ массив индексов (никогда не меняется!)
-    // При навигации меняется только slotToDate mapping
-    visibleSlots: Array.from({ length: 90 }, (_, i) => i),  // [0, 1, 2, ..., 89] - 90 дней (~3 месяца)
+    // 🎯 ВИРТУАЛИЗАЦИЯ - динамическая загрузка месяцев
+    loadedDates: [],                        // Все загруженные даты (растет при скролле)
+    visibleSlots: [],                       // Динамический массив индексов
     slotToDate: {},                         // { 0: "2025-01-01", 1: "2025-01-02", ... }
+
+    // Состояние загрузки
+    isLoadingMore: false,                   // Идет ли загрузка следующих месяцев
+    canLoadMore: true,                      // Можно ли загрузить еще месяцы
+    loadingProgress: 0,                     // Прогресс загрузки (0-100) для круга
 
     // Для заголовков таблицы
     monthGroups: [],
@@ -65,23 +69,29 @@ export const useDateStore = create(
     // === ИНИЦИАЛИЗАЦИЯ ===
 
     initialize: () => {
-      const { period, baseDate, currentYear } = get();
+      const { baseDate, currentYear } = get();
 
-      // Вычисляем даты для текущего периода
-      const dates = get().calculateVisibleDates(period, baseDate, currentYear);
+      // Для виртуализации загружаем начальные 3 месяца
+      const initialDates = get().getNext3MonthsFrom(baseDate, currentYear);
+
+      // Создаем visibleSlots динамически
+      const visibleSlots = Array.from({ length: initialDates.length }, (_, i) => i);
 
       // Создаем mapping слот → дата
       const slotToDate = {};
-      dates.forEach((date, index) => {
+      initialDates.forEach((date, index) => {
         slotToDate[index] = date;
       });
 
       // Вычисляем группировку по месяцам
-      const groups = get().calculateMonthGroups(dates);
+      const groups = get().calculateMonthGroups(initialDates);
 
       set({
+        loadedDates: initialDates,
+        visibleSlots,
         slotToDate,
-        monthGroups: groups
+        monthGroups: groups,
+        canLoadMore: true
       });
     },
 
@@ -137,6 +147,100 @@ export const useDateStore = create(
       }
 
       return dates;
+    },
+
+    // 🎯 ВИРТУАЛИЗАЦИЯ - получить следующие 3 месяца от указанной даты
+    getNext3MonthsFrom: (fromDate, year) => {
+      const dates = [];
+      const startDate = new Date(fromDate);
+      const startMonth = startDate.getMonth();
+      const startYear = year || startDate.getFullYear();
+
+      // Загружаем 3 месяца начиная с текущего
+      for (let i = 0; i < 3; i++) {
+        const month = startMonth + i;
+        const actualYear = startYear + Math.floor(month / 12);
+        const actualMonth = month % 12;
+
+        const monthKey = `${actualYear}-${String(actualMonth + 1).padStart(2, '0')}`;
+        const monthDates = get().datesByMonth[monthKey] || [];
+        dates.push(...monthDates);
+      }
+
+      return dates;
+    },
+
+    // Добавить следующие 3 месяца к уже загруженным
+    loadNext3Months: async () => {
+      const { loadedDates, isLoadingMore, canLoadMore } = get();
+
+      if (isLoadingMore || !canLoadMore) return;
+
+      set({ isLoadingMore: true, loadingProgress: 0 });
+
+      // Симулируем задержку загрузки для UX
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Получаем последнюю загруженную дату
+      const lastDate = loadedDates[loadedDates.length - 1];
+      if (!lastDate) {
+        set({ isLoadingMore: false });
+        return;
+      }
+
+      const lastDateObj = new Date(lastDate);
+      // Переходим к следующему месяцу
+      lastDateObj.setMonth(lastDateObj.getMonth() + 1);
+      lastDateObj.setDate(1);
+
+      // Загружаем следующие 3 месяца
+      const next3Months = get().getNext3MonthsFrom(lastDateObj, lastDateObj.getFullYear());
+
+      if (next3Months.length === 0) {
+        set({ canLoadMore: false, isLoadingMore: false });
+        return;
+      }
+
+      // Обновляем загруженные даты
+      const newLoadedDates = [...loadedDates, ...next3Months];
+
+      // Обновляем visibleSlots
+      const newVisibleSlots = Array.from({ length: newLoadedDates.length }, (_, i) => i);
+
+      // Обновляем mapping
+      const newSlotToDate = {};
+      newLoadedDates.forEach((date, index) => {
+        newSlotToDate[index] = date;
+      });
+
+      // Пересчитываем группы месяцев
+      const groups = get().calculateMonthGroups(newLoadedDates);
+
+      // Проверяем, можем ли загрузить еще
+      const lastLoadedDate = new Date(newLoadedDates[newLoadedDates.length - 1]);
+      const maxYear = Math.max(...Object.keys(get().datesByYear).map(y => parseInt(y)));
+      const canContinue = lastLoadedDate.getFullYear() < maxYear ||
+                          (lastLoadedDate.getFullYear() === maxYear && lastLoadedDate.getMonth() < 11);
+
+      set({
+        loadedDates: newLoadedDates,
+        visibleSlots: newVisibleSlots,
+        slotToDate: newSlotToDate,
+        monthGroups: groups,
+        isLoadingMore: false,
+        loadingProgress: 100,
+        canLoadMore: canContinue
+      });
+
+      // Сбрасываем прогресс через небольшую задержку
+      setTimeout(() => {
+        set({ loadingProgress: 0 });
+      }, 300);
+    },
+
+    // Установить прогресс загрузки (вызывается из хука infinite scroll)
+    setLoadingProgress: (progress) => {
+      set({ loadingProgress: Math.min(100, Math.max(0, progress)) });
     },
 
     // Вычислить группировку по месяцам для заголовков

@@ -1,0 +1,85 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  min-width: 600px;
+  padding: 0 10px;
+  opacity: 0.6;
+}
+
+.header {
+  display: flex;
+  gap: 0;
+  margin-bottom: 4px;
+}
+
+.monthHeader {
+  flex: 1;
+  padding: 8px 0;
+  text-align: center;
+}
+
+.skeletonMonth {
+  height: 20px;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  margin: 0 auto;
+  width: 80%;
+}
+
+.daysRow {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.dayCell {
+  min-width: 40px;
+  max-width: 40px;
+  padding: 4px;
+  text-align: center;
+}
+
+.skeletonDay {
+  height: 16px;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 3px;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.employeeRow {
+  display: flex;
+  gap: 2px;
+}
+
+.cell {
+  min-width: 40px;
+  max-width: 40px;
+  padding: 4px;
+}
+
+.skeletonCell {
+  height: 30px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #f9fafb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}

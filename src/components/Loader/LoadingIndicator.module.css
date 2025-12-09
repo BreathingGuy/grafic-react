@@ -1,0 +1,89 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  min-width: 100px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.05), transparent);
+}
+
+.indicator {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.svg {
+  display: block;
+}
+
+.backgroundCircle {
+  fill: none;
+  stroke: #e5e7eb;
+}
+
+.progressCircle {
+  fill: none;
+  stroke: #3b82f6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.progressCircleLoading {
+  fill: none;
+  stroke: #10b981;
+  stroke-linecap: round;
+  animation: rotate 1.5s linear infinite;
+}
+
+@keyframes rotate {
+  0% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(270deg);
+  }
+}
+
+.progressText {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.loadingText {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 20px;
+  color: #10b981;
+}
+
+.spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hint {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+  white-space: nowrap;
+}
