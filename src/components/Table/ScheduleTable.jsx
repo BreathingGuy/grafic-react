@@ -102,26 +102,41 @@ export default function ScheduleTable({ period, search }) {
   // Настройка IntersectionObserver для левого sentinel
   useEffect(() => {
     const leftSentinel = leftSentinelRef.current;
-    if (!leftSentinel) return;
+    const container = scrollContainerRef.current;
+
+    if (!leftSentinel || !container) {
+      console.warn('⚠️ Left sentinel or container not found');
+      return;
+    }
+
+    console.log('🎯 Setting up left IntersectionObserver', { leftSentinel, container });
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
-          if (entry.isIntersecting) {
+          console.log('👁️ Left sentinel intersection:', {
+            isIntersecting: entry.isIntersecting,
+            intersectionRatio: entry.intersectionRatio,
+            boundingClientRect: entry.boundingClientRect
+          });
+
+          if (entry.isIntersecting && entry.intersectionRatio > 0) {
             handleLeftIntersect();
           }
         });
       },
       {
-        root: scrollContainerRef.current,
-        threshold: 0.1,
-        rootMargin: '0px 200px 0px 0px' // Триггерим за 200px до края
+        root: container,
+        threshold: [0, 0.1, 0.5, 1],
+        rootMargin: '0px 100px 0px 0px' // Уменьшил с 200px до 100px
       }
     );
 
     observer.observe(leftSentinel);
+    console.log('✅ Left observer attached');
 
     return () => {
+      console.log('🗑️ Disconnecting left observer');
       observer.disconnect();
     };
   }, [handleLeftIntersect]);
@@ -129,26 +144,41 @@ export default function ScheduleTable({ period, search }) {
   // Настройка IntersectionObserver для правого sentinel
   useEffect(() => {
     const rightSentinel = rightSentinelRef.current;
-    if (!rightSentinel) return;
+    const container = scrollContainerRef.current;
+
+    if (!rightSentinel || !container) {
+      console.warn('⚠️ Right sentinel or container not found');
+      return;
+    }
+
+    console.log('🎯 Setting up right IntersectionObserver', { rightSentinel, container });
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
-          if (entry.isIntersecting) {
+          console.log('👁️ Right sentinel intersection:', {
+            isIntersecting: entry.isIntersecting,
+            intersectionRatio: entry.intersectionRatio,
+            boundingClientRect: entry.boundingClientRect
+          });
+
+          if (entry.isIntersecting && entry.intersectionRatio > 0) {
             handleRightIntersect();
           }
         });
       },
       {
-        root: scrollContainerRef.current,
-        threshold: 0.1,
-        rootMargin: '0px 0px 0px 200px' // Триггерим за 200px до края
+        root: container,
+        threshold: [0, 0.1, 0.5, 1],
+        rootMargin: '0px 0px 0px 100px' // Уменьшил с 200px до 100px
       }
     );
 
     observer.observe(rightSentinel);
+    console.log('✅ Right observer attached');
 
     return () => {
+      console.log('🗑️ Disconnecting right observer');
       observer.disconnect();
     };
   }, [handleRightIntersect]);
@@ -238,6 +268,13 @@ export default function ScheduleTable({ period, search }) {
           <table className={styles.scrollable_column}>
             <thead>
               <tr>
+                {/* Левый sentinel header (видимый) */}
+                <th
+                  ref={leftSentinelRef}
+                  className={styles.sentinelColumn}
+                  style={{ width: '10px', minWidth: '10px', padding: 0 }}
+                />
+
                 {/* Левый loading header */}
                 {loadingLeft && (
                   <th colSpan={7} className={styles.sentinelCell}>
@@ -262,10 +299,17 @@ export default function ScheduleTable({ period, search }) {
                     Загрузка... ➡️
                   </th>
                 )}
+
+                {/* Правый sentinel header (видимый) */}
+                <th
+                  ref={rightSentinelRef}
+                  className={styles.sentinelColumn}
+                  style={{ width: '10px', minWidth: '10px', padding: 0 }}
+                />
               </tr>
               <tr>
-                {/* Левый sentinel (невидимый) */}
-                <th ref={leftSentinelRef} style={{ width: '1px', padding: 0, border: 'none' }} />
+                {/* Левый sentinel дата */}
+                <th className={styles.sentinelColumn} style={{ width: '10px', minWidth: '10px', padding: 0 }} />
 
                 {/* Левые skeleton даты */}
                 {loadingLeft && Array.from({ length: 7 }).map((_, i) => (
@@ -292,8 +336,8 @@ export default function ScheduleTable({ period, search }) {
                   </th>
                 ))}
 
-                {/* Правый sentinel (невидимый) */}
-                <th ref={rightSentinelRef} style={{ width: '1px', padding: 0, border: 'none' }} />
+                {/* Правый sentinel дата */}
+                <th className={styles.sentinelColumn} style={{ width: '10px', minWidth: '10px', padding: 0 }} />
               </tr>
             </thead>
             <tbody>
@@ -301,7 +345,7 @@ export default function ScheduleTable({ period, search }) {
               {employees.map(emp => (
                 <tr key={emp.id}>
                   {/* Левый sentinel для этой строки */}
-                  <td style={{ width: '1px', padding: 0, border: 'none' }} />
+                  <td className={styles.sentinelColumn} style={{ width: '10px', minWidth: '10px', padding: 0 }} />
 
                   {/* Левые skeleton ячейки */}
                   {loadingLeft && Array.from({ length: 7 }).map((_, i) => (
@@ -327,7 +371,7 @@ export default function ScheduleTable({ period, search }) {
                   ))}
 
                   {/* Правый sentinel для этой строки */}
-                  <td style={{ width: '1px', padding: 0, border: 'none' }} />
+                  <td className={styles.sentinelColumn} style={{ width: '10px', minWidth: '10px', padding: 0 }} />
                 </tr>
               ))}
             </tbody>

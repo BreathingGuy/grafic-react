@@ -174,3 +174,12 @@ button:hover {
     background: #fafafa;
     border: 1px solid #e0e0e0;
 }
+
+.sentinelColumn {
+    background: transparent;
+    border: none !important;
+    width: 10px;
+    min-width: 10px;
+    max-width: 10px;
+    padding: 0 !important;
+}
