@@ -16,22 +16,29 @@ export const useScheduleStore = create(
     cachedYears: {},
     loadedYear: null,              // Текущий загруженный год
     loadedDepartment: null,        // Текущий загруженный отдел
+    loadingKey: null,              // Ключ текущей загрузки (для предотвращения дублей)
 
     // WebSocket
     ws: null,
     isConnected: false,
-    
+
     // === ACTIONS ===
-    
+
     // Загрузка расписания с кэшированием
     loadSchedule: async (departmentId, year) => {
       const cacheKey = `${departmentId}-${year}`;
-      const { cachedYears, loadedYear, loadedDepartment } = get();
+      const { cachedYears, loadedYear, loadedDepartment, loadingKey } = get();
 
       // Проверяем, уже загружен ли этот год для этого отдела
       if (loadedDepartment === departmentId && loadedYear === year) {
         console.log(`📦 Год ${year} для отдела ${departmentId} уже загружен`);
         return; // Уже загружено
+      }
+
+      // Проверяем, идет ли уже загрузка этих же данных
+      if (loadingKey === cacheKey) {
+        console.log(`⏳ Загрузка ${cacheKey} уже выполняется, пропускаем дубликат`);
+        return;
       }
 
       // Проверяем кэш
@@ -52,7 +59,7 @@ export const useScheduleStore = create(
 
       // Загружаем с сервера
       console.log(`🌐 Загрузка с сервера: ${cacheKey}`);
-      set({ loading: true });
+      set({ loading: true, loadingKey: cacheKey });
 
       try {
         const response = await fetch(
@@ -71,7 +78,8 @@ export const useScheduleStore = create(
             ...state.cachedYears,
             [cacheKey]: { scheduleMap, employeeMap }
           },
-          loading: false
+          loading: false,
+          loadingKey: null
         }));
 
         console.log(`✅ Данные загружены и закэшированы: ${cacheKey}`);
@@ -80,7 +88,7 @@ export const useScheduleStore = create(
 
       } catch (error) {
         console.error('Failed to load schedule:', error);
-        set({ loading: false });
+        set({ loading: false, loadingKey: null });
       }
     },
     
@@ -141,7 +149,8 @@ export const useScheduleStore = create(
         scheduleMap: {},
         changedCells: new Set(),
         loadedYear: null,
-        loadedDepartment: null
+        loadedDepartment: null,
+        loadingKey: null
       });
     },
 
@@ -153,7 +162,8 @@ export const useScheduleStore = create(
         changedCells: new Set(),
         cachedYears: {},
         loadedYear: null,
-        loadedDepartment: null
+        loadedDepartment: null,
+        loadingKey: null
       });
     },
     
