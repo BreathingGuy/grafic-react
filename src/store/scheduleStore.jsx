@@ -7,12 +7,17 @@ export const useScheduleStore = create(
   devtools((set, get) => ({
     // === STATE ===
     scheduleMap: {},               // { "emp-1-2025-01-15": "Д", ... }
-    employeeMap: [],
+
+    // 🎯 ОПТИМИЗАЦИЯ: Изменена структура хранения сотрудников
+    // Вместо массива используем объект для переиспользования ссылок
+    employeeById: {},              // { "1": { id: "1", name: "Иванов И.И.", ... }, ... }
+    employeeIds: [],               // ["1", "2", "3", ...] - порядок сотрудников
+
     changedCells: new Set(),       // Подсветка изменённых ячеек
     loading: false,
 
     // Кэширование загруженных годов
-    // Структура: { "departmentId-year": { scheduleMap, employeeMap } }
+    // Структура: { "departmentId-year": { scheduleMap, employeeById, employeeIds } }
     cachedYears: {},
     loadedYear: null,              // Текущий загруженный год
     loadedDepartment: null,        // Текущий загруженный отдел
@@ -48,7 +53,8 @@ export const useScheduleStore = create(
 
         set({
           scheduleMap: cached.scheduleMap,
-          employeeMap: cached.employeeMap,
+          employeeById: cached.employeeById,
+          employeeIds: cached.employeeIds,
           loadedYear: year,
           loadedDepartment: departmentId,
           loading: false
@@ -66,25 +72,46 @@ export const useScheduleStore = create(
           `../../public/data-${departmentId}-${year}.json`
         );
         const data = await response.json();
-        const { employeeMap, scheduleMap } = get().normalizeScheduleData(data, year);
+        const { employeeById, employeeIds, scheduleMap } = get().normalizeScheduleData(data, year);
+
+        // 🎯 ОПТИМИЗАЦИЯ: Переиспользуем существующие объекты сотрудников
+        const currentEmployeeById = get().employeeById;
+        const optimizedEmployeeById = {};
+
+        employeeIds.forEach(empId => {
+          const newEmployee = employeeById[empId];
+          const existingEmployee = currentEmployeeById[empId];
+
+          // Если данные сотрудника не изменились, используем старый объект
+          if (existingEmployee &&
+              existingEmployee.name === newEmployee.name &&
+              existingEmployee.fullName === newEmployee.fullName &&
+              existingEmployee.position === newEmployee.position) {
+            optimizedEmployeeById[empId] = existingEmployee;  // ← Переиспользуем!
+          } else {
+            optimizedEmployeeById[empId] = newEmployee;
+          }
+        });
 
         // Сохраняем в кэш
         set(state => ({
           scheduleMap: scheduleMap || {},
-          employeeMap: employeeMap || {},
+          employeeById: optimizedEmployeeById,
+          employeeIds: employeeIds,
           loadedYear: year,
           loadedDepartment: departmentId,
           cachedYears: {
             ...state.cachedYears,
-            [cacheKey]: { scheduleMap, employeeMap }
+            [cacheKey]: { scheduleMap, employeeById: optimizedEmployeeById, employeeIds }
           },
           loading: false,
           loadingKey: null
         }));
 
         console.log(`✅ Данные загружены и закэшированы: ${cacheKey}`);
-        console.log(employeeMap);
-        console.log(scheduleMap);
+        console.log('employeeIds:', employeeIds);
+        console.log('employeeById:', optimizedEmployeeById);
+        console.log('scheduleMap size:', Object.keys(scheduleMap).length);
 
       } catch (error) {
         console.error('Failed to load schedule:', error);
@@ -94,20 +121,24 @@ export const useScheduleStore = create(
     
     // Нормализация данных с сервера
     normalizeScheduleData: (rawData, year) => {
-      const employeeMap = [];
+      const employeeById = {};
+      const employeeIds = [];
       const scheduleMap = {};
-      
+
       rawData.data.forEach(employee => {
         const employeeId = String(employee.id);
-        
-        // Формируем employeeMap
-        employeeMap.push({
+
+        // Добавляем в список ID
+        employeeIds.push(employeeId);
+
+        // Формируем employeeById
+        employeeById[employeeId] = {
           id: employeeId,
           name: `${employee.fio.family} ${employee.fio.name1[0]}.${employee.fio.name2[0]}.`,
           fullName: `${employee.fio.family} ${employee.fio.name1} ${employee.fio.name2}`,
           position: employee.position || '' // если есть
-        });
-        
+        };
+
         // Формируем scheduleMap
         Object.entries(employee.schedule).forEach(([dateKey, status]) => {
           // dateKey приходит как "01-01", преобразуем в "2025-01-01"
@@ -116,18 +147,19 @@ export const useScheduleStore = create(
           scheduleMap[key] = status;
         });
       });
-      
-      return { employeeMap, scheduleMap };
+
+      return { employeeById, employeeIds, scheduleMap };
     },
     
     // Получить данные сотрудника
     getEmployee: (employeeId) => {
-      return get().employeeMap[employeeId] || null;
+      return get().employeeById[employeeId] || null;
     },
-    
+
     // Получить всех сотрудников (для рендера таблицы)
     getAllEmployees: () => {
-      return Object.values(get().employeeMap);
+      const { employeeById, employeeIds } = get();
+      return employeeIds.map(id => employeeById[id]);
     },
     
     // Получить статус ячейки
@@ -145,7 +177,8 @@ export const useScheduleStore = create(
     // Очистить расписание (но сохранить кэш)
     clearSchedule: () => {
       set({
-        employeeMap: {},
+        employeeById: {},
+        employeeIds: [],
         scheduleMap: {},
         changedCells: new Set(),
         loadedYear: null,
@@ -157,7 +190,8 @@ export const useScheduleStore = create(
     // Полностью очистить кэш (при смене отдела или выходе)
     clearCache: () => {
       set({
-        employeeMap: {},
+        employeeById: {},
+        employeeIds: [],
         scheduleMap: {},
         changedCells: new Set(),
         cachedYears: {},

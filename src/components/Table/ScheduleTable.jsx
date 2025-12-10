@@ -1,4 +1,5 @@
-import { useMemo, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useDebouncedCallback } from 'use-debounce';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { useDateStore } from '../../store/dateStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
@@ -9,7 +10,11 @@ export default function ScheduleTable({ period }) {
   // === ДАННЫЕ ИЗ ZUSTAND STORES ===
 
   const loading = useScheduleStore(state => state.loading);
-  const employees = useScheduleStore(state => state.employeeMap);
+
+  // 🎯 ОПТИМИЗАЦИЯ 1: Получаем employee данные через новую структуру
+  // employeeIds и employeeById отдельно для переиспользования объектов
+  const employeeIds = useScheduleStore(state => state.employeeIds);
+  const employeeById = useScheduleStore(state => state.employeeById);
 
   // Получаем данные из dateStore
   const visibleSlots = useDateStore(state => state.visibleSlots);
@@ -22,6 +27,14 @@ export default function ScheduleTable({ period }) {
   // Workspace store для загрузки данных при смене года
   const loadYearData = useWorkspaceStore(state => state.loadYearData);
 
+  // 🎯 ОПТИМИЗАЦИЯ 2: Debounce для загрузки года (избегаем множественных запросов)
+  const debouncedLoadYear = useDebouncedCallback(
+    (year) => {
+      loadYearData(year);
+    },
+    300  // 300ms задержка - если пользователь быстро переключает года
+  );
+
   // === ЭФФЕКТЫ ===
 
   // Синхронизация периода из пропса с dateStore
@@ -29,10 +42,10 @@ export default function ScheduleTable({ period }) {
     setPeriod(period);
   }, [period, setPeriod]);
 
-  // Загрузка данных при смене года
+  // Загрузка данных при смене года с debounce
   useEffect(() => {
-    loadYearData(currentYear);
-  }, [currentYear, loadYearData]);
+    debouncedLoadYear(currentYear);
+  }, [currentYear, debouncedLoadYear]);
 
   // === МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ ===
 
@@ -66,15 +79,16 @@ export default function ScheduleTable({ period }) {
             </thead>
 
             <tbody>
-              {employees.map(emp => (
-                <tr key={emp.id}>
-                  <td
-                    title={emp.fullName}
-                  >
-                    {emp.name}
-                  </td>
-                </tr>
-              ))}
+              {employeeIds.map(empId => {
+                const emp = employeeById[empId];
+                return (
+                  <tr key={empId}>
+                    <td title={emp?.fullName}>
+                      {emp?.name}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
         </table>
 
@@ -104,12 +118,12 @@ export default function ScheduleTable({ period }) {
               </tr>
             </thead>
             <tbody>
-              {/* Каждая строка = сотрудник */}
-              {/* 🎯 Передаем ТОЛЬКО employee - без dates! */}
-              {employees.map(emp => (
+              {/* 🎯 ОПТИМИЗАЦИЯ 3: Передаем конкретный объект из employeeById */}
+              {/* React.memo сравнит ссылки, и если объект не изменился - не перерисует */}
+              {employeeIds.map(empId => (
                 <EmployeeRow
-                  key={emp.id}
-                  employee={emp}
+                  key={empId}
+                  employee={employeeById[empId]}
                 />
               ))}
             </tbody>
