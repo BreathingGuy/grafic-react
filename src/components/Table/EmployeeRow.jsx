@@ -1,13 +1,8 @@
 import { memo } from 'react';
-import { useDateStore } from '../../store/dateStore';
 import ScheduleCell from './ScheduleCell';
 
-// 🎯 КЛЮЧЕВАЯ ОПТИМИЗАЦИЯ: Принимаем только employee, без dates!
-const EmployeeRow = memo(({ employee }) => {
-  // Получаем фиксированный массив слотов из dateStore
-  // visibleSlots НИКОГДА НЕ МЕНЯЕТСЯ - всегда [0, 1, 2, ..., 89]
-  const visibleSlots = useDateStore(state => state.visibleSlots);
-
+// 🎯 КЛЮЧЕВАЯ ОПТИМИЗАЦИЯ: Принимаем visibleSlots как проп для контроля ререндера
+const EmployeeRow = memo(({ employee, visibleSlots }) => {
   return (
     <tr>
       {visibleSlots.map(slotIndex => (
@@ -20,9 +15,12 @@ const EmployeeRow = memo(({ employee }) => {
     </tr>
   );
 }, (prevProps, nextProps) => {
-  // Сравниваем ТОЛЬКО employee
-  // visibleSlots не передается в пропсах, поэтому не влияет на ререндер
-  return prevProps.employee === nextProps.employee;
+  // Сравниваем employee и длину visibleSlots
+  // Если длина не изменилась, то массив тот же (индексы те же)
+  return (
+    prevProps.employee === nextProps.employee &&
+    prevProps.visibleSlots.length === nextProps.visibleSlots.length
+  );
 });
 
 EmployeeRow.displayName = 'EmployeeRow';

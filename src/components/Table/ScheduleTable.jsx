@@ -22,6 +22,10 @@ export default function ScheduleTable({ period }) {
   // Workspace store для загрузки данных
   const loadVisibleYearsData = useWorkspaceStore(state => state.loadVisibleYearsData);
 
+  // 🎯 Мемоизация visibleSlots для предотвращения ненужных ререндеров
+  // Массив стабилизируется по длине - если длина не изменилась, возвращаем старую ссылку
+  const memoizedVisibleSlots = useMemo(() => visibleSlots, [visibleSlots.length]);
+
   // === ЭФФЕКТЫ ===
 
   // Синхронизация периода из пропса с dateStore
@@ -93,7 +97,7 @@ export default function ScheduleTable({ period }) {
                 ))}
               </tr>
               <tr>
-                {visibleSlots.map(slotIndex => {
+                {memoizedVisibleSlots.map(slotIndex => {
                   const date = slotToDate[slotIndex];
                   return (
                     <th key={slotIndex}>
@@ -105,11 +109,12 @@ export default function ScheduleTable({ period }) {
             </thead>
             <tbody>
               {/* Каждая строка = сотрудник */}
-              {/* 🎯 Передаем ТОЛЬКО employee - без dates! */}
+              {/* 🎯 Передаем employee и мемоизированные visibleSlots */}
               {employees.map(emp => (
                 <EmployeeRow
                   key={emp.id}
                   employee={emp}
+                  visibleSlots={memoizedVisibleSlots}
                 />
               ))}
             </tbody>
