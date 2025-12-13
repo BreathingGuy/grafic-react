@@ -51,8 +51,49 @@ export const useScheduleStore = create(
         console.log(`🔄 Восстановление из кэша: ${cacheKey}`);
         const cached = cachedYears[cacheKey];
 
+        // Создаем копию scheduleMap для добавления буферов
+        const scheduleMapWithBuffer = { ...cached.scheduleMap };
+
+        // 🎯 БУФЕР: Добавляем последние 7 дней предыдущего года
+        const prevYear = year - 1;
+        const prevYearCacheKey = `${departmentId}-${prevYear}`;
+        if (cachedYears[prevYearCacheKey]) {
+          console.log(`📎 Добавляем буфер из ${prevYear} года (последние 7 дней)`);
+          const prevScheduleMap = cachedYears[prevYearCacheKey].scheduleMap;
+
+          for (let day = 25; day <= 31; day++) {
+            const dateStr = `${prevYear}-12-${String(day).padStart(2, '0')}`;
+
+            cached.employeeIds.forEach(empId => {
+              const key = `${empId}-${dateStr}`;
+              if (prevScheduleMap[key]) {
+                scheduleMapWithBuffer[key] = prevScheduleMap[key];
+              }
+            });
+          }
+        }
+
+        // 🎯 БУФЕР: Добавляем первые 7 дней следующего года
+        const nextYear = year + 1;
+        const nextYearCacheKey = `${departmentId}-${nextYear}`;
+        if (cachedYears[nextYearCacheKey]) {
+          console.log(`📎 Добавляем буфер из ${nextYear} года (первые 7 дней)`);
+          const nextScheduleMap = cachedYears[nextYearCacheKey].scheduleMap;
+
+          for (let day = 1; day <= 7; day++) {
+            const dateStr = `${nextYear}-01-${String(day).padStart(2, '0')}`;
+
+            cached.employeeIds.forEach(empId => {
+              const key = `${empId}-${dateStr}`;
+              if (nextScheduleMap[key]) {
+                scheduleMapWithBuffer[key] = nextScheduleMap[key];
+              }
+            });
+          }
+        }
+
         set({
-          scheduleMap: cached.scheduleMap,
+          scheduleMap: scheduleMapWithBuffer,
           employeeById: cached.employeeById,
           employeeIds: cached.employeeIds,
           loadedYear: year,
@@ -92,6 +133,46 @@ export const useScheduleStore = create(
             optimizedEmployeeById[empId] = newEmployee;
           }
         });
+
+        // 🎯 БУФЕР: Добавляем последние 7 дней предыдущего года (для недель на стыке)
+        const prevYear = year - 1;
+        const prevYearCacheKey = `${departmentId}-${prevYear}`;
+        if (cachedYears[prevYearCacheKey]) {
+          console.log(`📎 Добавляем буфер из ${prevYear} года (последние 7 дней)`);
+          const prevScheduleMap = cachedYears[prevYearCacheKey].scheduleMap;
+
+          // Последние 7 дней декабря предыдущего года
+          for (let day = 25; day <= 31; day++) {
+            const dateStr = `${prevYear}-12-${String(day).padStart(2, '0')}`;
+
+            employeeIds.forEach(empId => {
+              const key = `${empId}-${dateStr}`;
+              if (prevScheduleMap[key]) {
+                scheduleMap[key] = prevScheduleMap[key];
+              }
+            });
+          }
+        }
+
+        // 🎯 БУФЕР: Добавляем первые 7 дней следующего года (для недель на стыке)
+        const nextYear = year + 1;
+        const nextYearCacheKey = `${departmentId}-${nextYear}`;
+        if (cachedYears[nextYearCacheKey]) {
+          console.log(`📎 Добавляем буфер из ${nextYear} года (первые 7 дней)`);
+          const nextScheduleMap = cachedYears[nextYearCacheKey].scheduleMap;
+
+          // Первые 7 дней января следующего года
+          for (let day = 1; day <= 7; day++) {
+            const dateStr = `${nextYear}-01-${String(day).padStart(2, '0')}`;
+
+            employeeIds.forEach(empId => {
+              const key = `${empId}-${dateStr}`;
+              if (nextScheduleMap[key]) {
+                scheduleMap[key] = nextScheduleMap[key];
+              }
+            });
+          }
+        }
 
         // Сохраняем в кэш
         set(state => ({
