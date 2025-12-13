@@ -86,6 +86,10 @@ export const useDateStore = create(
     // Для заголовков таблицы
     monthGroups: [],
 
+    // Для анимации переходов
+    animationDirection: null,  // 'next', 'prev', или null
+    isAnimating: false,
+
     // === HELPER ФУНКЦИИ ===
 
     // Обновить слоты и маппинги (избегаем дублирования кода)
@@ -325,6 +329,12 @@ export const useDateStore = create(
         return;
       }
 
+      // 🎬 Устанавливаем направление анимации
+      set({
+        animationDirection: direction,
+        isAnimating: true
+      });
+
       const { period, baseDate, currentYear } = get();
       const newDate = new Date(baseDate);
       let newYear = currentYear;
@@ -350,6 +360,14 @@ export const useDateStore = create(
 
       const dates = get().calculateVisibleDates(period, newDate, newYear);
       get().updateSlots(dates);
+
+      // 🎬 Сбрасываем анимацию после завершения (300ms - длительность CSS transition)
+      setTimeout(() => {
+        set({
+          animationDirection: null,
+          isAnimating: false
+        });
+      }, 300);
     },
 
     // Установить базовую дату

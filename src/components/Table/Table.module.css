@@ -57,9 +57,57 @@ body {
     overflow-x: auto ;
     border-right: 1px solid #ccc;
     max-width: calc(100% - 250px);
-    -ms-overflow-style: none; 
+    -ms-overflow-style: none;
     scrollbar-width: thin;
     scrollbar-color: rgb(113, 112, 112) #f9f9fd;
+    position: relative;
+}
+
+/* 🎬 Анимация слайда для scrollable_column */
+.scrollable_column {
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    transform: translateX(0);
+    opacity: 1;
+}
+
+/* Анимация вперед (слайд влево) */
+.scrollable_column.slideNext {
+    animation: slideOutLeft 0.3s ease-in-out;
+}
+
+/* Анимация назад (слайд вправо) */
+.scrollable_column.slidePrev {
+    animation: slideOutRight 0.3s ease-in-out;
+}
+
+@keyframes slideOutLeft {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    50% {
+        transform: translateX(-30px);
+        opacity: 0.5;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    50% {
+        transform: translateX(30px);
+        opacity: 0.5;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 .scrollable_container::-webkit-scrollbar {

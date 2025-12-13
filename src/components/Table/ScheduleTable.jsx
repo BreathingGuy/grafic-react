@@ -26,6 +26,8 @@ export default function ScheduleTable({ period }) {
   const setPeriod = useDateStore(state => state.setPeriod);
   const canGoNext = useDateStore(state => state.canGoNext);
   const canGoPrev = useDateStore(state => state.canGoPrev);
+  const animationDirection = useDateStore(state => state.animationDirection);
+  const isAnimating = useDateStore(state => state.isAnimating);
 
   // Workspace store для загрузки данных при смене года
   const loadYearData = useWorkspaceStore(state => state.loadYearData);
@@ -36,6 +38,14 @@ export default function ScheduleTable({ period }) {
       loadYearData(year);
     },
     300  // 300ms задержка - если пользователь быстро переключает года
+  );
+
+  // 🖱️ Debounced wheel navigation (предотвращает слишком частые переключения)
+  const debouncedWheelNav = useDebouncedCallback(
+    (direction) => {
+      shiftDates(direction);
+    },
+    200  // 200ms задержка между переключениями
   );
 
   // === ЭФФЕКТЫ ===
@@ -50,11 +60,35 @@ export default function ScheduleTable({ period }) {
     debouncedLoadYear(currentYear);
   }, [currentYear, debouncedLoadYear]);
 
+  // === ОБРАБОТЧИКИ ===
+
+  // 🖱️ Обработчик колесика мышки для навигации
+  const handleWheel = (e) => {
+    // Игнорируем если уже идет анимация
+    if (isAnimating) return;
+
+    // deltaY > 0 = прокрутка вниз = назад
+    // deltaY < 0 = прокрутка вверх = вперед
+    if (Math.abs(e.deltaY) > 10) {  // Порог чувствительности
+      if (e.deltaY > 0 && canGoPrev()) {
+        debouncedWheelNav('prev');
+      } else if (e.deltaY < 0 && canGoNext()) {
+        debouncedWheelNav('next');
+      }
+    }
+  };
+
   // === МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ ===
 
   if (loading) {
     return <div className={styles.loading}>Загрузка...</div>;
   }
+
+  // Определяем CSS класс для анимации
+  const getAnimationClass = () => {
+    if (!animationDirection) return '';
+    return animationDirection === 'next' ? styles.slideNext : styles.slidePrev;
+  };
 
   return (
     <div className={styles.tableContainer}>
@@ -103,8 +137,8 @@ export default function ScheduleTable({ period }) {
             </tbody>
         </table>
 
-        <div className={styles.scrollable_container}>
-          <table className={styles.scrollable_column}>
+        <div className={styles.scrollable_container} onWheel={handleWheel}>
+          <table className={`${styles.scrollable_column} ${getAnimationClass()}`}>
             <thead>
               <tr>
                 {monthGroups.map((group, i) => (
