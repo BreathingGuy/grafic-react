@@ -9,15 +9,27 @@ import { MONTHS } from '../constants/index';
 const generateDateIndex = (startYear, endYear) => {
   const datesByYear = {};
   const datesByMonth = {};
+  const datesByQuarter = {};  // ← Индекс по кварталам
+  const dateDays = {};        // ← Число дня (для быстрого доступа)
   const allDates = [];
 
   for (let year = startYear; year <= endYear; year++) {
     datesByYear[year] = [];
 
+    // Инициализируем кварталы
+    for (let q = 0; q < 4; q++) {
+      const quarterKey = `${year}-Q${q + 1}`;
+      datesByQuarter[quarterKey] = [];
+    }
+
     for (let month = 0; month < 12; month++) {
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
       datesByMonth[monthKey] = [];
+
+      // Определяем квартал (0-3)
+      const quarter = Math.floor(month / 3);
+      const quarterKey = `${year}-Q${quarter + 1}`;
 
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -25,14 +37,18 @@ const generateDateIndex = (startYear, endYear) => {
         allDates.push(dateStr);
         datesByYear[year].push(dateStr);
         datesByMonth[monthKey].push(dateStr);
+        datesByQuarter[quarterKey].push(dateStr);  // ← Добавляем в квартал
+
+        // Сохраняем только число дня (для заголовков)
+        dateDays[dateStr] = day;  // "2025-01-15" → 15
       }
     }
   }
 
-  return { allDates, datesByYear, datesByMonth };
+  return { allDates, datesByYear, datesByMonth, datesByQuarter, dateDays };
 };
 
-// Генерируем индекс для диапазона 2020-2035 (один раз!)
+// Генерируем индекс для диапазона 2024-2026 (один раз!)
 const DATE_INDEX = generateDateIndex(2024, 2026);
 
 // ======================================================
@@ -47,6 +63,12 @@ export const useDateStore = create(
     allDates: DATE_INDEX.allDates,
     datesByYear: DATE_INDEX.datesByYear,
     datesByMonth: DATE_INDEX.datesByMonth,
+    datesByQuarter: DATE_INDEX.datesByQuarter,  // ← Квартальный индекс
+    dateDays: DATE_INDEX.dateDays,              // ← Быстрый доступ к дню месяца
+
+    // Границы навигации
+    minYear: 2024,
+    maxYear: 2026,
 
     // Текущее состояние навигации
     currentYear: new Date().getFullYear(),
@@ -54,69 +76,76 @@ export const useDateStore = create(
     baseDate: new Date(),                   // Базовая дата для расчета диапазона
 
     // 🎯 СИСТЕМА СЛОТОВ - ключевая оптимизация!
-    // visibleSlots - ФИКСИРОВАННЫЙ массив индексов (никогда не меняется!)
-    // При навигации меняется только slotToDate mapping
-    visibleSlots: Array.from({ length: 90 }, (_, i) => i),  // [0, 1, 2, ..., 89] - 90 дней (~3 месяца)
+    // visibleSlots - ФИКСИРОВАННЫЙ массив индексов (НИКОГДА НЕ МЕНЯЕТСЯ!)
+    // При навигации меняется только slotToDate/slotToDay mapping
+    visibleSlots: Array.from({ length: 366 }, (_, i) => i),  // [0, 1, 2, ..., 365] - максимум для года
     slotToDate: {},                         // { 0: "2025-01-01", 1: "2025-01-02", ... }
+    slotToDay: {},                          // { 0: 1, 1: 2, 2: 3, ... } - только числа для заголовков
 
     // Для заголовков таблицы
     monthGroups: [],
+
+    // === HELPER ФУНКЦИИ ===
+
+    // Обновить слоты и маппинги (избегаем дублирования кода)
+    updateSlots: (dates) => {
+      const { dateDays } = get();
+
+      const slotToDate = {};
+      const slotToDay = {};
+
+      dates.forEach((date, index) => {
+        slotToDate[index] = date;
+        slotToDay[index] = dateDays[date];  // Быстрый доступ к числу дня
+      });
+
+      const monthGroups = get().calculateMonthGroups(dates);
+
+      set({
+        slotToDate,
+        slotToDay,
+        monthGroups
+      });
+    },
 
     // === ИНИЦИАЛИЗАЦИЯ ===
 
     initialize: () => {
       const { period, baseDate, currentYear } = get();
-
-      // Вычисляем даты для текущего периода
       const dates = get().calculateVisibleDates(period, baseDate, currentYear);
-
-      // Создаем mapping слот → дата
-      const slotToDate = {};
-      dates.forEach((date, index) => {
-        slotToDate[index] = date;
-      });
-
-      // Вычисляем группировку по месяцам
-      const groups = get().calculateMonthGroups(dates);
-
-      set({
-        slotToDate,
-        monthGroups: groups
-      });
+      get().updateSlots(dates);
     },
 
-    // === ВЫЧИСЛЕНИЕ ВИДИМЫХ ДАТ (используем индекс, не пересоздаем даты!) ===
+    // === ВЫЧИСЛЕНИЕ ВИДИМЫХ ДАТ ===
 
     calculateVisibleDates: (period, baseDate, year) => {
+      const { datesByYear, datesByMonth, datesByQuarter } = get();
+
       if (period === '1year') {
-        // ✅ O(1) - просто возвращаем ссылку на массив
-        return get().datesByYear[year] || [];
+        // ✅ O(1) - просто возвращаем готовый массив
+        return datesByYear[year] || [];
       }
 
       if (period === '3months') {
-        // ✅ O(1) - получаем квартал
-        const quarter = Math.floor(baseDate.getMonth() / 3);
-        return get().getQuarterDates(year, quarter);
+        // ✅ O(1) - получаем квартал из индекса
+        const quarter = Math.floor(baseDate.getMonth() / 3) + 1;
+        const quarterKey = `${year}-Q${quarter}`;
+        return datesByQuarter[quarterKey] || [];
+      }
+
+      if (period === '1month') {
+        // ✅ O(1) - получаем месяц из индекса
+        const month = baseDate.getMonth();
+        const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        return datesByMonth[monthKey] || [];
+      }
+
+      if (period === '7days') {
+        // Генерируем неделю (пока нет индекса)
+        return get().getWeekDates(baseDate);
       }
 
       return [];
-    },
-
-    // Получить даты квартала
-    getQuarterDates: (year, quarter) => {
-      const dates = [];
-      const startMonth = quarter * 3;
-
-      for (let i = 0; i < 3; i++) {
-        const month = startMonth + i;
-        if (month < 12) {
-          const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-          const monthDates = get().datesByMonth[monthKey] || [];
-          dates.push(...monthDates);
-        }
-      }
-
-      return dates;
     },
 
     // Получить даты недели (с понедельника по воскресенье)
@@ -169,34 +198,92 @@ export const useDateStore = create(
       return monthGroups;
     },
 
+    // === ПРОВЕРКИ ГРАНИЦ НАВИГАЦИИ ===
+
+    // Можно ли идти вперед?
+    canGoNext: () => {
+      const { period, baseDate, currentYear, maxYear } = get();
+
+      if (period === '1year') {
+        return currentYear < maxYear;
+      }
+
+      if (period === '3months') {
+        const quarter = Math.floor(baseDate.getMonth() / 3);
+        // Последний квартал последнего года?
+        return !(currentYear === maxYear && quarter === 3);
+      }
+
+      if (period === '1month') {
+        const month = baseDate.getMonth();
+        // Последний месяц последнего года?
+        return !(currentYear === maxYear && month === 11);
+      }
+
+      if (period === '7days') {
+        // Проверяем, не выйдет ли неделя за пределы maxYear
+        const newDate = new Date(baseDate);
+        newDate.setDate(newDate.getDate() + 7);
+        return newDate.getFullYear() <= maxYear;
+      }
+
+      return false;
+    },
+
+    // Можно ли идти назад?
+    canGoPrev: () => {
+      const { period, baseDate, currentYear, minYear } = get();
+
+      if (period === '1year') {
+        return currentYear > minYear;
+      }
+
+      if (period === '3months') {
+        const quarter = Math.floor(baseDate.getMonth() / 3);
+        // Первый квартал первого года?
+        return !(currentYear === minYear && quarter === 0);
+      }
+
+      if (period === '1month') {
+        const month = baseDate.getMonth();
+        // Первый месяц первого года?
+        return !(currentYear === minYear && month === 0);
+      }
+
+      if (period === '7days') {
+        // Проверяем, не выйдет ли неделя за пределы minYear
+        const newDate = new Date(baseDate);
+        newDate.setDate(newDate.getDate() - 7);
+        return newDate.getFullYear() >= minYear;
+      }
+
+      return false;
+    },
+
     // === ACTIONS ===
 
     // Установить период
     setPeriod: (newPeriod) => {
       const { baseDate, currentYear } = get();
-
       set({ period: newPeriod });
 
-      // Пересчитать видимые даты
       const dates = get().calculateVisibleDates(newPeriod, baseDate, currentYear);
-
-      // Обновить mapping слот → дата
-      const slotToDate = {};
-      dates.forEach((date, index) => {
-        slotToDate[index] = date;
-      });
-
-      const groups = get().calculateMonthGroups(dates);
-
-      set({
-        slotToDate,
-        monthGroups: groups
-      });
+      get().updateSlots(dates);
     },
 
     // Навигация (вперед/назад) - КЛЮЧЕВОЙ МЕТОД!
-    // Меняется только slotToDate, visibleSlots остается неизменным
+    // Меняется только slotToDate/slotToDay, visibleSlots остается [0,1,2,...365]
     shiftDates: (direction) => {
+      // Проверка границ
+      if (direction === 'next' && !get().canGoNext()) {
+        console.log('⚠️ Достигнут максимальный предел навигации');
+        return;
+      }
+      if (direction === 'prev' && !get().canGoPrev()) {
+        console.log('⚠️ Достигнут минимальный предел навигации');
+        return;
+      }
+
       const { period, baseDate, currentYear } = get();
       const newDate = new Date(baseDate);
       let newYear = currentYear;
@@ -220,21 +307,8 @@ export const useDateStore = create(
         currentYear: newYear
       });
 
-      // Пересчитать видимые даты
       const dates = get().calculateVisibleDates(period, newDate, newYear);
-
-      // 🎯 Обновляем только slotToDate - visibleSlots остается [0,1,2,...89]!
-      const slotToDate = {};
-      dates.forEach((date, index) => {
-        slotToDate[index] = date;
-      });
-
-      const groups = get().calculateMonthGroups(dates);
-
-      set({
-        slotToDate,       // ← Меняется только это!
-        monthGroups: groups
-      });
+      get().updateSlots(dates);
     },
 
     // Установить базовую дату
@@ -248,24 +322,20 @@ export const useDateStore = create(
         currentYear: newYear
       });
 
-      // Пересчитать видимые даты
       const dates = get().calculateVisibleDates(period, newDate, newYear);
-
-      const slotToDate = {};
-      dates.forEach((date, index) => {
-        slotToDate[index] = date;
-      });
-
-      const groups = get().calculateMonthGroups(dates);
-
-      set({
-        slotToDate,
-        monthGroups: groups
-      });
+      get().updateSlots(dates);
     },
 
     // Переход на конкретный год
     setYear: (year) => {
+      const { minYear, maxYear } = get();
+
+      // Проверка границ
+      if (year < minYear || year > maxYear) {
+        console.log(`⚠️ Год ${year} за пределами допустимого диапазона (${minYear}-${maxYear})`);
+        return;
+      }
+
       const newBaseDate = new Date(year, 0, 1); // 1 января
 
       set({
@@ -273,21 +343,9 @@ export const useDateStore = create(
         baseDate: newBaseDate
       });
 
-      // Пересчитать видимые даты
       const { period } = get();
       const dates = get().calculateVisibleDates(period, newBaseDate, year);
-
-      const slotToDate = {};
-      dates.forEach((date, index) => {
-        slotToDate[index] = date;
-      });
-
-      const groups = get().calculateMonthGroups(dates);
-
-      set({
-        slotToDate,
-        monthGroups: groups
-      });
+      get().updateSlots(dates);
     },
 
     // Сброс к текущему году
@@ -300,21 +358,9 @@ export const useDateStore = create(
         baseDate: newBaseDate
       });
 
-      // Пересчитать видимые даты
       const { period } = get();
       const dates = get().calculateVisibleDates(period, newBaseDate, currentYear);
-
-      const slotToDate = {};
-      dates.forEach((date, index) => {
-        slotToDate[index] = date;
-      });
-
-      const groups = get().calculateMonthGroups(dates);
-
-      set({
-        slotToDate,
-        monthGroups: groups
-      });
+      get().updateSlots(dates);
     },
 
     // Получить текущий год (для загрузки данных)

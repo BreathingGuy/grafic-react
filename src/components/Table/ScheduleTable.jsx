@@ -19,10 +19,13 @@ export default function ScheduleTable({ period }) {
   // Получаем данные из dateStore
   const visibleSlots = useDateStore(state => state.visibleSlots);
   const slotToDate = useDateStore(state => state.slotToDate);
+  const slotToDay = useDateStore(state => state.slotToDay);  // ← Для оптимизации заголовков
   const monthGroups = useDateStore(state => state.monthGroups);
   const currentYear = useDateStore(state => state.currentYear);
   const shiftDates = useDateStore(state => state.shiftDates);
   const setPeriod = useDateStore(state => state.setPeriod);
+  const canGoNext = useDateStore(state => state.canGoNext);
+  const canGoPrev = useDateStore(state => state.canGoPrev);
 
   // Workspace store для загрузки данных при смене года
   const loadYearData = useWorkspaceStore(state => state.loadYearData);
@@ -57,10 +60,18 @@ export default function ScheduleTable({ period }) {
     <div className={styles.tableContainer}>
       {/* Кнопки навигации по датам */}
       <div className={styles.navigation}>
-        <button onClick={() => shiftDates('prev')} className={styles.navButton}>
+        <button
+          onClick={() => shiftDates('prev')}
+          className={styles.navButton}
+          disabled={!canGoPrev()}
+        >
           ← Назад
         </button>
-        <button onClick={() => shiftDates('next')} className={styles.navButton}>
+        <button
+          onClick={() => shiftDates('next')}
+          className={styles.navButton}
+          disabled={!canGoNext()}
+        >
           Вперёд →
         </button>
         <span className={styles.yearLabel}>Год: {currentYear}</span>
@@ -109,9 +120,12 @@ export default function ScheduleTable({ period }) {
               <tr>
                 {visibleSlots.map(slotIndex => {
                   const date = slotToDate[slotIndex];
+                  if (!date) return null;  // Пропускаем пустые слоты
+
+                  const day = slotToDay[slotIndex];  // Быстрый доступ к числу дня
                   return (
                     <th key={slotIndex}>
-                      {date ? new Date(date).getDate() : ''}
+                      {day}
                     </th>
                   );
                 })}

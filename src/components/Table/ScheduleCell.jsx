@@ -10,9 +10,10 @@ const ScheduleCell = memo(({ employeeId, slotIndex }) => {
   // Получаем дату из dateStore по индексу слота
   const date = useDateStore(state => state.slotToDate[slotIndex]);
 
-  const status = useScheduleStore(state => {
-    if (!date) return '';  // Если дата не определена, ячейка пустая
+  // ✅ Если слот пустой - не рендерим вообще!
+  if (!date) return null;
 
+  const status = useScheduleStore(state => {
     const key = `${employeeId}-${date}`;
     const editMode = useAdminStore.getState().editMode;
 
@@ -24,7 +25,6 @@ const ScheduleCell = memo(({ employeeId, slotIndex }) => {
   });
 
   const isChanged = useScheduleStore(state => {
-    if (!date) return false;
     return state.changedCells && state.changedCells.has(`${employeeId}-${date}`);
   });
 
