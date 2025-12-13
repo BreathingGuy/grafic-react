@@ -49,7 +49,8 @@ const generateDateIndex = (startYear, endYear) => {
 };
 
 // Генерируем индекс для диапазона 2024-2026 (один раз!)
-const DATE_INDEX = generateDateIndex(2024, 2026);
+// Добавляем буфер для корректной работы режима "7 дней" на стыках годов
+const DATE_INDEX = generateDateIndex(2023, 2027);
 
 // ======================================================
 // 🎯 ZUSTAND STORE
@@ -96,7 +97,16 @@ export const useDateStore = create(
 
       dates.forEach((date, index) => {
         slotToDate[index] = date;
-        slotToDay[index] = dateDays[date];  // Быстрый доступ к числу дня
+
+        // Пытаемся получить день из индекса, если нет - вычисляем
+        // (для дат вне диапазона DATE_INDEX, например неделя на стыке 2026-2027)
+        if (dateDays[date]) {
+          slotToDay[index] = dateDays[date];
+        } else {
+          // Вычисляем день из строки даты "YYYY-MM-DD"
+          const dayStr = date.split('-')[2];
+          slotToDay[index] = parseInt(dayStr, 10);
+        }
       });
 
       const monthGroups = get().calculateMonthGroups(dates);
@@ -149,6 +159,8 @@ export const useDateStore = create(
     },
 
     // Получить даты недели (с понедельника по воскресенье)
+    // Генерируем даты вручную, не полагаясь на DATE_INDEX
+    // чтобы корректно работать на стыках годов
     getWeekDates: (baseDate) => {
       const dates = [];
       const currentDate = new Date(baseDate);
@@ -158,9 +170,12 @@ export const useDateStore = create(
       const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
       currentDate.setDate(currentDate.getDate() + mondayOffset);
 
-      // Собрать 7 дней
+      // Собрать 7 дней (пн-вс)
       for (let i = 0; i < 7; i++) {
-        const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
         dates.push(dateStr);
         currentDate.setDate(currentDate.getDate() + 1);
       }
@@ -221,10 +236,18 @@ export const useDateStore = create(
       }
 
       if (period === '7days') {
-        // Проверяем, не выйдет ли неделя за пределы maxYear
+        // Для недели разрешаем навигацию, если хотя бы первый день недели
+        // (понедельник) находится в пределах maxYear
         const newDate = new Date(baseDate);
         newDate.setDate(newDate.getDate() + 7);
-        return newDate.getFullYear() <= maxYear;
+
+        // Находим понедельник следующей недели
+        const dayOfWeek = newDate.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(newDate);
+        monday.setDate(monday.getDate() + mondayOffset);
+
+        return monday.getFullYear() <= maxYear;
       }
 
       return false;
@@ -251,10 +274,18 @@ export const useDateStore = create(
       }
 
       if (period === '7days') {
-        // Проверяем, не выйдет ли неделя за пределы minYear
+        // Для недели разрешаем навигацию, если хотя бы первый день недели
+        // (понедельник) находится в пределах minYear
         const newDate = new Date(baseDate);
         newDate.setDate(newDate.getDate() - 7);
-        return newDate.getFullYear() >= minYear;
+
+        // Находим понедельник предыдущей недели
+        const dayOfWeek = newDate.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(newDate);
+        monday.setDate(monday.getDate() + mondayOffset);
+
+        return monday.getFullYear() >= minYear;
       }
 
       return false;
@@ -264,8 +295,18 @@ export const useDateStore = create(
 
     // Установить период
     setPeriod: (newPeriod) => {
-      const { baseDate, currentYear } = get();
-      set({ period: newPeriod });
+      let { baseDate, currentYear } = get();
+
+      // При переключении на режим "7 дней" сбрасываем на текущую дату
+      // чтобы всегда показывать текущую неделю
+      if (newPeriod === '7days') {
+        const today = new Date();
+        baseDate = today;
+        currentYear = today.getFullYear();
+        set({ period: newPeriod, baseDate, currentYear });
+      } else {
+        set({ period: newPeriod });
+      }
 
       const dates = get().calculateVisibleDates(newPeriod, baseDate, currentYear);
       get().updateSlots(dates);
