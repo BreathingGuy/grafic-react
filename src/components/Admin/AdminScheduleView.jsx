@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useDateStore } from '../../store/dateStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
-import { useScheduleStore } from '../../store/scheduleStore';
 
 import FixedEmployeeColumn from '../Table/Static/FixedEmployeeColumn';
 import AdminScrollableTable from './AdminScrollableTable';
@@ -28,8 +27,6 @@ export default function AdminScheduleView() {
   // Загрузка данных при смене года
   useEffect(() => {
     loadYearData(currentYear);
-    // Также загружаем следующий год для нижней таблицы (смещение на 3 месяца может захватить следующий год)
-    loadYearData(currentYear + 1);
   }, [currentYear, loadYearData]);
 
   // Синхронизация горизонтального скролла
@@ -63,43 +60,44 @@ export default function AdminScheduleView() {
   const topDates = useDateStore(state => state.datesByYear[currentYear] || []);
 
   // Вычисляем даты для нижней таблицы (смещение на 3 месяца вперёд)
-  const bottomDates = useMemo(() => {
+  // + вычисляем индекс, с которого начинаются пустые ячейки (янв-март следующего года)
+  const { bottomDates, emptyFromIndex } = useMemo(() => {
     const datesByYear = useDateStore.getState().datesByYear;
     const currentYearDates = datesByYear[currentYear] || [];
     const nextYearDates = datesByYear[currentYear + 1] || [];
 
-    // Находим индекс 1 апреля (начало смещения на 3 месяца)
+    // Находим индекс 1 апреля
     const aprilStart = currentYearDates.findIndex(d => d.startsWith(`${currentYear}-04-01`));
 
     if (aprilStart === -1) {
-      // Если апрель не найден, возвращаем пустой массив
-      return [];
+      return { bottomDates: [], emptyFromIndex: 0 };
     }
 
     // Берём с апреля до конца года текущего года
     const fromApril = currentYearDates.slice(aprilStart);
+    const emptyStartIndex = fromApril.length; // Индекс, с которого начинаются пустые
 
-    // Берём январь-март следующего года
+    // Берём январь-март следующего года (будут пустыми)
     const janToMarchNext = nextYearDates.filter(d => {
       const month = parseInt(d.split('-')[1]);
       return month <= 3;
     });
 
-    return [...fromApril, ...janToMarchNext];
+    return {
+      bottomDates: [...fromApril, ...janToMarchNext],
+      emptyFromIndex: emptyStartIndex
+    };
   }, [currentYear]);
 
   return (
     <div className={styles.adminContainer}>
       <div className={styles.header}>
-        <h2>Администрирование графика - {currentYear}</h2>
+        <span className={styles.yearTitle}>{currentYear}</span>
         <TableNavigation />
       </div>
 
       {/* Верхняя таблица - основной год */}
       <div className={styles.tableSection}>
-        <div className={styles.tableLabel}>
-          <span>Январь - Декабрь {currentYear}</span>
-        </div>
         <div className={tableStyles.container}>
           <FixedEmployeeColumn />
           <AdminScrollableTable
@@ -110,17 +108,15 @@ export default function AdminScheduleView() {
         </div>
       </div>
 
-      {/* Нижняя таблица - смещённая на 3 месяца */}
+      {/* Нижняя таблица - смещённая на 3 месяца (янв-март следующего года пустые) */}
       <div className={styles.tableSection}>
-        <div className={styles.tableLabel}>
-          <span>Апрель {currentYear} - Март {currentYear + 1}</span>
-        </div>
         <div className={tableStyles.container}>
           <FixedEmployeeColumn />
           <AdminScrollableTable
             ref={bottomTableRef}
             dates={bottomDates}
             onScroll={handleBottomScroll}
+            emptyFromIndex={emptyFromIndex}
           />
         </div>
       </div>

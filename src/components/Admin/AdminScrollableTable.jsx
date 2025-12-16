@@ -6,7 +6,7 @@ import AdminEmployeeRow from './AdminEmployeeRow';
 
 import tableStyles from '../Table/Table.module.css';
 
-const AdminScrollableTable = forwardRef(({ dates, onScroll }, ref) => {
+const AdminScrollableTable = forwardRef(({ dates, onScroll, emptyFromIndex }, ref) => {
   const employeeIds = useScheduleStore(state => state.employeeIds);
 
   // Вычисляем группировку по месяцам для заголовков
@@ -86,6 +86,7 @@ const AdminScrollableTable = forwardRef(({ dates, onScroll }, ref) => {
               key={empId}
               empId={empId}
               dates={dates}
+              emptyFromIndex={emptyFromIndex}
             />
           ))}
         </tbody>
