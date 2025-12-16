@@ -1,11 +1,11 @@
 import { memo } from 'react';
-import AdminScheduleCell from './AdminScheduleCell';
+import EditableScheduleCell from '../Table/Cells/EditableScheduleCell';
 
 const AdminEmployeeRow = memo(({ empId, dates, emptyFromIndex }) => {
   return (
     <tr>
       {dates.map((date, index) => (
-        <AdminScheduleCell
+        <EditableScheduleCell
           key={`${empId}-${index}`}
           employeeId={empId}
           date={date}

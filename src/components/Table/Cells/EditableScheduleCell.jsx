@@ -1,8 +1,7 @@
 import { memo, useState, useMemo, useCallback } from 'react';
-import { useScheduleStore } from '../../store/scheduleStore';
-import { useAdminStore } from '../../store/adminStore';
+import { useScheduleStore } from '../../../store/scheduleStore';
+import { useAdminStore } from '../../../store/adminStore';
 import CellEditor from './CellEditor';
-import styles from '../Table/Table.module.css';
 
 // === КОНСТАНТЫ ВЫНЕСЕНЫ ЗА ПРЕДЕЛЫ КОМПОНЕНТА - создаются только 1 раз ===
 
@@ -27,70 +26,65 @@ const WHITE_TEXT_STATUSES = new Set(['Н1', 'Н2', 'ЭУ']);
  * ФУНКЦИОНАЛЬНОСТЬ:
  * - Отображение статусов с цветной подсветкой
  * - Режим редактирования с CellEditor
- * - Поддержка черновиков (draftSchedule)
+ * - Поддержка черновиков (draftSchedule из adminStore)
  * - Подсветка изменённых ячеек
  * - Обработка кликов и изменений
  *
- * ОПТИМИЗАЦИЯ:
- * - Мемоизация ключа (useMemo)
- * - Объединённые подписки Zustand (2 вместо 4)
- * - Мемоизированные вычисления (useMemo)
- * - Стабильные обработчики (useCallback)
- * - React.memo с кастомным компаратором
- *
- * @param {string} employeeId - ID сотрудника (примитив)
- * @param {string} date - Дата в формате YYYY-MM-DD (примитив)
+ * @param {string} employeeId - ID сотрудника
+ * @param {string} date - Дата в формате YYYY-MM-DD
+ * @param {boolean} isEmpty - Флаг пустой ячейки (не загружать данные)
  */
-const EditableScheduleCell = memo(({ employeeId, date }) => {
+const EditableScheduleCell = memo(({ employeeId, date, isEmpty }) => {
   // === МЕМОИЗАЦИЯ КЛЮЧА ===
-  // Ключ создаётся только 1 раз при монтировании (employeeId и date не меняются)
   const key = useMemo(() => `${employeeId}-${date}`, [employeeId, date]);
 
-  // === ОПТИМИЗИРОВАННЫЕ ПОДПИСКИ ZUSTAND ===
+  // === ПОДПИСКИ НА STORE ===
 
-  // Подписка #1: Получаем status и isChanged за один раз
-  const { status, isChanged } = useScheduleStore(state => {
-    const editMode = useAdminStore.getState().editMode;
-
-    return {
-      status: editMode && state.draftSchedule?.[key] !== undefined
-        ? state.draftSchedule[key]
-        : state.scheduleMap[key] || '',
-      isChanged: state.changedCells?.has(key) || false
-    };
+  // Получаем статус из черновика (adminStore) или прода (scheduleStore)
+  const draftStatus = useAdminStore(state => {
+    if (isEmpty) return undefined;
+    return state.draftSchedule[key];
   });
 
-  // Подписка #2: editMode и updateCell (нужны для UI logic)
-  const editMode = useAdminStore(state => state.editMode);
-  const updateCell = useScheduleStore(state => state.updateCell);
+  const prodStatus = useScheduleStore(state => {
+    if (isEmpty) return '';
+    return state.scheduleMap[key] || '';
+  });
+
+  // Проверка изменённых ячеек (для подсветки после публикации)
+  const isChanged = useAdminStore(state => state.changedCells?.has(key) || false);
+
+  // Метод обновления черновика
+  const updateDraftCell = useAdminStore(state => state.updateDraftCell);
+
+  // Приоритет: draft > prod > пусто
+  const status = draftStatus !== undefined ? draftStatus : prodStatus;
+  const isDraft = draftStatus !== undefined;
 
   // === ЛОКАЛЬНОЕ СОСТОЯНИЕ ===
   const [isEditing, setIsEditing] = useState(false);
 
   // === МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ ===
 
-  // Стили ячейки - пересчитываются только при изменении зависимостей
+  // Стили ячейки
   const cellStyle = useMemo(() => ({
-    backgroundColor: STATUS_COLORS[status] || '',
+    backgroundColor: STATUS_COLORS[status] || (isDraft ? '#fffde7' : ''),
     color: WHITE_TEXT_STATUSES.has(status) ? 'white' : 'black',
-    cursor: editMode ? 'pointer' : 'default',
-    opacity: editMode && !isEditing ? 0.9 : 1,
-  }), [status, editMode, isEditing]);
+    cursor: 'pointer',
+    opacity: isEditing ? 1 : 0.95,
+    outline: isChanged ? '2px solid #4caf50' : 'none',
+  }), [status, isDraft, isEditing, isChanged]);
 
-  // === МЕМОИЗИРОВАННЫЕ ОБРАБОТЧИКИ ===
+  // === ОБРАБОТЧИКИ ===
 
-  // handleClick - создаётся только при изменении editMode
   const handleClick = useCallback(() => {
-    if (editMode) {
-      setIsEditing(true);
-    }
-  }, [editMode]);
+    setIsEditing(true);
+  }, []);
 
-  // handleChange - создаётся только при изменении updateCell
   const handleChange = useCallback((newStatus) => {
-    updateCell(employeeId, date, newStatus);
+    updateDraftCell(employeeId, date, newStatus);
     setIsEditing(false);
-  }, [updateCell, employeeId, date]);
+  }, [updateDraftCell, employeeId, date]);
 
   // === РЕНДЕР ===
 
@@ -111,11 +105,10 @@ const EditableScheduleCell = memo(({ employeeId, date }) => {
     </td>
   );
 }, (prevProps, nextProps) => {
-  // === ОПТИМИЗАЦИЯ REACT.MEMO ===
-  // Компонент НЕ обновляется если props не изменились
   return (
     prevProps.employeeId === nextProps.employeeId &&
-    prevProps.date === nextProps.date
+    prevProps.date === nextProps.date &&
+    prevProps.isEmpty === nextProps.isEmpty
   );
 });
 
