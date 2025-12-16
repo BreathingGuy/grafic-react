@@ -372,6 +372,90 @@ export const useDateStore = create(
     // Получить текущий год (для загрузки данных)
     getCurrentYear: () => {
       return get().currentYear;
+    },
+
+    // === РАСШИРЕНИЕ ДИАПАЗОНА ДАТ (для админки) ===
+
+    // Расширить диапазон дат до указанного года
+    extendToYear: (targetYear) => {
+      const { maxYear, datesByYear, datesByMonth, datesByQuarter, dateDays, allDates } = get();
+
+      if (targetYear <= maxYear) {
+        return; // Уже есть
+      }
+
+      console.log(`📅 Расширяем диапазон дат до ${targetYear} года`);
+
+      // Генерируем даты для новых годов
+      const newDatesByYear = { ...datesByYear };
+      const newDatesByMonth = { ...datesByMonth };
+      const newDatesByQuarter = { ...datesByQuarter };
+      const newDateDays = { ...dateDays };
+      const newAllDates = [...allDates];
+
+      for (let year = maxYear + 1; year <= targetYear; year++) {
+        newDatesByYear[year] = [];
+
+        // Инициализируем кварталы
+        for (let q = 0; q < 4; q++) {
+          const quarterKey = `${year}-Q${q + 1}`;
+          newDatesByQuarter[quarterKey] = [];
+        }
+
+        for (let month = 0; month < 12; month++) {
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+          newDatesByMonth[monthKey] = [];
+
+          const quarter = Math.floor(month / 3);
+          const quarterKey = `${year}-Q${quarter + 1}`;
+
+          for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+            newAllDates.push(dateStr);
+            newDatesByYear[year].push(dateStr);
+            newDatesByMonth[monthKey].push(dateStr);
+            newDatesByQuarter[quarterKey].push(dateStr);
+            newDateDays[dateStr] = day;
+          }
+        }
+      }
+
+      set({
+        allDates: newAllDates,
+        datesByYear: newDatesByYear,
+        datesByMonth: newDatesByMonth,
+        datesByQuarter: newDatesByQuarter,
+        dateDays: newDateDays,
+        maxYear: targetYear
+      });
+
+      console.log(`✅ Диапазон дат расширен до ${targetYear}`);
+    },
+
+    // Перейти к году (с автоматическим расширением диапазона)
+    goToYear: (year) => {
+      const { minYear } = get();
+
+      if (year < minYear) {
+        console.log(`⚠️ Год ${year} меньше минимального (${minYear})`);
+        return;
+      }
+
+      // Расширяем диапазон если нужно
+      get().extendToYear(year);
+
+      const newBaseDate = new Date(year, 0, 1);
+
+      set({
+        currentYear: year,
+        baseDate: newBaseDate
+      });
+
+      const { period } = get();
+      const dates = get().calculateVisibleDates(period, newBaseDate, year);
+      get().updateSlots(dates);
     }
 
   }), { name: 'DateStore' })

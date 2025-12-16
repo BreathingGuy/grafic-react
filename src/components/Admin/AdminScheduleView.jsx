@@ -4,7 +4,7 @@ import { useWorkspaceStore } from '../../store/workspaceStore';
 
 import FixedEmployeeColumn from '../Table/Static/FixedEmployeeColumn';
 import AdminScrollableTable from './AdminScrollableTable';
-import TableNavigation from '../Controls/TableNavigation';
+import AdminNavigation from './AdminNavigation';
 
 import styles from './AdminScheduleView.module.css';
 import tableStyles from '../Table/Table.module.css';
@@ -12,6 +12,7 @@ import tableStyles from '../Table/Table.module.css';
 export default function AdminScheduleView() {
   const currentYear = useDateStore(state => state.currentYear);
   const setPeriod = useDateStore(state => state.setPeriod);
+  const extendToYear = useDateStore(state => state.extendToYear);
   const loadYearData = useWorkspaceStore(state => state.loadYearData);
 
   // Refs для синхронизации скролла
@@ -24,10 +25,12 @@ export default function AdminScheduleView() {
     setPeriod('1year');
   }, [setPeriod]);
 
-  // Загрузка данных при смене года
+  // Загрузка данных при смене года + расширение диапазона для нижней таблицы
   useEffect(() => {
+    // Расширяем диапазон дат для следующего года (нужно для нижней таблицы)
+    extendToYear(currentYear + 1);
     loadYearData(currentYear);
-  }, [currentYear, loadYearData]);
+  }, [currentYear, loadYearData, extendToYear]);
 
   // Синхронизация горизонтального скролла
   const handleTopScroll = useCallback(() => {
@@ -93,7 +96,7 @@ export default function AdminScheduleView() {
     <div className={styles.adminContainer}>
       <div className={styles.header}>
         <span className={styles.yearTitle}>{currentYear}</span>
-        <TableNavigation />
+        <AdminNavigation />
       </div>
 
       {/* Верхняя таблица - основной год */}
