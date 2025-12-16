@@ -6,7 +6,7 @@ const AdminEmployeeRow = memo(({ empId, dates, emptyFromIndex }) => {
     <tr>
       {dates.map((date, index) => (
         <EditableScheduleCell
-          key={`${empId}-${index}`}
+          key={`${empId}-${date}`}
           employeeId={empId}
           date={date}
           isEmpty={emptyFromIndex !== undefined && index >= emptyFromIndex}
@@ -15,9 +15,18 @@ const AdminEmployeeRow = memo(({ empId, dates, emptyFromIndex }) => {
     </tr>
   );
 }, (prevProps, nextProps) => {
-  return prevProps.empId === nextProps.empId &&
-         prevProps.dates === nextProps.dates &&
-         prevProps.emptyFromIndex === nextProps.emptyFromIndex;
+  // Сравниваем по содержимому, не по ссылке
+  const prevDates = prevProps.dates;
+  const nextDates = nextProps.dates;
+
+  if (prevProps.empId !== nextProps.empId) return false;
+  if (prevProps.emptyFromIndex !== nextProps.emptyFromIndex) return false;
+  if (prevDates.length !== nextDates.length) return false;
+  if (prevDates.length === 0) return true;
+
+  // Сравниваем по первой и последней дате
+  return prevDates[0] === nextDates[0] &&
+         prevDates[prevDates.length - 1] === nextDates[nextDates.length - 1];
 });
 
 AdminEmployeeRow.displayName = 'AdminEmployeeRow';

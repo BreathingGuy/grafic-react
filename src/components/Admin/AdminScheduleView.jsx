@@ -59,12 +59,16 @@ export default function AdminScheduleView() {
     });
   }, []);
 
-  // Вычисляем даты для верхней таблицы (текущий год)
-  const topDates = useDateStore(state => state.datesByYear[currentYear] || []);
+  // Кэш для массивов дат (предотвращает пересоздание при ререндерах)
+  const datesCache = useRef({ year: null, topDates: [], bottomDates: [], emptyFromIndex: 0 });
 
-  // Вычисляем даты для нижней таблицы (смещение на 3 месяца вперёд)
-  // + вычисляем индекс, с которого начинаются пустые ячейки (янв-март следующего года)
-  const { bottomDates, emptyFromIndex } = useMemo(() => {
+  // Вычисляем даты только при смене года
+  const { topDates, bottomDates, emptyFromIndex } = useMemo(() => {
+    // Если год не изменился, возвращаем кэш
+    if (datesCache.current.year === currentYear) {
+      return datesCache.current;
+    }
+
     const datesByYear = useDateStore.getState().datesByYear;
     const currentYearDates = datesByYear[currentYear] || [];
     const nextYearDates = datesByYear[currentYear + 1] || [];
@@ -72,24 +76,30 @@ export default function AdminScheduleView() {
     // Находим индекс 1 апреля
     const aprilStart = currentYearDates.findIndex(d => d.startsWith(`${currentYear}-04-01`));
 
-    if (aprilStart === -1) {
-      return { bottomDates: [], emptyFromIndex: 0 };
+    let bottomDatesResult = [];
+    let emptyFromIndexResult = 0;
+
+    if (aprilStart !== -1) {
+      const fromApril = currentYearDates.slice(aprilStart);
+      emptyFromIndexResult = fromApril.length;
+
+      const janToMarchNext = nextYearDates.filter(d => {
+        const month = parseInt(d.split('-')[1]);
+        return month <= 3;
+      });
+
+      bottomDatesResult = [...fromApril, ...janToMarchNext];
     }
 
-    // Берём с апреля до конца года текущего года
-    const fromApril = currentYearDates.slice(aprilStart);
-    const emptyStartIndex = fromApril.length; // Индекс, с которого начинаются пустые
-
-    // Берём январь-март следующего года (будут пустыми)
-    const janToMarchNext = nextYearDates.filter(d => {
-      const month = parseInt(d.split('-')[1]);
-      return month <= 3;
-    });
-
-    return {
-      bottomDates: [...fromApril, ...janToMarchNext],
-      emptyFromIndex: emptyStartIndex
+    // Сохраняем в кэш
+    datesCache.current = {
+      year: currentYear,
+      topDates: currentYearDates,
+      bottomDates: bottomDatesResult,
+      emptyFromIndex: emptyFromIndexResult
     };
+
+    return datesCache.current;
   }, [currentYear]);
 
   return (
