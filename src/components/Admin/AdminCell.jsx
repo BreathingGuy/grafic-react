@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { useScheduleStore } from '../../store/scheduleStore';
 import { useAdminStore } from '../../store/adminStore';
 import { STATUS_COLORS } from '../../constants/index';
 
@@ -9,15 +8,12 @@ export default function AdminCell({ empId, date, rowIndex, colIndex }) {
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef(null);
 
-  const getCellStatus = useScheduleStore(state => state.getCellStatus);
   const draftSchedule = useAdminStore(state => state.draftSchedule);
   const updateDraftCell = useAdminStore(state => state.updateDraftCell);
   const isCellSelected = useAdminStore(state => state.isCellSelected);
 
   const key = `${empId}-${date}`;
-  const value = draftSchedule[key] !== undefined
-    ? draftSchedule[key]
-    : getCellStatus(empId, date) || '';
+  const value = draftSchedule[key] || '';
 
   const isSelected = isCellSelected(empId, date);
 

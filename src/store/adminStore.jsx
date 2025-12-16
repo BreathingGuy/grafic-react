@@ -79,10 +79,11 @@ export const useAdminStore = create(
           //   `/api/admin/departments/${departmentId}/draft?year=2025`,
           //   { headers: { Authorization: `Bearer ${get().user.token}` } }
           // );
-          
+
+          // Пока просто инициализируем пустой черновик для тестирования
           set({
             editMode: true,
-            draftSchedule: response.draftSchedule || {}
+            draftSchedule: {} // Пустой черновик
           });
         },
         
@@ -206,7 +207,6 @@ export const useAdminStore = create(
         // Копировать выделенные ячейки
         copySelected: () => {
           const { selectedCells, draftSchedule } = get();
-          const scheduleStore = useScheduleStore.getState();
 
           if (selectedCells.length === 0) return;
 
@@ -223,7 +223,7 @@ export const useAdminStore = create(
             const r = cell.rowIndex - minRow;
             const c = cell.colIndex - minCol;
             const key = `${cell.empId}-${cell.date}`;
-            data[r][c] = draftSchedule[key] || scheduleStore.getCellStatus(cell.empId, cell.date) || '';
+            data[r][c] = draftSchedule[key] || '';
           });
 
           set({ copiedData: { data, rows, cols } });
