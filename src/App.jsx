@@ -1,11 +1,12 @@
-import {DepartmentSelector} from './components/Tabs/DepartmentTabs'
-import ScheduleTable from './components/Table/ScheduleTable'
-
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 import {useMetaStore} from './store/metaStore'
 import {useWorkspaceStore} from './store/workspaceStore'
 import {useDateStore} from './store/dateStore'
+
+import {DepartmentSelector} from './components/Selectors/DepartmentSelector'
+import {PeriodSelector} from './components/Selectors/PeriodSelector'
+import ScheduleTable from './components/Table/ScheduleTable'
 
 
 function Main() {
@@ -27,6 +28,7 @@ function Main() {
   return (
     <>
       <DepartmentSelector />
+      <PeriodSelector />
 
       {currentDepartmentId ? (
         <ScheduleTable period={'3months'} />

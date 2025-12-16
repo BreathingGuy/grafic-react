@@ -3,7 +3,7 @@ import { useScheduleStore } from '../../store/scheduleStore';
 import { useDateStore } from '../../store/dateStore';
 import { useAdminStore } from '../../store/adminStore';
 import CellEditor from './CellEditor';
-import styles from './Table.module.css';
+import styles from '../../Table/';
 
 // 🎯 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Принимаем slotIndex вместо date!
 const ScheduleCell = memo(({ employeeId, slotIndex }) => {

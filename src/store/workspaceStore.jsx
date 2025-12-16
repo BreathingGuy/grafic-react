@@ -13,7 +13,7 @@ export const useWorkspaceStore = create(
     // === ACTIONS ===
     
     // Выбрать отдел
-    setDepartment: async (departmentId) => {
+    setDepartment: async (departmentId) => {      
       const prevDepartmentId = get().currentDepartmentId;
 
       if (prevDepartmentId === departmentId) return;

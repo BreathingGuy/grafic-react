@@ -2,7 +2,7 @@ import { memo, useState, useMemo, useCallback } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { useAdminStore } from '../../store/adminStore';
 import CellEditor from './CellEditor';
-import styles from './Table.module.css';
+import styles from '../Table/Table.module.css';
 
 // === КОНСТАНТЫ ВЫНЕСЕНЫ ЗА ПРЕДЕЛЫ КОМПОНЕНТА - создаются только 1 раз ===
 
