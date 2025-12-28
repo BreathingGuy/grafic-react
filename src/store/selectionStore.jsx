@@ -1,27 +1,29 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
+// Хелпер для создания ключа ячейки
+const cellKey = (employeeId, slotIndex) => `${employeeId}-${slotIndex}`;
+
 export const useSelectionStore = create(
   devtools((set, get) => ({
     // === STATE ===
-    selectedCells: [],        // [{ employeeId, slotIndex }, ...]
-    startCell: null,          // Начальная ячейка для drag-выделения
-    isDragging: false,        // Флаг перетаскивания
-    undoStack: [],            // Стек для Ctrl+Z
-    statusMessage: '',        // Сообщение в статус-баре
+    selectedCells: new Set(),   // Set<"employeeId-slotIndex">
+    startCell: null,            // { employeeId, slotIndex }
+    isDragging: false,
+    undoStack: [],
+    statusMessage: '',
 
-    // === ACTIONS ===
+    // === SELECTION ACTIONS ===
 
-    // Начать выделение (mousedown)
     startSelection: (employeeId, slotIndex) => {
+      const newSet = new Set([cellKey(employeeId, slotIndex)]);
       set({
         startCell: { employeeId, slotIndex },
-        selectedCells: [{ employeeId, slotIndex }],
+        selectedCells: newSet,
         isDragging: true
       });
     },
 
-    // Обновить выделение при движении мыши
     updateSelection: (endEmployeeId, endSlotIndex, employeeIds, visibleSlots) => {
       const { startCell, isDragging } = get();
       if (!isDragging || !startCell) return;
@@ -36,39 +38,34 @@ export const useSelectionStore = create(
       const minSlot = Math.min(startSlot, endSlot);
       const maxSlot = Math.max(startSlot, endSlot);
 
-      const newSelection = [];
+      const newSet = new Set();
       for (let empIdx = minEmpIdx; empIdx <= maxEmpIdx; empIdx++) {
         for (let slot = minSlot; slot <= maxSlot; slot++) {
-          if (visibleSlots.includes(slot)) {
-            newSelection.push({
-              employeeId: employeeIds[empIdx],
-              slotIndex: slot
-            });
+          if (slot < visibleSlots.length) {
+            newSet.add(cellKey(employeeIds[empIdx], slot));
           }
         }
       }
 
-      set({ selectedCells: newSelection });
+      set({ selectedCells: newSet });
     },
 
-    // Завершить выделение (mouseup)
     endSelection: () => {
       set({ isDragging: false, startCell: null });
     },
 
-    // Очистить выделение
     clearSelection: () => {
-      set({ selectedCells: [], startCell: null, isDragging: false });
+      set({ selectedCells: new Set(), startCell: null, isDragging: false });
     },
 
-    // Сохранить состояние для Undo
+    // === UNDO ===
+
     saveForUndo: (draftSchedule) => {
       set(state => ({
         undoStack: [...state.undoStack, { ...draftSchedule }]
       }));
     },
 
-    // Получить последнее состояние из undo стека
     popUndo: () => {
       const { undoStack } = get();
       if (undoStack.length === 0) return null;
@@ -80,7 +77,12 @@ export const useSelectionStore = create(
       return lastState;
     },
 
-    // Показать сообщение статуса
+    clearUndoStack: () => {
+      set({ undoStack: [] });
+    },
+
+    // === STATUS ===
+
     setStatus: (message) => {
       set({ statusMessage: message });
       if (message) {
@@ -88,9 +90,25 @@ export const useSelectionStore = create(
       }
     },
 
-    // Очистить undo стек
-    clearUndoStack: () => {
-      set({ undoStack: [] });
+    // === HELPERS (для копирования) ===
+
+    // Получить границы выделения
+    getSelectionBounds: () => {
+      const { selectedCells } = get();
+      if (selectedCells.size === 0) return null;
+
+      let minSlot = Infinity, maxSlot = -Infinity;
+      const empIds = new Set();
+
+      selectedCells.forEach(key => {
+        const [empId, slot] = key.split('-');
+        empIds.add(empId);
+        const slotNum = parseInt(slot, 10);
+        minSlot = Math.min(minSlot, slotNum);
+        maxSlot = Math.max(maxSlot, slotNum);
+      });
+
+      return { empIds: [...empIds], minSlot, maxSlot };
     }
 
   }), { name: 'SelectionStore' })
