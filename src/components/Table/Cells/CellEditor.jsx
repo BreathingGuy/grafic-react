@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import styles from '../Table/Table.module.css';
+import styles from '../Table.module.css';
 
 export default function CellEditor({ value, onChange, onClose }) {
   const selectRef = useRef(null);

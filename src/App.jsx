@@ -53,7 +53,7 @@ function Main() {
         isAdminMode ? (
           <AdminConsole />
         ) : (
-          <ScheduleTable period={'3months'} />
+          <ScheduleTable period={'1year'} />
         )
       ) : (
         <div className="empty-state">
