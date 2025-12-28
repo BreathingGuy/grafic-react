@@ -33,7 +33,7 @@ export default function AdminConsole() {
   const monthGroups = useDateStore(s => s.monthGroups);
 
   const statusMessage = useSelectionStore(s => s.statusMessage);
-  const selectedCount = useSelectionStore(s => s.selectedCells.length);
+  const selectedCount = useSelectionStore(s => s.selectedCells.size);
   const clearSelection = useSelectionStore(s => s.clearSelection);
 
   // Keyboard shortcuts

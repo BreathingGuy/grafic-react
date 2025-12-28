@@ -62,7 +62,7 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex }) => {
 
   // === ОБРАБОТЧИКИ МЫШИ ===
 
-  const handleMouseDown = useCallback((e) => {    
+  const handleMouseDown = useCallback((e) => {
     if (e.button !== 0) return; // Только левая кнопка
     e.preventDefault();
     startSelection(employeeId, slotIndex);
@@ -114,7 +114,15 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex }) => {
       onDoubleClick={handleDoubleClick}
       onContextMenu={(e) => e.preventDefault()}
     >
-        {status}
+      {isEditing ? (
+        <CellEditor
+          value={status}
+          onChange={handleChange}
+          onClose={() => setIsEditing(false)}
+        />
+      ) : (
+        status
+      )}
     </td>
   );
 }, (prevProps, nextProps) => {

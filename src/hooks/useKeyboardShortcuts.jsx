@@ -7,35 +7,39 @@ import { useDateStore } from '../store/dateStore';
  * useKeyboardShortcuts - Хук для Ctrl+C, Ctrl+V, Ctrl+Z, Escape
  */
 export function useKeyboardShortcuts() {
+  // Подписки только на данные, не на actions
   const selectedCells = useSelectionStore(s => s.selectedCells);
-  const saveForUndo = useSelectionStore(s => s.saveForUndo);
-  const popUndo = useSelectionStore(s => s.popUndo);
-  const setStatus = useSelectionStore(s => s.setStatus);
-  const clearSelection = useSelectionStore(s => s.clearSelection);
-
   const draftSchedule = useScheduleStore(s => s.draftSchedule);
-  const batchUpdateDraftCells = useScheduleStore(s => s.batchUpdateDraftCells);
-  const restoreDraftSchedule = useScheduleStore(s => s.restoreDraftSchedule);
   const employeeIds = useScheduleStore(s => s.employeeIds);
-
   const slotToDate = useDateStore(s => s.slotToDate);
 
   // === КОПИРОВАНИЕ (Ctrl+C) ===
   const copySelected = useCallback(() => {
-    if (selectedCells.length === 0) {
+    const { selectedCells, setStatus } = useSelectionStore.getState();
+    const { draftSchedule } = useScheduleStore.getState();
+    const { slotToDate } = useDateStore.getState();
+    const { employeeIds } = useScheduleStore.getState();
+
+    if (selectedCells.size === 0) {
       setStatus('Выберите ячейки для копирования');
       return;
     }
 
-    // Границы выделения
-    const slots = selectedCells.map(c => c.slotIndex);
-    const empIdsInSelection = [...new Set(selectedCells.map(c => c.employeeId))];
+    // Парсим ключи из Set
+    let minSlot = Infinity, maxSlot = -Infinity;
+    const empIdsSet = new Set();
 
-    const minSlot = Math.min(...slots);
-    const maxSlot = Math.max(...slots);
+    selectedCells.forEach(key => {
+      const parts = key.split('-');
+      const slot = parseInt(parts.pop(), 10);
+      const empId = parts.join('-'); // на случай если empId содержит "-"
+      empIdsSet.add(empId);
+      minSlot = Math.min(minSlot, slot);
+      maxSlot = Math.max(maxSlot, slot);
+    });
 
     // Сортируем по порядку в employeeIds
-    const sortedEmpIds = empIdsInSelection.sort((a, b) =>
+    const sortedEmpIds = [...empIdsSet].sort((a, b) =>
       employeeIds.indexOf(a) - employeeIds.indexOf(b)
     );
 
@@ -53,18 +57,21 @@ export function useKeyboardShortcuts() {
       data.push(rowData);
     });
 
-    // В буфер обмена
     navigator.clipboard.writeText(JSON.stringify(data)).then(() => {
       setStatus(`Скопировано ${data.length}x${data[0]?.length || 0}`);
     }).catch(err => {
       setStatus('Ошибка копирования');
       console.error(err);
     });
-  }, [selectedCells, slotToDate, draftSchedule, employeeIds, setStatus]);
+  }, []);
 
   // === ВСТАВКА (Ctrl+V) ===
   const pasteSelected = useCallback(() => {
-    if (selectedCells.length === 0) {
+    const { selectedCells, setStatus, saveForUndo } = useSelectionStore.getState();
+    const { draftSchedule, batchUpdateDraftCells, employeeIds } = useScheduleStore.getState();
+    const { slotToDate } = useDateStore.getState();
+
+    if (selectedCells.size === 0) {
       setStatus('Выберите ячейки для вставки');
       return;
     }
@@ -82,14 +89,20 @@ export function useKeyboardShortcuts() {
       // Сохраняем для undo
       saveForUndo(draftSchedule);
 
-      // Границы выделения
-      const slots = selectedCells.map(c => c.slotIndex);
-      const empIdsInSelection = [...new Set(selectedCells.map(c => c.employeeId))];
+      // Парсим границы выделения
+      let minSlot = Infinity, maxSlot = -Infinity;
+      const empIdsSet = new Set();
 
-      const minSlot = Math.min(...slots);
-      const maxSlot = Math.max(...slots);
+      selectedCells.forEach(key => {
+        const parts = key.split('-');
+        const slot = parseInt(parts.pop(), 10);
+        const empId = parts.join('-');
+        empIdsSet.add(empId);
+        minSlot = Math.min(minSlot, slot);
+        maxSlot = Math.max(maxSlot, slot);
+      });
 
-      const sortedEmpIds = empIdsInSelection.sort((a, b) =>
+      const sortedEmpIds = [...empIdsSet].sort((a, b) =>
         employeeIds.indexOf(a) - employeeIds.indexOf(b)
       );
 
@@ -100,10 +113,10 @@ export function useKeyboardShortcuts() {
 
       const updates = {};
 
-      // Логика вставки (как в твоём JS коде)
+      // Логика вставки
       if ((selectedColsCount === 1 && clipboardRowsCount === 1) ||
           (selectedColsCount === clipboardColsCount && clipboardRowsCount === 1)) {
-        // Размножаем 1 строку на все выделенные
+        // Размножаем 1 строку
         for (let i = 0; i < selectedRowsCount; i++) {
           data[0].forEach((value, cIndex) => {
             const targetSlot = minSlot + cIndex;
@@ -115,7 +128,7 @@ export function useKeyboardShortcuts() {
         }
       } else if (selectedRowsCount % clipboardRowsCount === 0 &&
                  selectedColsCount % clipboardColsCount === 0) {
-        // Размножаем блок (KVADRAT)
+        // Размножаем блок
         for (let j = 0; j < selectedColsCount; j += clipboardColsCount) {
           for (let i = 0; i < selectedRowsCount; i += clipboardRowsCount) {
             data.forEach((row, rIdx) => {
@@ -149,10 +162,13 @@ export function useKeyboardShortcuts() {
       setStatus('Ошибка вставки');
       console.error(err);
     });
-  }, [selectedCells, slotToDate, draftSchedule, employeeIds, saveForUndo, batchUpdateDraftCells, setStatus]);
+  }, []);
 
   // === ОТМЕНА (Ctrl+Z) ===
   const undo = useCallback(() => {
+    const { popUndo, setStatus } = useSelectionStore.getState();
+    const { restoreDraftSchedule } = useScheduleStore.getState();
+
     const prev = popUndo();
     if (!prev) {
       setStatus('Нечего отменять');
@@ -160,7 +176,7 @@ export function useKeyboardShortcuts() {
     }
     restoreDraftSchedule(prev);
     setStatus('Отменено');
-  }, [popUndo, restoreDraftSchedule, setStatus]);
+  }, []);
 
   // === ГЛОБАЛЬНЫЙ ОБРАБОТЧИК ===
   useEffect(() => {
@@ -175,15 +191,15 @@ export function useKeyboardShortcuts() {
         e.preventDefault();
         undo();
       } else if (e.key === 'Escape') {
-        clearSelection();
+        useSelectionStore.getState().clearSelection();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [copySelected, pasteSelected, undo, clearSelection]);
+  }, [copySelected, pasteSelected, undo]);
 
-  return { copySelected, pasteSelected, undo, clearSelection };
+  return { copySelected, pasteSelected, undo };
 }
 
 export default useKeyboardShortcuts;
