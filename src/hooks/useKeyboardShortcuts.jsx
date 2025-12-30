@@ -8,10 +8,10 @@ import { useDateStore } from '../store/dateStore';
  */
 export function useKeyboardShortcuts() {
   // Подписки только на данные, не на actions
-  const selectedCells = useSelectionStore(s => s.selectedCells);
-  const draftSchedule = useScheduleStore(s => s.draftSchedule);
-  const employeeIds = useScheduleStore(s => s.employeeIds);
-  const slotToDate = useDateStore(s => s.slotToDate);
+  // const selectedCells = useSelectionStore(s => s.selectedCells);
+  // const draftSchedule = useScheduleStore(s => s.draftSchedule);
+  // const employeeIds = useScheduleStore(s => s.employeeIds);
+  // const slotToDate = useDateStore(s => s.slotToDate);
 
   // === КОПИРОВАНИЕ (Ctrl+C) ===
   const copySelected = useCallback(() => {
@@ -20,19 +20,20 @@ export function useKeyboardShortcuts() {
     const { slotToDate } = useDateStore.getState();
     const { employeeIds } = useScheduleStore.getState();
 
-    if (selectedCells.size === 0) {
+    const keys = Object.keys(selectedCells);
+    if (keys.length === 0) {
       setStatus('Выберите ячейки для копирования');
       return;
     }
 
-    // Парсим ключи из Set
+    // Парсим ключи из объекта
     let minSlot = Infinity, maxSlot = -Infinity;
     const empIdsSet = new Set();
 
-    selectedCells.forEach(key => {
+    keys.forEach(key => {
       const parts = key.split('-');
       const slot = parseInt(parts.pop(), 10);
-      const empId = parts.join('-'); // на случай если empId содержит "-"
+      const empId = parts.join('-');
       empIdsSet.add(empId);
       minSlot = Math.min(minSlot, slot);
       maxSlot = Math.max(maxSlot, slot);
@@ -71,7 +72,8 @@ export function useKeyboardShortcuts() {
     const { draftSchedule, batchUpdateDraftCells, employeeIds } = useScheduleStore.getState();
     const { slotToDate } = useDateStore.getState();
 
-    if (selectedCells.size === 0) {
+    const keys = Object.keys(selectedCells);
+    if (keys.length === 0) {
       setStatus('Выберите ячейки для вставки');
       return;
     }
@@ -93,7 +95,7 @@ export function useKeyboardShortcuts() {
       let minSlot = Infinity, maxSlot = -Infinity;
       const empIdsSet = new Set();
 
-      selectedCells.forEach(key => {
+      keys.forEach(key => {
         const parts = key.split('-');
         const slot = parseInt(parts.pop(), 10);
         const empId = parts.join('-');

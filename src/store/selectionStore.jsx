@@ -7,8 +7,8 @@ const cellKey = (employeeId, slotIndex) => `${employeeId}-${slotIndex}`;
 export const useSelectionStore = create(
   devtools((set, get) => ({
     // === STATE ===
-    selectedCells: new Set(),   // Set<"employeeId-slotIndex">
-    startCell: null,            // { employeeId, slotIndex }
+    selectedCells: {},          // { "employeeId-slotIndex": true } — O(1) доступ
+    startCell: null,
     isDragging: false,
     undoStack: [],
     statusMessage: '',
@@ -16,10 +16,10 @@ export const useSelectionStore = create(
     // === SELECTION ACTIONS ===
 
     startSelection: (employeeId, slotIndex) => {
-      const newSet = new Set([cellKey(employeeId, slotIndex)]);
+      const key = cellKey(employeeId, slotIndex);
       set({
         startCell: { employeeId, slotIndex },
-        selectedCells: newSet,
+        selectedCells: { [key]: true },
         isDragging: true
       });
     },
@@ -38,16 +38,16 @@ export const useSelectionStore = create(
       const minSlot = Math.min(startSlot, endSlot);
       const maxSlot = Math.max(startSlot, endSlot);
 
-      const newSet = new Set();
+      const newSelection = {};
       for (let empIdx = minEmpIdx; empIdx <= maxEmpIdx; empIdx++) {
         for (let slot = minSlot; slot <= maxSlot; slot++) {
           if (slot < visibleSlots.length) {
-            newSet.add(cellKey(employeeIds[empIdx], slot));
+            newSelection[cellKey(employeeIds[empIdx], slot)] = true;
           }
         }
       }
 
-      set({ selectedCells: newSet });
+      set({ selectedCells: newSelection });
     },
 
     endSelection: () => {
@@ -55,7 +55,7 @@ export const useSelectionStore = create(
     },
 
     clearSelection: () => {
-      set({ selectedCells: new Set(), startCell: null, isDragging: false });
+      set({ selectedCells: {}, startCell: null, isDragging: false });
     },
 
     // === UNDO ===
@@ -88,27 +88,6 @@ export const useSelectionStore = create(
       if (message) {
         setTimeout(() => set({ statusMessage: '' }), 2000);
       }
-    },
-
-    // === HELPERS (для копирования) ===
-
-    // Получить границы выделения
-    getSelectionBounds: () => {
-      const { selectedCells } = get();
-      if (selectedCells.size === 0) return null;
-
-      let minSlot = Infinity, maxSlot = -Infinity;
-      const empIds = new Set();
-
-      selectedCells.forEach(key => {
-        const [empId, slot] = key.split('-');
-        empIds.add(empId);
-        const slotNum = parseInt(slot, 10);
-        minSlot = Math.min(minSlot, slotNum);
-        maxSlot = Math.max(maxSlot, slotNum);
-      });
-
-      return { empIds: [...empIds], minSlot, maxSlot };
     }
 
   }), { name: 'SelectionStore' })

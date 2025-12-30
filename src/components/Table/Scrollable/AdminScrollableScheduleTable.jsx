@@ -1,16 +1,17 @@
 import { useScheduleStore } from '../../../store/scheduleStore';
 import { useDateStore } from '../../../store/dateStore';
 
-import EmployeeRow from '../Rows/EmployeeRow';
+import AdminEmployeeRow from '../Rows/AdminEmployeeRow';
 import MonthHeaders from './MonthHeaders';
 
 import styles from '../Table.module.css';
 
 
-const ScrollableScheduleTable = () => {
+const AdminScrollableScheduleTable = () => {
     const employeeIds = useScheduleStore(state => state.employeeIds);
     const visibleSlots = useDateStore(state => state.visibleSlots);
     const slotToDate = useDateStore(state => state.slotToDate);
+    const slotToDay = useDateStore(s => s.slotToDay);
     const monthGroups = useDateStore(state => state.monthGroups);
 
     return (
@@ -24,7 +25,7 @@ const ScrollableScheduleTable = () => {
                   if (!date) {return null;}
                   return (
                     <th key={slotIndex}>
-                      {date ? new Date(date).getDate() : ''}
+                      {slotToDay[slotIndex]}
                     </th>
                   );
                 })}
@@ -34,7 +35,7 @@ const ScrollableScheduleTable = () => {
               {/* Каждая строка = сотрудник */}
               {/* 🎯 Передаем ТОЛЬКО employee - без dates! */}
               {employeeIds.map(empId => (
-                <EmployeeRow
+                <AdminEmployeeRow
                   key={empId}
                   empId={empId}
                 />
@@ -45,4 +46,4 @@ const ScrollableScheduleTable = () => {
     )
 }
 
-export default ScrollableScheduleTable;
+export default AdminScrollableScheduleTable;

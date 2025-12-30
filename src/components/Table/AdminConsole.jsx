@@ -4,11 +4,13 @@ import { useDateStore } from '../../store/dateStore';
 import { useSelectionStore } from '../../store/selectionStore';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
-import AdminEmployeeRow from './AdminEmployeeRow';
-import MonthHeaders from '../Table/MonthHeaders';
-import FixedEmployeeColumn from '../Table/Static/FixedEmployeeColumn';
+import AdminEmployeeRow from './Rows/AdminEmployeeRow';
+import MonthHeaders from './Scrollable/MonthHeaders';
+import FixedEmployeeColumn from './Static/FixedEmployeeColumn';
 
-import styles from '../Table/Table.module.css';
+import AdminScrollableScheduleTable from './Scrollable/AdminScrollableScheduleTable';
+
+import styles from './Table.module.css';
 
 /**
  * AdminConsole - Таблица для редактирования графика
@@ -19,21 +21,14 @@ import styles from '../Table/Table.module.css';
  * - Редактирование по двойному клику
  * - Сохранение/публикация изменений
  */
-export default function AdminConsole() {
-  // Stores
-  const employeeIds = useScheduleStore(s => s.employeeIds);
+function AdminConsole() {
   const initializeDraft = useScheduleStore(s => s.initializeDraft);
   const publishDraft = useScheduleStore(s => s.publishDraft);
   const discardDraft = useScheduleStore(s => s.discardDraft);
   const hasUnsavedChanges = useScheduleStore(s => s.hasUnsavedChanges);
 
-  const visibleSlots = useDateStore(s => s.visibleSlots);
-  const slotToDay = useDateStore(s => s.slotToDay);
-  const slotToDate = useDateStore(s => s.slotToDate);
-  const monthGroups = useDateStore(s => s.monthGroups);
-
   const statusMessage = useSelectionStore(s => s.statusMessage);
-  const selectedCount = useSelectionStore(s => s.selectedCells.size);
+  const selectedCount = useSelectionStore(s => Object.keys(s.selectedCells).length);
   const clearSelection = useSelectionStore(s => s.clearSelection);
 
   // Keyboard shortcuts
@@ -103,30 +98,11 @@ export default function AdminConsole() {
         <FixedEmployeeColumn />
 
         {/* Правая колонка - график */}
-        <div className={styles.scrollable_container}>
-          <table className={styles.scrollable_column}>
-            <thead>
-              <MonthHeaders monthGroups={monthGroups} />
-              <tr>
-                {visibleSlots.map(slotIndex => {
-                  const date = slotToDate[slotIndex];
-                  if (!date) return null;
-                  return (
-                    <th key={slotIndex}>
-                      {slotToDay[slotIndex]}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {employeeIds.map(empId => (
-                <AdminEmployeeRow key={empId} empId={empId} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <AdminScrollableScheduleTable />
       </div>
     </div>
   );
 }
+
+
+export default AdminConsole;

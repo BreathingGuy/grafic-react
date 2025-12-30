@@ -7,7 +7,7 @@ import {useDateStore} from './store/dateStore'
 import {DepartmentSelector} from './components/Selectors/DepartmentSelector'
 import {PeriodSelector} from './components/Selectors/PeriodSelector'
 import ScheduleTable from './components/Table/ScheduleTable'
-import { AdminConsole } from './components/Admin'
+import AdminConsole from './components/Table/AdminConsole'
 
 
 function Main() {

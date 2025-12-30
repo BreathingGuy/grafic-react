@@ -1,6 +1,6 @@
 import { memo } from 'react';
-import { useDateStore } from '../../store/dateStore';
-import AdminScheduleCell from '../Table/Cells/AdminScheduleCell';
+import { useDateStore } from '../../../store/dateStore';
+import AdminScheduleCell from '../Cells/AdminScheduleCell';
 
 /**
  * AdminEmployeeRow - Строка сотрудника для админской консоли
