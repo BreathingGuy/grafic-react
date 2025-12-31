@@ -129,7 +129,6 @@ export function useKeyboardShortcuts() {
       }
 
       batchUpdateDraftCells(updates);
-      useSelectionStore.getState().setCopiedData(false);
       const actualRows = Object.keys(updates).length > 0 ? finalRows : 0;
       setStatus(`Вставлено ${actualRows}x${finalCols}`);
     }).catch(err => {
@@ -166,6 +165,7 @@ export function useKeyboardShortcuts() {
         undo();
       } else if (e.key === 'Escape') {
         useSelectionStore.getState().clearSelection();
+        useSelectionStore.getState().setCopiedData(false);
       }
     };
 
