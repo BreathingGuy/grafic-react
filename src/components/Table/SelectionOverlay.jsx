@@ -170,8 +170,8 @@ function SelectionOverlay({ tableRef }) {
       {/* Overlay выделения */}
       <div style={overlayStyle} />
 
-      {/* CellEditor - показываем только когда не dragging */}
-      {editorPosition && !isDragging && (
+      {/* CellEditor - показываем только для множественного выделения */}
+      {editorPosition && !isDragging && !(startCell.employeeId === endCell.employeeId && startCell.slotIndex === endCell.slotIndex) && (
         <div
           style={editorPosition}
           className={styles.cellEditor}
