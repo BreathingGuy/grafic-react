@@ -11,7 +11,7 @@ export function useKeyboardShortcuts() {
   const copySelected = useCallback(() => {
     const { startCell, endCell, setStatus } = useSelectionStore.getState();
     const { draftSchedule, employeeIds } = useScheduleStore.getState();
-    const { slotToDate, visibleSlots } = useDateStore.getState();
+    const { slotToDate } = useDateStore.getState();
 
     if (!startCell || !endCell) {
       setStatus('Выберите ячейки для копирования');
@@ -83,64 +83,53 @@ export function useKeyboardShortcuts() {
       const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
       const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
 
-      // Сортированные empId в пределах выделения
-      const sortedEmpIds = [];
-      for (let i = minEmpIdx; i <= maxEmpIdx; i++) {
-        sortedEmpIds.push(employeeIds[i]);
-      }
-
-      const selectedRowsCount = sortedEmpIds.length;
+      const selectedRowsCount = maxEmpIdx - minEmpIdx + 1;
       const selectedColsCount = maxSlot - minSlot + 1;
       const clipboardRowsCount = data.length;
       const clipboardColsCount = data[0]?.length || 0;
 
       const updates = {};
 
-      // Логика вставки
-      if ((selectedColsCount === 1 && clipboardRowsCount === 1) ||
-          (selectedColsCount === clipboardColsCount && clipboardRowsCount === 1)) {
-        // Размножаем 1 строку
-        for (let i = 0; i < selectedRowsCount; i++) {
-          data[0].forEach((value, cIndex) => {
-            const targetSlot = minSlot + cIndex;
-            const date = slotToDate[targetSlot];
-            if (date && sortedEmpIds[i]) {
-              updates[`${sortedEmpIds[i]}-${date}`] = value;
-            }
-          });
-        }
-      } else if (selectedRowsCount % clipboardRowsCount === 0 &&
-                 selectedColsCount % clipboardColsCount === 0) {
-        // Размножаем блок
-        for (let j = 0; j < selectedColsCount; j += clipboardColsCount) {
-          for (let i = 0; i < selectedRowsCount; i += clipboardRowsCount) {
-            data.forEach((row, rIdx) => {
-              row.forEach((value, cIdx) => {
-                const empIdx = i + rIdx;
-                const targetSlot = minSlot + j + cIdx;
-                const date = slotToDate[targetSlot];
-                if (date && sortedEmpIds[empIdx]) {
-                  updates[`${sortedEmpIds[empIdx]}-${date}`] = value;
-                }
-              });
-            });
+      // Определяем реальные размеры для вставки
+      // Если буфер больше выделения - вставляем весь буфер
+      // Если выделение больше и кратно буферу - размножаем
+      const pasteRows = Math.max(selectedRowsCount, clipboardRowsCount);
+      const pasteCols = Math.max(selectedColsCount, clipboardColsCount);
+
+      // Проверяем можно ли размножить
+      const canTileRows = selectedRowsCount > clipboardRowsCount && selectedRowsCount % clipboardRowsCount === 0;
+      const canTileCols = selectedColsCount > clipboardColsCount && selectedColsCount % clipboardColsCount === 0;
+
+      const finalRows = canTileRows ? selectedRowsCount : pasteRows;
+      const finalCols = canTileCols ? selectedColsCount : pasteCols;
+
+      for (let i = 0; i < finalRows; i++) {
+        for (let j = 0; j < finalCols; j++) {
+          // Индексы в буфере (с повторением для тайлинга)
+          const srcRow = i % clipboardRowsCount;
+          const srcCol = j % clipboardColsCount;
+
+          const value = data[srcRow]?.[srcCol];
+          if (value === undefined) continue;
+
+          const targetEmpIdx = minEmpIdx + i;
+          const targetSlot = minSlot + j;
+
+          // Проверяем границы
+          if (targetEmpIdx >= employeeIds.length) continue;
+
+          const empId = employeeIds[targetEmpIdx];
+          const date = slotToDate[targetSlot];
+
+          if (empId && date) {
+            updates[`${empId}-${date}`] = value;
           }
         }
-      } else {
-        // Обычная вставка
-        data.forEach((row, rIdx) => {
-          row.forEach((value, cIdx) => {
-            const targetSlot = minSlot + cIdx;
-            const date = slotToDate[targetSlot];
-            if (date && sortedEmpIds[rIdx]) {
-              updates[`${sortedEmpIds[rIdx]}-${date}`] = value;
-            }
-          });
-        });
       }
 
       batchUpdateDraftCells(updates);
-      setStatus(`Вставлено ${clipboardRowsCount}x${clipboardColsCount}`);
+      const actualRows = Object.keys(updates).length > 0 ? finalRows : 0;
+      setStatus(`Вставлено ${actualRows}x${finalCols}`);
     }).catch(err => {
       setStatus('Ошибка вставки');
       console.error(err);

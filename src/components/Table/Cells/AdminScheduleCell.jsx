@@ -1,13 +1,12 @@
-import { memo, useState, useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import { useScheduleStore } from '../../../store/scheduleStore';
 import { useDateStore } from '../../../store/dateStore';
 import { useSelectionStore } from '../../../store/selectionStore';
-import CellEditor from './CellEditor';
 
 /**
  * AdminScheduleCell - Ячейка без подписки на selection
  *
- * Выделение отрисовывается через SelectionOverlay,
+ * Выделение и редактирование через SelectionOverlay,
  * эта ячейка только обрабатывает mouse события.
  */
 const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
@@ -17,8 +16,6 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
     if (!date) return '';
     return state.draftSchedule?.[`${employeeId}-${date}`] ?? state.scheduleMap[`${employeeId}-${date}`] ?? '';
   });
-
-  const [isEditing, setIsEditing] = useState(false);
 
   const handleMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
@@ -37,29 +34,17 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
     }
   }, []);
 
-  const handleDoubleClick = useCallback(() => setIsEditing(true), []);
-
-  const handleChange = useCallback((newStatus) => {
-    if (date) useScheduleStore.getState().updateDraftCell(employeeId, date, newStatus);
-    setIsEditing(false);
-  }, [employeeId, date]);
-
   if (!date) return <td />;
 
   return (
     <td
       data-emp-idx={empIdx}
       data-slot={slotIndex}
-      style={{ position: 'relative' }}
       onMouseDown={handleMouseDown}
       onMouseOver={handleMouseOver}
       onMouseUp={handleMouseUp}
-      onDoubleClick={handleDoubleClick}
     >
       {status}
-      {isEditing && (
-        <CellEditor value={status} onChange={handleChange} onClose={() => setIsEditing(false)} />
-      )}
     </td>
   );
 }, (prev, next) => prev.employeeId === next.employeeId && prev.slotIndex === next.slotIndex && prev.empIdx === next.empIdx);
