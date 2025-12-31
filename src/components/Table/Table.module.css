@@ -111,3 +111,34 @@ button {
 button:hover {
     background: #e0e0e0;
 }
+
+/* CellEditor - выпадающий список справа от ячейки */
+.cellEditor {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    z-index: 100;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    min-width: 140px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.cellEditorOption {
+    padding: 6px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+.cellEditorOption:hover {
+    background: #f0f0f0;
+}
+
+.cellEditorOptionSelected {
+    background: #e3f2fd;
+    color: #1976d2;
+}

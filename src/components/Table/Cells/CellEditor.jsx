@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import styles from '../Table.module.css';
 
 export default function CellEditor({ value, onChange, onClose }) {
-  const selectRef = useRef(null);
+  const containerRef = useRef(null);
+  const [selectedValue, setSelectedValue] = useState(value);
 
   const statusOptions = [
     { value: '', label: '-' },
@@ -16,40 +17,66 @@ export default function CellEditor({ value, onChange, onClose }) {
     { value: 'ЭУ', label: 'ЭУ (экстра)' },
   ];
 
+  // Закрытие при клике вне редактора
   useEffect(() => {
-    // Автофокус на select
-    selectRef.current?.focus();
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+
+    // Добавляем с задержкой, чтобы не сработал на текущий клик
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 0);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
+
+  // Обработка Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  // Применить значение и закрыть
+  const handleSelect = useCallback((newValue) => {
+    onChange(newValue);
+  }, [onChange]);
+
+  // Остановка событий мыши (чтобы не триггерить selection)
+  const stopPropagation = useCallback((e) => {
+    e.stopPropagation();
   }, []);
 
-  const handleChange = (e) => {
-    onChange(e.target.value);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
-
-  const handleBlur = () => {
-    // Закрываем редактор при потере фокуса
-    setTimeout(onClose, 150);
-  };
-
   return (
-    <select
-      ref={selectRef}
-      value={value}
-      onChange={handleChange}
-      onKeyDown={handleKeyDown}
-      onBlur={handleBlur}
+    <div
+      ref={containerRef}
       className={styles.cellEditor}
+      onMouseDown={stopPropagation}
+      onMouseUp={stopPropagation}
+      onMouseOver={stopPropagation}
+      onClick={stopPropagation}
+      onDoubleClick={stopPropagation}
     >
       {statusOptions.map(option => (
-        <option key={option.value} value={option.value}>
+        <div
+          key={option.value}
+          className={`${styles.cellEditorOption} ${selectedValue === option.value ? styles.cellEditorOptionSelected : ''}`}
+          onMouseEnter={() => setSelectedValue(option.value)}
+          onClick={() => handleSelect(option.value)}
+        >
           {option.label}
-        </option>
+        </div>
       ))}
-    </select>
+    </div>
   );
 }

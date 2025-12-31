@@ -50,15 +50,15 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
     <td
       data-emp-idx={empIdx}
       data-slot={slotIndex}
+      style={{ position: 'relative' }}
       onMouseDown={handleMouseDown}
       onMouseOver={handleMouseOver}
       onMouseUp={handleMouseUp}
       onDoubleClick={handleDoubleClick}
     >
-      {isEditing ? (
+      {status}
+      {isEditing && (
         <CellEditor value={status} onChange={handleChange} onClose={() => setIsEditing(false)} />
-      ) : (
-        status
       )}
     </td>
   );
