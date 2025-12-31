@@ -1,13 +1,9 @@
 import { useEffect } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
-import { useDateStore } from '../../store/dateStore';
 import { useSelectionStore } from '../../store/selectionStore';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
-import AdminEmployeeRow from './Rows/AdminEmployeeRow';
-import MonthHeaders from './Scrollable/MonthHeaders';
 import FixedEmployeeColumn from './Static/FixedEmployeeColumn';
-
 import AdminScrollableScheduleTable from './Scrollable/AdminScrollableScheduleTable';
 
 import styles from './Table.module.css';
@@ -16,7 +12,7 @@ import styles from './Table.module.css';
  * AdminConsole - Таблица для редактирования графика
  *
  * Функционал:
- * - Drag-выделение ячеек
+ * - Drag-выделение ячеек (через SelectionOverlay)
  * - Ctrl+C/V/Z для копирования/вставки/отмены
  * - Редактирование по двойному клику
  * - Сохранение/публикация изменений
@@ -26,10 +22,17 @@ function AdminConsole() {
   const publishDraft = useScheduleStore(s => s.publishDraft);
   const discardDraft = useScheduleStore(s => s.discardDraft);
   const hasUnsavedChanges = useScheduleStore(s => s.hasUnsavedChanges);
+  const employeeIds = useScheduleStore(s => s.employeeIds);
 
   const statusMessage = useSelectionStore(s => s.statusMessage);
-  const selectedCount = useSelectionStore(s => Object.keys(s.selectedCells).length);
+  const startCell = useSelectionStore(s => s.startCell);
+  const endCell = useSelectionStore(s => s.endCell);
   const clearSelection = useSelectionStore(s => s.clearSelection);
+
+  // Вычисляем количество выбранных ячеек
+  const selectedCount = startCell && endCell && employeeIds.length > 0
+    ? useSelectionStore.getState().getSelectedCount(employeeIds)
+    : 0;
 
   // Keyboard shortcuts
   useKeyboardShortcuts();

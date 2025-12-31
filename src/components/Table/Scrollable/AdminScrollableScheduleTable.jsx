@@ -1,13 +1,16 @@
+import { useRef } from 'react';
 import { useScheduleStore } from '../../../store/scheduleStore';
 import { useDateStore } from '../../../store/dateStore';
 
 import AdminEmployeeRow from '../Rows/AdminEmployeeRow';
 import MonthHeaders from './MonthHeaders';
+import SelectionOverlay from '../SelectionOverlay';
 
 import styles from '../Table.module.css';
 
 
 const AdminScrollableScheduleTable = () => {
+    const tableRef = useRef(null);
     const employeeIds = useScheduleStore(state => state.employeeIds);
     const visibleSlots = useDateStore(state => state.visibleSlots);
     const slotToDate = useDateStore(state => state.slotToDate);
@@ -15,8 +18,8 @@ const AdminScrollableScheduleTable = () => {
     const monthGroups = useDateStore(state => state.monthGroups);
 
     return (
-        <div className={styles.scrollable_container}>
-          <table className={styles.scrollable_column}>
+        <div className={styles.scrollable_container} style={{ position: 'relative' }}>
+          <table ref={tableRef} className={styles.scrollable_column}>
             <thead>
               <MonthHeaders monthGroups={monthGroups}/>
               <tr>
@@ -33,15 +36,16 @@ const AdminScrollableScheduleTable = () => {
             </thead>
             <tbody>
               {/* Каждая строка = сотрудник */}
-              {/* 🎯 Передаем ТОЛЬКО employee - без dates! */}
-              {employeeIds.map(empId => (
+              {employeeIds.map((empId, empIdx) => (
                 <AdminEmployeeRow
                   key={empId}
                   empId={empId}
+                  empIdx={empIdx}
                 />
               ))}
             </tbody>
           </table>
+          <SelectionOverlay tableRef={tableRef} />
         </div>
     )
 }

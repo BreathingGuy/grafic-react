@@ -5,19 +5,18 @@ import { useSelectionStore } from '../../../store/selectionStore';
 import CellEditor from './CellEditor';
 
 /**
- * AdminScheduleCell - Максимально упрощённая ячейка
+ * AdminScheduleCell - Ячейка без подписки на selection
+ *
+ * Выделение отрисовывается через SelectionOverlay,
+ * эта ячейка только обрабатывает mouse события.
  */
-const AdminScheduleCell = memo(({ employeeId, slotIndex }) => {
-  const cellKey = `${employeeId}-${slotIndex}`;
-
+const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
   const date = useDateStore(state => state.slotToDate[slotIndex]);
 
   const status = useScheduleStore(state => {
     if (!date) return '';
     return state.draftSchedule?.[`${employeeId}-${date}`] ?? state.scheduleMap[`${employeeId}-${date}`] ?? '';
   });
-
-  const isSelected = useSelectionStore(state => !!state.selectedCells[cellKey]);
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -29,9 +28,7 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex }) => {
 
   const handleMouseOver = useCallback(() => {
     if (!useSelectionStore.getState().isDragging) return;
-    const { employeeIds } = useScheduleStore.getState();
-    const { visibleSlots } = useDateStore.getState();
-    useSelectionStore.getState().updateSelection(employeeId, slotIndex, employeeIds, visibleSlots);
+    useSelectionStore.getState().updateSelection(employeeId, slotIndex);
   }, [employeeId, slotIndex]);
 
   const handleMouseUp = useCallback(() => {
@@ -51,7 +48,8 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex }) => {
 
   return (
     <td
-      style={isSelected ? { outline: '2px solid #007bff', outlineOffset: '-2px' } : undefined}
+      data-emp-idx={empIdx}
+      data-slot={slotIndex}
       onMouseDown={handleMouseDown}
       onMouseOver={handleMouseOver}
       onMouseUp={handleMouseUp}
@@ -64,7 +62,7 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex }) => {
       )}
     </td>
   );
-}, (prev, next) => prev.employeeId === next.employeeId && prev.slotIndex === next.slotIndex);
+}, (prev, next) => prev.employeeId === next.employeeId && prev.slotIndex === next.slotIndex && prev.empIdx === next.empIdx);
 
 AdminScheduleCell.displayName = 'AdminScheduleCell';
 

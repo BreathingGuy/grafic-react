@@ -7,56 +7,40 @@ import { useDateStore } from '../store/dateStore';
  * useKeyboardShortcuts - Хук для Ctrl+C, Ctrl+V, Ctrl+Z, Escape
  */
 export function useKeyboardShortcuts() {
-  // Подписки только на данные, не на actions
-  // const selectedCells = useSelectionStore(s => s.selectedCells);
-  // const draftSchedule = useScheduleStore(s => s.draftSchedule);
-  // const employeeIds = useScheduleStore(s => s.employeeIds);
-  // const slotToDate = useDateStore(s => s.slotToDate);
-
   // === КОПИРОВАНИЕ (Ctrl+C) ===
   const copySelected = useCallback(() => {
-    const { selectedCells, setStatus } = useSelectionStore.getState();
-    const { draftSchedule } = useScheduleStore.getState();
-    const { slotToDate } = useDateStore.getState();
-    const { employeeIds } = useScheduleStore.getState();
+    const { startCell, endCell, setStatus } = useSelectionStore.getState();
+    const { draftSchedule, employeeIds } = useScheduleStore.getState();
+    const { slotToDate, visibleSlots } = useDateStore.getState();
 
-    const keys = Object.keys(selectedCells);
-    if (keys.length === 0) {
+    if (!startCell || !endCell) {
       setStatus('Выберите ячейки для копирования');
       return;
     }
 
-    // Парсим ключи из объекта
-    let minSlot = Infinity, maxSlot = -Infinity;
-    const empIdsSet = new Set();
+    // Вычисляем границы
+    const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
+    const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
 
-    keys.forEach(key => {
-      const parts = key.split('-');
-      const slot = parseInt(parts.pop(), 10);
-      const empId = parts.join('-');
-      empIdsSet.add(empId);
-      minSlot = Math.min(minSlot, slot);
-      maxSlot = Math.max(maxSlot, slot);
-    });
-
-    // Сортируем по порядку в employeeIds
-    const sortedEmpIds = [...empIdsSet].sort((a, b) =>
-      employeeIds.indexOf(a) - employeeIds.indexOf(b)
-    );
+    const minEmpIdx = Math.min(startEmpIdx, endEmpIdx);
+    const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
+    const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
+    const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
 
     // Формируем 2D массив
     const data = [];
-    sortedEmpIds.forEach(empId => {
+    for (let empIdx = minEmpIdx; empIdx <= maxEmpIdx; empIdx++) {
       const rowData = [];
       for (let slot = minSlot; slot <= maxSlot; slot++) {
         const date = slotToDate[slot];
-        if (date) {
+        const empId = employeeIds[empIdx];
+        if (date && empId) {
           const key = `${empId}-${date}`;
           rowData.push(draftSchedule[key] || '');
         }
       }
       data.push(rowData);
-    });
+    }
 
     navigator.clipboard.writeText(JSON.stringify(data)).then(() => {
       setStatus(`Скопировано ${data.length}x${data[0]?.length || 0}`);
@@ -68,12 +52,11 @@ export function useKeyboardShortcuts() {
 
   // === ВСТАВКА (Ctrl+V) ===
   const pasteSelected = useCallback(() => {
-    const { selectedCells, setStatus, saveForUndo } = useSelectionStore.getState();
+    const { startCell, endCell, setStatus, saveForUndo } = useSelectionStore.getState();
     const { draftSchedule, batchUpdateDraftCells, employeeIds } = useScheduleStore.getState();
     const { slotToDate } = useDateStore.getState();
 
-    const keys = Object.keys(selectedCells);
-    if (keys.length === 0) {
+    if (!startCell || !endCell) {
       setStatus('Выберите ячейки для вставки');
       return;
     }
@@ -91,22 +74,20 @@ export function useKeyboardShortcuts() {
       // Сохраняем для undo
       saveForUndo(draftSchedule);
 
-      // Парсим границы выделения
-      let minSlot = Infinity, maxSlot = -Infinity;
-      const empIdsSet = new Set();
+      // Вычисляем границы выделения
+      const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
+      const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
 
-      keys.forEach(key => {
-        const parts = key.split('-');
-        const slot = parseInt(parts.pop(), 10);
-        const empId = parts.join('-');
-        empIdsSet.add(empId);
-        minSlot = Math.min(minSlot, slot);
-        maxSlot = Math.max(maxSlot, slot);
-      });
+      const minEmpIdx = Math.min(startEmpIdx, endEmpIdx);
+      const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
+      const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
+      const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
 
-      const sortedEmpIds = [...empIdsSet].sort((a, b) =>
-        employeeIds.indexOf(a) - employeeIds.indexOf(b)
-      );
+      // Сортированные empId в пределах выделения
+      const sortedEmpIds = [];
+      for (let i = minEmpIdx; i <= maxEmpIdx; i++) {
+        sortedEmpIds.push(employeeIds[i]);
+      }
 
       const selectedRowsCount = sortedEmpIds.length;
       const selectedColsCount = maxSlot - minSlot + 1;
