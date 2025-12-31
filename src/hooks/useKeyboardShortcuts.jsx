@@ -43,6 +43,7 @@ export function useKeyboardShortcuts() {
     }
 
     navigator.clipboard.writeText(JSON.stringify(data)).then(() => {
+      useSelectionStore.getState().setCopiedData(true);
       setStatus(`Скопировано ${data.length}x${data[0]?.length || 0}`);
     }).catch(err => {
       setStatus('Ошибка копирования');
@@ -128,6 +129,7 @@ export function useKeyboardShortcuts() {
       }
 
       batchUpdateDraftCells(updates);
+      useSelectionStore.getState().setCopiedData(false);
       const actualRows = Object.keys(updates).length > 0 ? finalRows : 0;
       setStatus(`Вставлено ${actualRows}x${finalCols}`);
     }).catch(err => {

@@ -33,6 +33,7 @@ function SelectionOverlay({ tableRef }) {
   const startCell = useSelectionStore(s => s.startCell);
   const endCell = useSelectionStore(s => s.endCell);
   const isDragging = useSelectionStore(s => s.isDragging);
+  const hasCopiedData = useSelectionStore(s => s.hasCopiedData);
   const employeeIds = useScheduleStore(s => s.employeeIds);
 
   // Пересчитываем позицию overlay
@@ -170,8 +171,8 @@ function SelectionOverlay({ tableRef }) {
       {/* Overlay выделения */}
       <div style={overlayStyle} />
 
-      {/* CellEditor - показываем только для множественного выделения */}
-      {editorPosition && !isDragging && !(startCell.employeeId === endCell.employeeId && startCell.slotIndex === endCell.slotIndex) && (
+      {/* CellEditor - показываем только для множественного выделения и если нет скопированных данных */}
+      {editorPosition && !isDragging && !hasCopiedData && !(startCell.employeeId === endCell.employeeId && startCell.slotIndex === endCell.slotIndex) && (
         <div
           style={editorPosition}
           className={styles.cellEditor}

@@ -13,6 +13,7 @@ export const useSelectionStore = create(
     isDragging: false,
     undoStack: [],
     statusMessage: '',
+    hasCopiedData: false,  // Флаг: есть скопированные данные для вставки
 
     // === SELECTION ACTIONS ===
 
@@ -141,6 +142,12 @@ export const useSelectionStore = create(
       if (message) {
         setTimeout(() => set({ statusMessage: '' }), 2000);
       }
+    },
+
+    // === CLIPBOARD ===
+
+    setCopiedData: (hasCopied) => {
+      set({ hasCopiedData: hasCopied });
     }
 
   }), { name: 'SelectionStore' })
