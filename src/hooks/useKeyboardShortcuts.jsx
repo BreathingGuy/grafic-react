@@ -74,10 +74,10 @@ export function useKeyboardShortcuts() {
     }
 
     navigator.clipboard.readText().then(text => {
-      let clipboardData;
+      let data;
       try {
-        clipboardData = JSON.parse(text);
-        if (!Array.isArray(clipboardData)) throw new Error();
+        data = JSON.parse(text);
+        if (!Array.isArray(data)) throw new Error();
       } catch {
         setStatus('Неверный формат данных');
         return;
@@ -86,19 +86,11 @@ export function useKeyboardShortcuts() {
       // Сохраняем для undo
       saveForUndo(draftSchedule);
 
-      // Определяем формат: один регион (2D массив) или несколько (массив 2D массивов)
-      const isMultiRegion = Array.isArray(clipboardData[0]) && Array.isArray(clipboardData[0][0]);
-      const regions = isMultiRegion ? clipboardData : [clipboardData];
-
       const updates = {};
       let totalPasted = 0;
 
       // Вставляем в каждый выделенный регион
-      for (let selIdx = 0; selIdx < allSelections.length; selIdx++) {
-        const { startCell, endCell } = allSelections[selIdx];
-        // Используем соответствующий регион из буфера или первый если регионов меньше
-        const data = regions[selIdx % regions.length];
-
+      for (const { startCell, endCell } of allSelections) {
         const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
         const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
 
@@ -112,6 +104,81 @@ export function useKeyboardShortcuts() {
         const clipboardRowsCount = data.length;
         const clipboardColsCount = data[0]?.length || 0;
 
+        // Логика вставки как в оригинале
+        if ((selectedColsCount === 1 && clipboardRowsCount === 1) ||
+            (selectedColsCount === clipboardColsCount && clipboardRowsCount === 1)) {
+          // 1 ROW COPYING vertical - размножаем одну строку вертикально
+          for (let i = 0; i < selectedRowsCount; i++) {
+            data.forEach((row, rIndex) => {
+              row.forEach((value, cIndex) => {
+                const targetEmpIdx = minEmpIdx + rIndex + i;
+                const targetSlot = minSlot + cIndex;
+                if (targetEmpIdx < employeeIds.length) {
+                  const empId = employeeIds[targetEmpIdx];
+                  const date = slotToDate[targetSlot];
+                  if (empId && date) {
+                    updates[`${empId}-${date}`] = value;
+                    totalPasted++;
+                  }
+                }
+              });
+            });
+          }
+        } else if (selectedRowsCount === 1 && clipboardColsCount === 1) {
+          // 1 ROW COPYING horizontal - размножаем один столбец горизонтально
+          for (let i = 0; i < selectedColsCount; i++) {
+            data.forEach((row, rIndex) => {
+              row.forEach((value, cIndex) => {
+                const targetEmpIdx = minEmpIdx + rIndex;
+                const targetSlot = minSlot + cIndex + i;
+                if (targetEmpIdx < employeeIds.length) {
+                  const empId = employeeIds[targetEmpIdx];
+                  const date = slotToDate[targetSlot];
+                  if (empId && date) {
+                    updates[`${empId}-${date}`] = value;
+                    totalPasted++;
+                  }
+                }
+              });
+            });
+          }
+        } else if (selectedRowsCount % clipboardRowsCount === 0 &&
+                   selectedColsCount % clipboardColsCount === 0) {
+          // COPYING KVADRAT - тайлинг блока
+          for (let j = 0; j < selectedColsCount; j += clipboardColsCount) {
+            for (let i = 0; i < selectedRowsCount; i += clipboardRowsCount) {
+              data.forEach((row, rIndex) => {
+                row.forEach((value, cIndex) => {
+                  const targetEmpIdx = minEmpIdx + rIndex + i;
+                  const targetSlot = minSlot + cIndex + j;
+                  if (targetEmpIdx < employeeIds.length) {
+                    const empId = employeeIds[targetEmpIdx];
+                    const date = slotToDate[targetSlot];
+                    if (empId && date) {
+                      updates[`${empId}-${date}`] = value;
+                      totalPasted++;
+                    }
+                  }
+                });
+              });
+            }
+          }
+        } else {
+          // BASIC COPYING - обычная вставка
+          data.forEach((row, rIndex) => {
+            row.forEach((value, cIndex) => {
+              const targetEmpIdx = minEmpIdx + rIndex;
+              const targetSlot = minSlot + cIndex;
+              if (targetEmpIdx < employeeIds.length) {
+                const empId = employeeIds[targetEmpIdx];
+                const date = slotToDate[targetSlot];
+                if (empId && date) {
+                  updates[`${empId}-${date}`] = value;
+                  totalPasted++;
+                }
+              }
+            });
+          });
         // Определяем реальные размеры для вставки
         // Если буфер больше выделения - вставляем весь буфер
         // Если выделение больше и кратно буферу - размножаем
@@ -145,7 +212,7 @@ export function useKeyboardShortcuts() {
       }
 
       batchUpdateDraftCells(updates);
-      setStatus(`Вставлено ${totalPasted} ячеек`);
+      setStatus(`Вставлено ${data.length}x${data[0]?.length || 0}`);
     }).catch(err => {
       setStatus('Ошибка вставки');
       console.error(err);
