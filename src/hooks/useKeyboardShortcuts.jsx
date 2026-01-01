@@ -9,6 +9,7 @@ import { useDateStore } from '../store/dateStore';
  */
 export function useKeyboardShortcuts() {
   // === КОПИРОВАНИЕ (Ctrl+C) ===
+  // Копируется только первый (активный) регион выделения
   const copySelected = useCallback(() => {
     const { getAllSelections, setStatus, setCopiedData } = useSelectionStore.getState();
     const { draftSchedule, employeeIds } = useScheduleStore.getState();
@@ -20,42 +21,40 @@ export function useKeyboardShortcuts() {
       return;
     }
 
-    // Для каждого региона формируем 2D массив
-    const regionsData = [];
+    // Копируем только первый регион
+    const { startCell, endCell } = allSelections[0];
 
-    for (const { startCell, endCell } of allSelections) {
-      const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
-      const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
+    const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
+    const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
 
-      const minEmpIdx = Math.min(startEmpIdx, endEmpIdx);
-      const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
-      const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
-      const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
+    const minEmpIdx = Math.min(startEmpIdx, endEmpIdx);
+    const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
+    const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
+    const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
 
-      const regionData = [];
-      for (let empIdx = minEmpIdx; empIdx <= maxEmpIdx; empIdx++) {
-        const rowData = [];
-        for (let slot = minSlot; slot <= maxSlot; slot++) {
-          const date = slotToDate[slot];
-          const empId = employeeIds[empIdx];
-          if (date && empId) {
-            const key = `${empId}-${date}`;
-            rowData.push(draftSchedule[key] || '');
-          }
+    const data = [];
+    for (let empIdx = minEmpIdx; empIdx <= maxEmpIdx; empIdx++) {
+      const rowData = [];
+      for (let slot = minSlot; slot <= maxSlot; slot++) {
+        const date = slotToDate[slot];
+        const empId = employeeIds[empIdx];
+        if (date && empId) {
+          const key = `${empId}-${date}`;
+          rowData.push(draftSchedule[key] || '');
         }
-        regionData.push(rowData);
       }
-      regionsData.push(regionData);
+      data.push(rowData);
     }
 
-    // Если один регион - сохраняем как раньше (2D массив)
-    // Если несколько - сохраняем массив регионов
-    const dataToSave = regionsData.length === 1 ? regionsData[0] : regionsData;
-
-    navigator.clipboard.writeText(JSON.stringify(dataToSave)).then(() => {
+    navigator.clipboard.writeText(JSON.stringify(data)).then(() => {
       setCopiedData(true);
-      const totalCells = regionsData.reduce((sum, r) => sum + r.length * (r[0]?.length || 0), 0);
-      setStatus(`Скопировано ${totalCells} ячеек (${regionsData.length} регион${regionsData.length > 1 ? 'ов' : ''})`);
+      const rows = data.length;
+      const cols = data[0]?.length || 0;
+      if (allSelections.length > 1) {
+        setStatus(`Скопировано ${rows}x${cols} (только первый регион)`);
+      } else {
+        setStatus(`Скопировано ${rows}x${cols}`);
+      }
     }).catch(err => {
       setStatus('Ошибка копирования');
       console.error(err);
