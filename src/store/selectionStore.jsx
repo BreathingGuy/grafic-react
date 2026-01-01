@@ -7,22 +7,39 @@ const cellKey = (employeeId, slotIndex) => `${employeeId}-${slotIndex}`;
 export const useSelectionStore = create(
   devtools((set, get) => ({
     // === STATE ===
-    // Храним только границы выделения - не отдельные ячейки
+    // Текущее активное выделение (которое редактируется)
     startCell: null,       // { employeeId, slotIndex }
     endCell: null,         // { employeeId, slotIndex }
+    // Дополнительные выделения (Ctrl+click)
+    selections: [],        // [{ startCell, endCell }, ...]
     isDragging: false,
     undoStack: [],
     statusMessage: '',
-    hasCopiedData: false,  // Флаг: есть скопированные данные для вставки
+    hasCopiedData: false,
 
     // === SELECTION ACTIONS ===
 
-    startSelection: (employeeId, slotIndex) => {
-      set({
-        startCell: { employeeId, slotIndex },
-        endCell: { employeeId, slotIndex },
-        isDragging: true
-      });
+    // Начать выделение (withCtrl = true для добавления к существующему)
+    startSelection: (employeeId, slotIndex, withCtrl = false) => {
+      const { startCell, endCell, selections } = get();
+
+      if (withCtrl && startCell && endCell) {
+        // Ctrl+click: сохраняем текущее выделение и начинаем новое
+        set({
+          selections: [...selections, { startCell, endCell }],
+          startCell: { employeeId, slotIndex },
+          endCell: { employeeId, slotIndex },
+          isDragging: true
+        });
+      } else {
+        // Обычный клик: сбрасываем все и начинаем новое
+        set({
+          selections: [],
+          startCell: { employeeId, slotIndex },
+          endCell: { employeeId, slotIndex },
+          isDragging: true
+        });
+      }
     },
 
     updateSelection: (endEmployeeId, endSlotIndex) => {
@@ -37,79 +54,67 @@ export const useSelectionStore = create(
     },
 
     clearSelection: () => {
-      set({ startCell: null, endCell: null, isDragging: false });
+      set({ startCell: null, endCell: null, selections: [], isDragging: false });
     },
 
-    // === COMPUTED: Получить границы выделения ===
-    getSelectionBounds: (employeeIds) => {
-      const { startCell, endCell } = get();
-      if (!startCell || !endCell) return null;
-
-      const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
-      const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
-
-      return {
-        minEmpIdx: Math.min(startEmpIdx, endEmpIdx),
-        maxEmpIdx: Math.max(startEmpIdx, endEmpIdx),
-        minSlot: Math.min(startCell.slotIndex, endCell.slotIndex),
-        maxSlot: Math.max(startCell.slotIndex, endCell.slotIndex)
-      };
+    // === COMPUTED: Получить все регионы выделения ===
+    getAllSelections: () => {
+      const { startCell, endCell, selections } = get();
+      const allSelections = [...selections];
+      if (startCell && endCell) {
+        allSelections.push({ startCell, endCell });
+      }
+      return allSelections;
     },
 
     // === COMPUTED: Получить все выбранные ячейки (для copy/paste) ===
-    getSelectedCellKeys: (employeeIds, visibleSlots) => {
-      const { startCell, endCell } = get();
-      if (!startCell || !endCell) return [];
+    getSelectedCellKeys: (employeeIds, slotToDate) => {
+      const allSelections = get().getAllSelections();
+      const keysSet = new Set();
 
-      const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
-      const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
+      for (const { startCell, endCell } of allSelections) {
+        const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
+        const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
 
-      const minEmpIdx = Math.min(startEmpIdx, endEmpIdx);
-      const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
-      const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
-      const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
+        const minEmpIdx = Math.min(startEmpIdx, endEmpIdx);
+        const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
+        const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
+        const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
 
-      const keys = [];
-      for (let empIdx = minEmpIdx; empIdx <= maxEmpIdx; empIdx++) {
-        for (let slot = minSlot; slot <= maxSlot; slot++) {
-          if (slot < visibleSlots.length && employeeIds[empIdx]) {
-            keys.push(cellKey(employeeIds[empIdx], slot));
+        for (let empIdx = minEmpIdx; empIdx <= maxEmpIdx; empIdx++) {
+          for (let slot = minSlot; slot <= maxSlot; slot++) {
+            if (employeeIds[empIdx] && slotToDate[slot]) {
+              keysSet.add(cellKey(employeeIds[empIdx], slot));
+            }
           }
         }
       }
-      return keys;
-    },
-
-    // Проверка выделена ли ячейка (для редактирования)
-    isCellSelected: (employeeId, slotIndex, employeeIds) => {
-      const { startCell, endCell } = get();
-      if (!startCell || !endCell) return false;
-
-      const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
-      const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
-      const cellEmpIdx = employeeIds.indexOf(employeeId);
-
-      const minEmpIdx = Math.min(startEmpIdx, endEmpIdx);
-      const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
-      const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
-      const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
-
-      return cellEmpIdx >= minEmpIdx && cellEmpIdx <= maxEmpIdx &&
-             slotIndex >= minSlot && slotIndex <= maxSlot;
+      return Array.from(keysSet);
     },
 
     // Получить количество выделенных ячеек
-    getSelectedCount: (employeeIds, visibleSlots) => {
-      const { startCell, endCell } = get();
-      if (!startCell || !endCell) return 0;
+    getSelectedCount: (employeeIds) => {
+      const allSelections = get().getAllSelections();
+      let count = 0;
 
-      const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
-      const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
+      for (const { startCell, endCell } of allSelections) {
+        const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
+        const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
 
-      const rows = Math.abs(endEmpIdx - startEmpIdx) + 1;
-      const cols = Math.abs(endCell.slotIndex - startCell.slotIndex) + 1;
+        const rows = Math.abs(endEmpIdx - startEmpIdx) + 1;
+        const cols = Math.abs(endCell.slotIndex - startCell.slotIndex) + 1;
+        count += rows * cols;
+      }
+      return count;
+    },
 
-      return rows * cols;
+    // Проверка: выделена только одна ячейка?
+    isSingleCellSelected: () => {
+      const { startCell, endCell, selections } = get();
+      if (selections.length > 0) return false;
+      if (!startCell || !endCell) return false;
+      return startCell.employeeId === endCell.employeeId &&
+             startCell.slotIndex === endCell.slotIndex;
     },
 
     // === UNDO ===

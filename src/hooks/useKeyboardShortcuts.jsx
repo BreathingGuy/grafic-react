@@ -5,77 +5,25 @@ import { useDateStore } from '../store/dateStore';
 
 /**
  * useKeyboardShortcuts - Хук для Ctrl+C, Ctrl+V, Ctrl+Z, Escape
+ * Поддерживает множественное выделение (Ctrl+click)
  */
 export function useKeyboardShortcuts() {
   // === КОПИРОВАНИЕ (Ctrl+C) ===
   const copySelected = useCallback(() => {
-    const { startCell, endCell, setStatus } = useSelectionStore.getState();
+    const { getAllSelections, setStatus, setCopiedData } = useSelectionStore.getState();
     const { draftSchedule, employeeIds } = useScheduleStore.getState();
     const { slotToDate } = useDateStore.getState();
 
-    if (!startCell || !endCell) {
+    const allSelections = getAllSelections();
+    if (allSelections.length === 0) {
       setStatus('Выберите ячейки для копирования');
       return;
     }
 
-    // Вычисляем границы
-    const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
-    const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
+    // Для каждого региона формируем 2D массив
+    const regionsData = [];
 
-    const minEmpIdx = Math.min(startEmpIdx, endEmpIdx);
-    const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
-    const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
-    const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
-
-    // Формируем 2D массив
-    const data = [];
-    for (let empIdx = minEmpIdx; empIdx <= maxEmpIdx; empIdx++) {
-      const rowData = [];
-      for (let slot = minSlot; slot <= maxSlot; slot++) {
-        const date = slotToDate[slot];
-        const empId = employeeIds[empIdx];
-        if (date && empId) {
-          const key = `${empId}-${date}`;
-          rowData.push(draftSchedule[key] || '');
-        }
-      }
-      data.push(rowData);
-    }
-
-    navigator.clipboard.writeText(JSON.stringify(data)).then(() => {
-      useSelectionStore.getState().setCopiedData(true);
-      setStatus(`Скопировано ${data.length}x${data[0]?.length || 0}`);
-    }).catch(err => {
-      setStatus('Ошибка копирования');
-      console.error(err);
-    });
-  }, []);
-
-  // === ВСТАВКА (Ctrl+V) ===
-  const pasteSelected = useCallback(() => {
-    const { startCell, endCell, setStatus, saveForUndo } = useSelectionStore.getState();
-    const { draftSchedule, batchUpdateDraftCells, employeeIds } = useScheduleStore.getState();
-    const { slotToDate } = useDateStore.getState();
-
-    if (!startCell || !endCell) {
-      setStatus('Выберите ячейки для вставки');
-      return;
-    }
-
-    navigator.clipboard.readText().then(text => {
-      let data;
-      try {
-        data = JSON.parse(text);
-        if (!Array.isArray(data)) throw new Error();
-      } catch {
-        setStatus('Неверный формат данных');
-        return;
-      }
-
-      // Сохраняем для undo
-      saveForUndo(draftSchedule);
-
-      // Вычисляем границы выделения
+    for (const { startCell, endCell } of allSelections) {
       const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
       const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
 
@@ -84,53 +32,123 @@ export function useKeyboardShortcuts() {
       const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
       const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
 
-      const selectedRowsCount = maxEmpIdx - minEmpIdx + 1;
-      const selectedColsCount = maxSlot - minSlot + 1;
-      const clipboardRowsCount = data.length;
-      const clipboardColsCount = data[0]?.length || 0;
+      const regionData = [];
+      for (let empIdx = minEmpIdx; empIdx <= maxEmpIdx; empIdx++) {
+        const rowData = [];
+        for (let slot = minSlot; slot <= maxSlot; slot++) {
+          const date = slotToDate[slot];
+          const empId = employeeIds[empIdx];
+          if (date && empId) {
+            const key = `${empId}-${date}`;
+            rowData.push(draftSchedule[key] || '');
+          }
+        }
+        regionData.push(rowData);
+      }
+      regionsData.push(regionData);
+    }
+
+    // Если один регион - сохраняем как раньше (2D массив)
+    // Если несколько - сохраняем массив регионов
+    const dataToSave = regionsData.length === 1 ? regionsData[0] : regionsData;
+
+    navigator.clipboard.writeText(JSON.stringify(dataToSave)).then(() => {
+      setCopiedData(true);
+      const totalCells = regionsData.reduce((sum, r) => sum + r.length * (r[0]?.length || 0), 0);
+      setStatus(`Скопировано ${totalCells} ячеек (${regionsData.length} регион${regionsData.length > 1 ? 'ов' : ''})`);
+    }).catch(err => {
+      setStatus('Ошибка копирования');
+      console.error(err);
+    });
+  }, []);
+
+  // === ВСТАВКА (Ctrl+V) ===
+  const pasteSelected = useCallback(() => {
+    const { getAllSelections, setStatus, saveForUndo } = useSelectionStore.getState();
+    const { draftSchedule, batchUpdateDraftCells, employeeIds } = useScheduleStore.getState();
+    const { slotToDate } = useDateStore.getState();
+
+    const allSelections = getAllSelections();
+    if (allSelections.length === 0) {
+      setStatus('Выберите ячейки для вставки');
+      return;
+    }
+
+    navigator.clipboard.readText().then(text => {
+      let clipboardData;
+      try {
+        clipboardData = JSON.parse(text);
+        if (!Array.isArray(clipboardData)) throw new Error();
+      } catch {
+        setStatus('Неверный формат данных');
+        return;
+      }
+
+      // Сохраняем для undo
+      saveForUndo(draftSchedule);
+
+      // Определяем формат: один регион (2D массив) или несколько (массив 2D массивов)
+      const isMultiRegion = Array.isArray(clipboardData[0]) && Array.isArray(clipboardData[0][0]);
+      const regions = isMultiRegion ? clipboardData : [clipboardData];
 
       const updates = {};
+      let totalPasted = 0;
 
-      // Определяем реальные размеры для вставки
-      // Если буфер больше выделения - вставляем весь буфер
-      // Если выделение больше и кратно буферу - размножаем
-      const pasteRows = Math.max(selectedRowsCount, clipboardRowsCount);
-      const pasteCols = Math.max(selectedColsCount, clipboardColsCount);
+      // Вставляем в каждый выделенный регион
+      for (let selIdx = 0; selIdx < allSelections.length; selIdx++) {
+        const { startCell, endCell } = allSelections[selIdx];
+        // Используем соответствующий регион из буфера или первый если регионов меньше
+        const data = regions[selIdx % regions.length];
 
-      // Проверяем можно ли размножить
-      const canTileRows = selectedRowsCount > clipboardRowsCount && selectedRowsCount % clipboardRowsCount === 0;
-      const canTileCols = selectedColsCount > clipboardColsCount && selectedColsCount % clipboardColsCount === 0;
+        const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
+        const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
 
-      const finalRows = canTileRows ? selectedRowsCount : pasteRows;
-      const finalCols = canTileCols ? selectedColsCount : pasteCols;
+        const minEmpIdx = Math.min(startEmpIdx, endEmpIdx);
+        const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
+        const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
+        const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
 
-      for (let i = 0; i < finalRows; i++) {
-        for (let j = 0; j < finalCols; j++) {
-          // Индексы в буфере (с повторением для тайлинга)
-          const srcRow = i % clipboardRowsCount;
-          const srcCol = j % clipboardColsCount;
+        const selectedRowsCount = maxEmpIdx - minEmpIdx + 1;
+        const selectedColsCount = maxSlot - minSlot + 1;
+        const clipboardRowsCount = data.length;
+        const clipboardColsCount = data[0]?.length || 0;
 
-          const value = data[srcRow]?.[srcCol];
-          if (value === undefined) continue;
+        // Определяем размеры для вставки
+        const pasteRows = Math.max(selectedRowsCount, clipboardRowsCount);
+        const pasteCols = Math.max(selectedColsCount, clipboardColsCount);
 
-          const targetEmpIdx = minEmpIdx + i;
-          const targetSlot = minSlot + j;
+        const canTileRows = selectedRowsCount > clipboardRowsCount && selectedRowsCount % clipboardRowsCount === 0;
+        const canTileCols = selectedColsCount > clipboardColsCount && selectedColsCount % clipboardColsCount === 0;
 
-          // Проверяем границы
-          if (targetEmpIdx >= employeeIds.length) continue;
+        const finalRows = canTileRows ? selectedRowsCount : pasteRows;
+        const finalCols = canTileCols ? selectedColsCount : pasteCols;
 
-          const empId = employeeIds[targetEmpIdx];
-          const date = slotToDate[targetSlot];
+        for (let i = 0; i < finalRows; i++) {
+          for (let j = 0; j < finalCols; j++) {
+            const srcRow = i % clipboardRowsCount;
+            const srcCol = j % clipboardColsCount;
 
-          if (empId && date) {
-            updates[`${empId}-${date}`] = value;
+            const value = data[srcRow]?.[srcCol];
+            if (value === undefined) continue;
+
+            const targetEmpIdx = minEmpIdx + i;
+            const targetSlot = minSlot + j;
+
+            if (targetEmpIdx >= employeeIds.length) continue;
+
+            const empId = employeeIds[targetEmpIdx];
+            const date = slotToDate[targetSlot];
+
+            if (empId && date) {
+              updates[`${empId}-${date}`] = value;
+              totalPasted++;
+            }
           }
         }
       }
 
       batchUpdateDraftCells(updates);
-      const actualRows = Object.keys(updates).length > 0 ? finalRows : 0;
-      setStatus(`Вставлено ${actualRows}x${finalCols}`);
+      setStatus(`Вставлено ${totalPasted} ячеек`);
     }).catch(err => {
       setStatus('Ошибка вставки');
       console.error(err);

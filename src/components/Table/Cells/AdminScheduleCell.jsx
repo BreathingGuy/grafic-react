@@ -23,7 +23,7 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
   const handleMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
     e.preventDefault();
-    useSelectionStore.getState().startSelection(employeeId, slotIndex);
+    useSelectionStore.getState().startSelection(employeeId, slotIndex, e.ctrlKey || e.metaKey);
   }, [employeeId, slotIndex]);
 
   const handleMouseOver = useCallback(() => {
