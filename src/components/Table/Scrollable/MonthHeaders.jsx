@@ -1,4 +1,7 @@
-export default function MonthHeaders({monthGroups}) {
+import { useDateStore } from '../../../store/dateStore';
+
+export default function MonthHeaders() {
+    const monthGroups = useDateStore(state => state.monthGroups);
     return (
         <tr>
             {monthGroups.map((group, i) => (
