@@ -5,6 +5,9 @@ import ViewScheduleCell from '../Cells/ViewScheduleCell';
 const EmployeeRow = memo(({ empId }) => {
   const visibleSlots = useDateStore(state => state.visibleSlots);
 
+  console.log(visibleSlots);
+  
+
   return (
     <tr>
       {visibleSlots.map(slotIndex => (

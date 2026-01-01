@@ -49,8 +49,8 @@ const generateDateIndex = (startYear, endYear) => {
 };
 
 // Генерируем индекс для диапазона 2024-2026 (один раз!)
-const startYear = new Date().getFullYear();
-const DATE_INDEX = generateDateIndex(startYear, startYear + 1);
+const startYear = 2025;
+const DATE_INDEX = generateDateIndex(2025, startYear + 1);
 
 // ======================================================
 // 🎯 ZUSTAND STORE
@@ -111,6 +111,10 @@ export const useDateStore = create(
 
       console.log(slotToDate);
       console.log(slotToDay);
+
+      console.log(get().datesByYear);
+      console.log(get().datesByQuarter);
+      
       
     },
 
