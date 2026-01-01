@@ -112,13 +112,17 @@ export function useKeyboardShortcuts() {
         const clipboardRowsCount = data.length;
         const clipboardColsCount = data[0]?.length || 0;
 
-        // Тайлинг только если выделение КРАТНО буферу
-        // Иначе вставляем только размер буфера
+        // Определяем реальные размеры для вставки
+        // Если буфер больше выделения - вставляем весь буфер
+        // Если выделение больше и кратно буферу - размножаем
+        const pasteRows = Math.max(selectedRowsCount, clipboardRowsCount);
+        const pasteCols = Math.max(selectedColsCount, clipboardColsCount);
+
         const canTileRows = selectedRowsCount > clipboardRowsCount && selectedRowsCount % clipboardRowsCount === 0;
         const canTileCols = selectedColsCount > clipboardColsCount && selectedColsCount % clipboardColsCount === 0;
 
-        const finalRows = canTileRows ? selectedRowsCount : clipboardRowsCount;
-        const finalCols = canTileCols ? selectedColsCount : clipboardColsCount;
+        const finalRows = canTileRows ? selectedRowsCount : pasteRows;
+        const finalCols = canTileCols ? selectedColsCount : pasteCols;
 
         for (let i = 0; i < finalRows; i++) {
           for (let j = 0; j < finalCols; j++) {
