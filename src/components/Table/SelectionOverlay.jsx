@@ -172,7 +172,7 @@ function SelectionOverlay({ tableRef }) {
       <div style={overlayStyle} />
 
       {/* CellEditor - показываем только для множественного выделения и если нет скопированных данных */}
-      {editorPosition && !isDragging && !hasCopiedData && !(startCell.employeeId === endCell.employeeId && startCell.slotIndex === endCell.slotIndex) && (
+      {editorPosition && !isDragging && !hasCopiedData && startCell && endCell && !(startCell.employeeId === endCell.employeeId && startCell.slotIndex === endCell.slotIndex) && (
         <div
           style={editorPosition}
           className={styles.cellEditor}
