@@ -1,5 +1,5 @@
 import { memo, useState, useCallback } from 'react';
-import { useScheduleStore } from '../../../store/scheduleStore';
+import { useAdminStore } from '../../../store/adminStore';
 import { useDateStore } from '../../../store/dateStore';
 import { useSelectionStore } from '../../../store/selectionStore';
 import CellEditor from './CellEditor';
@@ -13,9 +13,10 @@ import CellEditor from './CellEditor';
 const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
   const date = useDateStore(state => state.slotToDate[slotIndex]);
 
-  const status = useScheduleStore(state => {
+  // Читаем из adminStore.draftSchedule
+  const status = useAdminStore(state => {
     if (!date) return '';
-    return state.draftSchedule?.[`${employeeId}-${date}`] ?? state.scheduleMap[`${employeeId}-${date}`] ?? '';
+    return state.draftSchedule[`${employeeId}-${date}`] ?? '';
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -43,9 +44,8 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
 
   const handleChange = useCallback((newValue) => {
     if (date) {
-      const { saveForUndo } = useSelectionStore.getState();
-      const { draftSchedule, updateDraftCell } = useScheduleStore.getState();
-      saveForUndo(draftSchedule);
+      const { saveUndoState, updateDraftCell } = useAdminStore.getState();
+      saveUndoState();
       updateDraftCell(employeeId, date, newValue);
     }
     setIsEditing(false);

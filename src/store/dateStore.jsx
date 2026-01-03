@@ -77,6 +77,9 @@ export const useDateStore = create(
     periods: ['3months', '1month', '7days'],
     baseDate: new Date(),                   // Базовая дата для расчета диапазона
 
+    // Режим админа — без ограничений навигации
+    isAdminMode: false,
+
     // 🎯 СИСТЕМА СЛОТОВ - ключевая оптимизация!
     // visibleSlots - ФИКСИРОВАННЫЙ массив индексов (НИКОГДА НЕ МЕНЯЕТСЯ!)
     // При навигации меняется только slotToDate/slotToDay mapping
@@ -208,7 +211,10 @@ export const useDateStore = create(
 
     // Можно ли идти вперед?
     canGoNext: () => {
-      const { period, baseDate, currentYear, maxYear } = get();
+      const { period, baseDate, currentYear, maxYear, isAdminMode } = get();
+
+      // Админ может идти куда угодно
+      if (isAdminMode) return true;
 
       if (period === '1year') {
         return currentYear < maxYear;
@@ -238,7 +244,10 @@ export const useDateStore = create(
 
     // Можно ли идти назад?
     canGoPrev: () => {
-      const { period, baseDate, currentYear, minYear } = get();
+      const { period, baseDate, currentYear, minYear, isAdminMode } = get();
+
+      // Админ может идти куда угодно
+      if (isAdminMode) return true;
 
       if (period === '1year') {
         return currentYear > minYear;
@@ -264,6 +273,11 @@ export const useDateStore = create(
       }
 
       return false;
+    },
+
+    // Установить режим админа
+    setAdminMode: (isAdmin) => {
+      set({ isAdminMode: isAdmin });
     },
 
     // === ACTIONS ===
