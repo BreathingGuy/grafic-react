@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useScheduleStore } from '../../store/scheduleStore';
+import { useAdminStore } from '../../store/adminStore';
 import { useSelectionStore } from '../../store/selectionStore';
+import { useDateStore } from '../../store/dateStore';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 import FixedEmployeeColumn from './Static/FixedEmployeeColumn';
@@ -18,11 +20,19 @@ import styles from './Table.module.css';
  * - Сохранение/публикация изменений
  */
 function AdminConsole() {
-  const initializeDraft = useScheduleStore(s => s.initializeDraft);
-  const publishDraft = useScheduleStore(s => s.publishDraft);
-  const discardDraft = useScheduleStore(s => s.discardDraft);
-  const hasUnsavedChanges = useScheduleStore(s => s.hasUnsavedChanges);
+  // Из scheduleStore только читаем production данные
   const employeeIds = useScheduleStore(s => s.employeeIds);
+
+  // Из adminStore — всё что касается редактирования
+  const initializeDraft = useAdminStore(s => s.initializeDraft);
+  const publishDraft = useAdminStore(s => s.publishDraft);
+  const discardDraft = useAdminStore(s => s.discardDraft);
+  const clearDraft = useAdminStore(s => s.clearDraft);
+  const hasUnsavedChanges = useAdminStore(s => s.hasUnsavedChanges);
+
+  // Текущий год для инициализации
+  const currentYear = useDateStore(s => s.currentYear);
+  const setAdminMode = useDateStore(s => s.setAdminMode);
 
   const statusMessage = useSelectionStore(s => s.statusMessage);
   const startCell = useSelectionStore(s => s.startCell);
@@ -37,16 +47,25 @@ function AdminConsole() {
   // Keyboard shortcuts
   useKeyboardShortcuts();
 
-  // Инициализация draft при монтировании
+  // Инициализация при монтировании
   useEffect(() => {
-    initializeDraft();
-    return () => clearSelection();
-  }, [initializeDraft, clearSelection]);
+    // Включаем режим админа (без ограничений навигации)
+    setAdminMode(true);
+    // Инициализируем draft для текущего года
+    initializeDraft(currentYear);
+
+    return () => {
+      // При выходе — выключаем режим админа и очищаем
+      setAdminMode(false);
+      clearDraft();
+      clearSelection();
+    };
+  }, [currentYear, initializeDraft, setAdminMode, clearDraft, clearSelection]);
 
   // Handlers
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (window.confirm('Опубликовать изменения?')) {
-      const count = publishDraft();
+      const count = await publishDraft();
       alert(`Опубликовано ${count} изменений`);
     }
   };

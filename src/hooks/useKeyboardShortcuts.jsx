@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useSelectionStore } from '../store/selectionStore';
+import { useAdminStore } from '../store/adminStore';
 import { useScheduleStore } from '../store/scheduleStore';
 import { useDateStore } from '../store/dateStore';
 
@@ -12,7 +13,8 @@ export function useKeyboardShortcuts() {
   // Копируется только первый (активный) регион выделения
   const copySelected = useCallback(() => {
     const { getAllSelections, setStatus, setCopiedData } = useSelectionStore.getState();
-    const { draftSchedule, employeeIds } = useScheduleStore.getState();
+    const { draftSchedule } = useAdminStore.getState();
+    const { employeeIds } = useScheduleStore.getState();
     const { slotToDate } = useDateStore.getState();
 
     const allSelections = getAllSelections();
@@ -63,8 +65,9 @@ export function useKeyboardShortcuts() {
 
   // === ВСТАВКА (Ctrl+V) ===
   const pasteSelected = useCallback(() => {
-    const { getAllSelections, setStatus, saveForUndo } = useSelectionStore.getState();
-    const { draftSchedule, batchUpdateDraftCells, employeeIds } = useScheduleStore.getState();
+    const { getAllSelections, setStatus } = useSelectionStore.getState();
+    const { saveUndoState, batchUpdateDraftCells } = useAdminStore.getState();
+    const { employeeIds } = useScheduleStore.getState();
     const { slotToDate } = useDateStore.getState();
 
     const allSelections = getAllSelections();
@@ -84,10 +87,9 @@ export function useKeyboardShortcuts() {
       }
 
       // Сохраняем для undo
-      saveForUndo(draftSchedule);
+      saveUndoState();
 
       const updates = {};
-      let totalPasted = 0;
 
       // Вставляем в каждый выделенный регион
       for (const { startCell, endCell } of allSelections) {
@@ -118,7 +120,6 @@ export function useKeyboardShortcuts() {
                   const date = slotToDate[targetSlot];
                   if (empId && date) {
                     updates[`${empId}-${date}`] = value;
-                    totalPasted++;
                   }
                 }
               });
@@ -136,7 +137,6 @@ export function useKeyboardShortcuts() {
                   const date = slotToDate[targetSlot];
                   if (empId && date) {
                     updates[`${empId}-${date}`] = value;
-                    totalPasted++;
                   }
                 }
               });
@@ -156,7 +156,6 @@ export function useKeyboardShortcuts() {
                     const date = slotToDate[targetSlot];
                     if (empId && date) {
                       updates[`${empId}-${date}`] = value;
-                      totalPasted++;
                     }
                   }
                 });
@@ -174,7 +173,6 @@ export function useKeyboardShortcuts() {
                 const date = slotToDate[targetSlot];
                 if (empId && date) {
                   updates[`${empId}-${date}`] = value;
-                  totalPasted++;
                 }
               }
             });
@@ -192,15 +190,14 @@ export function useKeyboardShortcuts() {
 
   // === ОТМЕНА (Ctrl+Z) ===
   const undo = useCallback(() => {
-    const { popUndo, setStatus } = useSelectionStore.getState();
-    const { restoreDraftSchedule } = useScheduleStore.getState();
+    const { setStatus } = useSelectionStore.getState();
+    const { undo: adminUndo } = useAdminStore.getState();
 
-    const prev = popUndo();
-    if (!prev) {
+    const success = adminUndo();
+    if (!success) {
       setStatus('Нечего отменять');
       return;
     }
-    restoreDraftSchedule(prev);
     setStatus('Отменено');
   }, []);
 

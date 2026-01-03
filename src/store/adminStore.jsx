@@ -1,97 +1,132 @@
 import {create} from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
+import { useScheduleStore } from './scheduleStore';
 
 export const useAdminStore = create(
   devtools(
     persist(
       (set, get) => ({
-        // === STATE ===
+        // === AUTHENTICATION ===
         isAuthenticated: false,
         user: null,                    // { userId, email, name, token }
         ownedDepartments: [],          // ["dept-1"]
         editableDepartments: [],       // ["dept-1", "dept-2"]
-        
-        // Режим редактирования
-        editMode: false,
-        draftSchedule: {},             // Черновик изменений
-        changedCells: new Set(),       // Подсветка после публикации
+
+        // === DRAFT STATE ===
+        draftSchedule: {},             // Рабочая копия: { "empId-date": "status" }
         hasUnsavedChanges: false,
-        
-        // === ACTIONS ===
-        
-        // Вход
-        login: async (email, password) => {
+        undoStack: [],                 // Для Ctrl+Z
+
+        // Текущий редактируемый год
+        editingYear: null,
+
+        // === AUTH ACTIONS ===
+
+        login: async (email, _password) => {
+          void _password; // Будет использоваться при интеграции API
+          // TODO: API call
           // const response = await api.post('/api/auth/login', { email, password });
-          
+
+          // Временная заглушка для разработки
           set({
             isAuthenticated: true,
             user: {
-              userId: response.userId,
-              email: response.email,
-              name: response.name,
-              token: response.token
+              userId: '1',
+              email: email,
+              name: 'Admin',
+              token: 'dev-token'
             },
-            ownedDepartments: response.ownedDepartments,
-            editableDepartments: response.editableDepartments
+            ownedDepartments: ['1'],
+            editableDepartments: ['1', '2']
           });
         },
-        
-        // Выход
+
         logout: () => {
           set({
             isAuthenticated: false,
             user: null,
             ownedDepartments: [],
             editableDepartments: [],
-            editMode: false,
             draftSchedule: {},
-            changedCells: new Set(),
-            hasUnsavedChanges: false
+            hasUnsavedChanges: false,
+            undoStack: [],
+            editingYear: null
           });
         },
-        
-        // Проверка прав на редактирование отдела
+
         canEditDepartment: (departmentId) => {
           return get().editableDepartments.includes(departmentId);
         },
-        
-        // Проверка прав владельца
+
         isOwner: (departmentId) => {
           return get().ownedDepartments.includes(departmentId);
         },
-        
-        // Включить режим редактирования
-        enableEditMode: async (departmentId) => {
-          // Загружаем черновик
-          // const response = await api.get(
-          //   `/api/admin/departments/${departmentId}/draft?year=2025`,
-          //   { headers: { Authorization: `Bearer ${get().user.token}` } }
-          // );
-          
-          set({
-            editMode: true,
-            draftSchedule: response.draftSchedule || {}
+
+        // === DRAFT OPERATIONS ===
+
+        // Инициализировать draft — копирует из production или создаёт пустой
+        initializeDraft: (year) => {
+          const scheduleStore = useScheduleStore.getState();
+          const { scheduleMap, employeeIds } = scheduleStore;
+          const yearPrefix = `${year}-`;
+
+          // Фильтруем production по году
+          const yearData = {};
+          Object.entries(scheduleMap).forEach(([key, value]) => {
+            if (key.includes(yearPrefix)) {
+              yearData[key] = value;
+            }
           });
-        },
-        
-        // Выключить режим редактирования
-        disableEditMode: () => {
-          if (get().hasUnsavedChanges) {
-            const confirm = window.confirm('Есть несохранённые изменения. Выйти?');
-            if (!confirm) return;
+
+          if (Object.keys(yearData).length > 0) {
+            // Год существует — копируем из production
+            console.log(`📋 Инициализация draft из production для ${year}`);
+            set({
+              draftSchedule: { ...yearData },
+              hasUnsavedChanges: false,
+              undoStack: [],
+              editingYear: year
+            });
+          } else {
+            // Год не существует — создаём пустой
+            console.log(`📝 Создание пустого draft для ${year}`);
+            get().createEmptyYear(year, employeeIds);
           }
-          
-          set({
-            editMode: false,
-            draftSchedule: {},
-            hasUnsavedChanges: false
-          });
         },
-        
-        // Обновить ячейку в черновике
+
+        // Создать пустой год
+        createEmptyYear: (year, employeeIds) => {
+          const emptyDraft = {};
+
+          // Генерируем все даты года
+          const startDate = new Date(year, 0, 1);
+          const endDate = new Date(year, 11, 31);
+
+          const currentDate = new Date(startDate);
+          while (currentDate <= endDate) {
+            const dateStr = currentDate.toISOString().slice(0, 10);
+
+            employeeIds.forEach(empId => {
+              emptyDraft[`${empId}-${dateStr}`] = '';  // Пустая ячейка
+            });
+
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+
+          set({
+            draftSchedule: emptyDraft,
+            hasUnsavedChanges: false,
+            undoStack: [],
+            editingYear: year
+          });
+
+          console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками`);
+        },
+
+        // Обновить одну ячейку в draft
         updateDraftCell: (employeeId, date, status) => {
           const key = `${employeeId}-${date}`;
-          
+
           set(state => ({
             draftSchedule: {
               ...state.draftSchedule,
@@ -100,85 +135,113 @@ export const useAdminStore = create(
             hasUnsavedChanges: true
           }));
         },
-        
-        // Сохранить черновик
-        saveDraft: async (departmentId) => {
-          const { draftSchedule, user } = get();
-          
-          // await api.post(
-          //   `/api/admin/departments/${departmentId}/draft/save`,
-          //   { draftSchedule },
-          //   { headers: { Authorization: `Bearer ${user.token}` } }
-          // );
-          
-          set({ hasUnsavedChanges: false });
-        },
-        
-        // Опубликовать черновик
-        publishDraft: async (departmentId) => {
-          const { draftSchedule, user } = get();
-          
-          // await api.post(
-          //   `/api/admin/departments/${departmentId}/draft/publish`,
-          //   { draftSchedule },
-          //   { headers: { Authorization: `Bearer ${user.token}` } }
-          // );
-          
-          // Обновляем production расписание
-          const scheduleStore = useScheduleStore.getState();
-          scheduleStore.set(state => ({
-            scheduleMap: {
-              ...state.scheduleMap,
-              ...draftSchedule
-            }
+
+        // Массовое обновление ячеек (для вставки)
+        batchUpdateDraftCells: (updates) => {
+          set(state => ({
+            draftSchedule: {
+              ...state.draftSchedule,
+              ...updates
+            },
+            hasUnsavedChanges: true
           }));
-          
-          // Помечаем изменённые ячейки
-          const changedKeys = Object.keys(draftSchedule).filter(key =>
-            draftSchedule[key] !== scheduleStore.scheduleMap[key]
-          );
-          
+        },
+
+        // Сохранить состояние для undo
+        saveUndoState: () => {
+          const { draftSchedule, undoStack } = get();
           set({
-            changedCells: new Set(changedKeys),
-            draftSchedule: {},
-            hasUnsavedChanges: false
+            undoStack: [...undoStack, { ...draftSchedule }]
           });
-          
-          // Сбрасываем подсветку через 5 секунд
-          setTimeout(() => {
-            set({ changedCells: new Set() });
-          }, 5000);
         },
-        
-        // WebSocket: обновление от другого админа
-        handlePublishUpdate: (update) => {
-          const { changes, departmentId } = update;
-          
-          // Обновляем production
+
+        // Отменить последнее действие (Ctrl+Z)
+        undo: () => {
+          const { undoStack } = get();
+          if (undoStack.length === 0) return false;
+
+          const previousState = undoStack[undoStack.length - 1];
+          set({
+            draftSchedule: previousState,
+            undoStack: undoStack.slice(0, -1),
+            hasUnsavedChanges: true
+          });
+
+          return true;
+        },
+
+        // Восстановить draft (альтернатива undo для полного восстановления)
+        restoreDraftSchedule: (previousDraft) => {
+          set({
+            draftSchedule: previousDraft,
+            hasUnsavedChanges: true
+          });
+        },
+
+        // Опубликовать draft → production
+        publishDraft: async () => {
+          const { draftSchedule } = get();
           const scheduleStore = useScheduleStore.getState();
-          scheduleStore.set(state => ({
-            scheduleMap: {
-              ...state.scheduleMap,
-              ...changes
-            }
-          }));
-          
-          // Подсветка
-          set({ changedCells: new Set(Object.keys(changes)) });
-          
-          setTimeout(() => {
-            set({ changedCells: new Set() });
-          }, 5000);
+
+          // TODO: Отправить на сервер
+          // await api.post('/api/admin/publish', { changes: draftSchedule });
+
+          // Применяем изменения в production
+          const changedCount = scheduleStore.applyChanges(draftSchedule);
+
+          // Очищаем undo стек, но оставляем draft синхронизированным
+          set({
+            hasUnsavedChanges: false,
+            undoStack: []
+          });
+
+          console.log(`✅ Опубликовано ${changedCount} изменений`);
+          return changedCount;
+        },
+
+        // Отменить все изменения — вернуть draft к production
+        discardDraft: () => {
+          const { editingYear } = get();
+          if (editingYear) {
+            get().initializeDraft(editingYear);
+          }
+        },
+
+        // Очистить draft (при выходе из режима редактирования)
+        clearDraft: () => {
+          set({
+            draftSchedule: {},
+            hasUnsavedChanges: false,
+            undoStack: [],
+            editingYear: null
+          });
+        },
+
+        // === GETTERS ===
+
+        // Получить статус ячейки из draft
+        getDraftCellStatus: (employeeId, date) => {
+          const key = `${employeeId}-${date}`;
+          return get().draftSchedule[key] ?? '';
+        },
+
+        // Проверить, изменена ли ячейка относительно production
+        isCellModified: (employeeId, date) => {
+          const key = `${employeeId}-${date}`;
+          const { draftSchedule } = get();
+          const productionValue = useScheduleStore.getState().scheduleMap[key];
+          return draftSchedule[key] !== productionValue;
         }
       }),
       {
-        name: 'admin-storage', // имя в localStorage
+        name: 'admin-storage',
         partialize: (state) => ({
-          // Сохраняем только токен и базовую инфу
+          // Сохраняем только аутентификацию
           isAuthenticated: state.isAuthenticated,
           user: state.user,
           ownedDepartments: state.ownedDepartments,
           editableDepartments: state.editableDepartments
+          // НЕ сохраняем draft — он должен загружаться заново
         })
       }
     ),

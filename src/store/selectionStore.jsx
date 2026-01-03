@@ -13,7 +13,6 @@ export const useSelectionStore = create(
     // Дополнительные выделения (Ctrl+click)
     selections: [],        // [{ startCell, endCell }, ...]
     isDragging: false,
-    undoStack: [],
     statusMessage: '',
     hasCopiedData: false,
 
@@ -115,29 +114,6 @@ export const useSelectionStore = create(
       if (!startCell || !endCell) return false;
       return startCell.employeeId === endCell.employeeId &&
              startCell.slotIndex === endCell.slotIndex;
-    },
-
-    // === UNDO ===
-
-    saveForUndo: (draftSchedule) => {
-      set(state => ({
-        undoStack: [...state.undoStack, { ...draftSchedule }]
-      }));
-    },
-
-    popUndo: () => {
-      const { undoStack } = get();
-      if (undoStack.length === 0) return null;
-
-      const lastState = undoStack[undoStack.length - 1];
-      set(state => ({
-        undoStack: state.undoStack.slice(0, -1)
-      }));
-      return lastState;
-    },
-
-    clearUndoStack: () => {
-      set({ undoStack: [] });
     },
 
     // === STATUS ===

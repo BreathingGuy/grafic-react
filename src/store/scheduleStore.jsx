@@ -16,10 +16,6 @@ export const useScheduleStore = create(
     changedCells: new Set(),       // Подсветка изменённых ячеек
     loading: false,
 
-    // === DRAFT (для админского редактирования) ===
-    draftSchedule: {},             // Черновик: { "empId-date": "status" }
-    hasUnsavedChanges: false,
-
     // Кэширование загруженных годов
     // Структура: { "departmentId-year": { scheduleMap, employeeById, employeeIds } }
     cachedYears: {},
@@ -268,88 +264,36 @@ export const useScheduleStore = create(
         employeeById: {},
         employeeIds: [],
         scheduleMap: {},
-        draftSchedule: {},
         changedCells: new Set(),
         cachedYears: {},
         loadedYear: null,
         loadedDepartment: null,
-        loadingKey: null,
-        hasUnsavedChanges: false
+        loadingKey: null
       });
     },
 
-    // === DRAFT OPERATIONS (для админского редактирования) ===
+    // === ПРИМЕНЕНИЕ ИЗМЕНЕНИЙ (вызывается из adminStore при публикации) ===
 
-    // Инициализировать draft из production
-    initializeDraft: () => {
+    applyChanges: (changes) => {
       const { scheduleMap } = get();
-      set({
-        draftSchedule: { ...scheduleMap },
-        hasUnsavedChanges: false
-      });
-    },
 
-    // Обновить одну ячейку в draft
-    updateDraftCell: (employeeId, date, status) => {
-      set(state => ({
-        draftSchedule: {
-          ...state.draftSchedule,
-          [`${employeeId}-${date}`]: status
-        },
-        hasUnsavedChanges: true
-      }));
-    },
-
-    // Массовое обновление ячеек (для вставки)
-    batchUpdateDraftCells: (updates) => {
-      set(state => ({
-        draftSchedule: {
-          ...state.draftSchedule,
-          ...updates
-        },
-        hasUnsavedChanges: true
-      }));
-    },
-
-    // Восстановить draft (для undo)
-    restoreDraftSchedule: (previousDraft) => {
-      set({
-        draftSchedule: previousDraft,
-        hasUnsavedChanges: true
-      });
-    },
-
-    // Опубликовать draft → production
-    publishDraft: () => {
-      const { draftSchedule, scheduleMap } = get();
-
-      // Находим изменённые ячейки
-      const changed = new Set();
-      Object.keys(draftSchedule).forEach(key => {
-        if (draftSchedule[key] !== scheduleMap[key]) {
-          changed.add(key);
+      // Находим реально изменённые ячейки
+      const changedKeys = new Set();
+      Object.entries(changes).forEach(([key, value]) => {
+        if (scheduleMap[key] !== value) {
+          changedKeys.add(key);
         }
       });
 
       set({
-        scheduleMap: { ...draftSchedule },
-        changedCells: changed,
-        hasUnsavedChanges: false
+        scheduleMap: { ...scheduleMap, ...changes },
+        changedCells: changedKeys
       });
 
       // Убираем подсветку через 5 сек
       setTimeout(() => set({ changedCells: new Set() }), 5000);
 
-      return changed.size;
-    },
-
-    // Отменить все изменения
-    discardDraft: () => {
-      const { scheduleMap } = get();
-      set({
-        draftSchedule: { ...scheduleMap },
-        hasUnsavedChanges: false
-      });
+      return changedKeys.size;
     },
 
     // === WEBSOCKET ===
