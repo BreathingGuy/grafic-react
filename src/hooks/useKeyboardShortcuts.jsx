@@ -179,35 +179,6 @@ export function useKeyboardShortcuts() {
               }
             });
           });
-        // Определяем реальные размеры для вставки
-        // Если буфер больше выделения - вставляем весь буфер
-        // Если выделение больше и кратно буферу - размножаем
-        const canTileRows = selectedRowsCount > clipboardRowsCount && selectedRowsCount % clipboardRowsCount === 0;
-        const canTileCols = selectedColsCount > clipboardColsCount && selectedColsCount % clipboardColsCount === 0;
-        const finalRows = canTileRows ? selectedRowsCount : clipboardRowsCount;
-        const finalCols = canTileCols ? selectedColsCount : clipboardColsCount;
-
-        for (let i = 0; i < finalRows; i++) {
-          for (let j = 0; j < finalCols; j++) {
-            const srcRow = i % clipboardRowsCount;
-            const srcCol = j % clipboardColsCount;
-
-            const value = data[srcRow]?.[srcCol];
-            if (value === undefined) continue;
-
-            const targetEmpIdx = minEmpIdx + i;
-            const targetSlot = minSlot + j;
-
-            if (targetEmpIdx >= employeeIds.length) continue;
-
-            const empId = employeeIds[targetEmpIdx];
-            const date = slotToDate[targetSlot];
-
-            if (empId && date) {
-              updates[`${empId}-${date}`] = value;
-              totalPasted++;
-            }
-          }
         }
       }
 
