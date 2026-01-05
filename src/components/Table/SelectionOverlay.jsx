@@ -95,12 +95,31 @@ function SelectionOverlay({ tableRef }) {
       const style = computeRegionStyle(startCell, endCell, employeeIds, tableRef);
       if (style) {
         allStyles.push(style);
-        // Позиция редактора - справа от последнего выделения
+
+        // Позиция редактора - справа от последнего выделения (fixed относительно viewport)
+        const tableRect = tableRef.current.getBoundingClientRect();
+        const editorLeft = tableRect.left + style.left + style.width + 2;
+        const editorTop = tableRect.top + style.top;
+
+        // Проверяем, не выходит ли редактор за правый край экрана
+        const viewportWidth = window.innerWidth;
+        const editorWidth = 150; // примерная ширина редактора
+        const adjustedLeft = editorLeft + editorWidth > viewportWidth
+          ? tableRect.left + style.left - editorWidth - 2  // слева от выделения
+          : editorLeft;
+
+        // Проверяем, не выходит ли за нижний край
+        const viewportHeight = window.innerHeight;
+        const editorHeight = 300; // max-height редактора
+        const adjustedTop = editorTop + editorHeight > viewportHeight
+          ? viewportHeight - editorHeight - 10
+          : editorTop;
+
         setEditorPosition({
-          position: 'absolute',
-          left: style.left + style.width + 2,
-          top: style.top,
-          zIndex: 100
+          position: 'fixed',
+          left: adjustedLeft,
+          top: Math.max(10, adjustedTop),  // минимум 10px от верха
+          zIndex: 1000
         });
       }
     }
