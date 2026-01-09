@@ -153,15 +153,16 @@ function SelectionOverlay({ tableRef }) {
 
   // Применить значение ко ВСЕМ выделенным ячейкам (включая множественные регионы)
   const handleSelectValue = useCallback((newValue) => {
-    const { getAllSelections, setStatus, saveForUndo } = useSelectionStore.getState();
-    const { batchUpdateDraftCells, draftSchedule, employeeIds } = useScheduleStore.getState();
+    const { getAllSelections, setStatus } = useSelectionStore.getState();
+    const { saveUndoState, batchUpdateDraftCells } = useAdminStore.getState();
+    const { employeeIds } = useScheduleStore.getState();
     const { slotToDate } = useDateStore.getState();
 
     const allSelections = getAllSelections();
     if (allSelections.length === 0) return;
 
     // Сохраняем для undo
-    saveForUndo(draftSchedule);
+    saveUndoState();
 
     const updates = {};
     let count = 0;
