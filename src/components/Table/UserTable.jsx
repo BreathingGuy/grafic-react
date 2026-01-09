@@ -3,13 +3,13 @@ import { useEffect } from 'react';
 import { useDateStore } from '../../store/dateStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 
-import ScrollableScheduleTable from './Scrollable/ScrollableScheduleTable';
+import ScrollableUserTable from './Scrollable/ScrollableUserTable';
 import FixedEmployeeColumn from './Static/FixedEmployeeColumn'
 import TableNavigation from '../Controls/TableNavigation';
 
 import styles from '../Table/Table.module.css';
 
-export default function ScheduleTable({ period }) {
+export default function UserTable({ period }) {
   // const loading = useScheduleStore(state => state.loading);
   const currentYear = useDateStore(state => state.currentYear);
   const setPeriod = useDateStore(state => state.setPeriod);
@@ -36,7 +36,7 @@ export default function ScheduleTable({ period }) {
         {/* ЛЕВАЯ ФИКСИРОВАННАЯ КОЛОНКА - имена сотрудников */}
         <FixedEmployeeColumn />
         {/* ПРАВАЯ НЕФИКСИРОВАННАЯ КОЛОНКА - график */}
-        <ScrollableScheduleTable />
+        <ScrollableUserTable />
       </div>
     </div>
   );

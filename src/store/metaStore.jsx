@@ -5,7 +5,6 @@ export const useMetaStore = create(
   devtools((set, get) => ({
     // === STATE ===
     departmentsList: [],
-    allEmployees: [],
     currentDepartmentConfig: null,
 
     isDepartmentsLoaded: false, 
@@ -64,27 +63,6 @@ export const useMetaStore = create(
         }));
       }
     },
-    
-    // loadAllEmployees: async () => {
-    //   set(state => ({ 
-    //     loading: { ...state.loading, employees: true } 
-    //   }));
-      
-    //   try {
-    //     const response = await fetch('/api/employees/search?query=');
-    //     const data = await response.json();
-        
-    //     set({ 
-    //       allEmployees: data.employees,
-    //       loading: { ...get().loading, employees: false }
-    //     });
-    //   } catch (error) {
-    //     console.error('Failed to load employees:', error);
-    //     set(state => ({ 
-    //       loading: { ...state.loading, employees: false } 
-    //     }));
-    //   }
-    // },
     
     clearCurrentConfig: () => {
       set({ currentDepartmentConfig: null });

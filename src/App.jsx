@@ -6,7 +6,7 @@ import {useDateStore} from './store/dateStore'
 
 import {DepartmentSelector} from './components/Selectors/DepartmentSelector'
 import {PeriodSelector} from './components/Selectors/PeriodSelector'
-import ScheduleTable from './components/Table/ScheduleTable'
+import UserTable from './components/Table/UserTable'
 
 
 function Main() {
@@ -31,7 +31,7 @@ function Main() {
       <PeriodSelector />
 
       {currentDepartmentId ? (
-        <ScheduleTable period={'3months'} />
+        <UserTable period={'3months'} />
       ) : (
         <div className="empty-state">
           <p>Выберите отдел для просмотра расписания</p>
