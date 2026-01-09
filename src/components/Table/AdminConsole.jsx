@@ -13,11 +13,17 @@ import styles from './Table.module.css';
 /**
  * AdminConsole - Таблица для редактирования графика
  *
+ * Трёхуровневая модель данных:
+ * - Local Changes: несохранённые изменения в браузере
+ * - Shared Draft: общий драфт, синхронизируемый между админами
+ * - Production: опубликованные данные (видимые пользователям)
+ *
  * Функционал:
  * - Drag-выделение ячеек (через SelectionOverlay)
  * - Ctrl+C/V/Z для копирования/вставки/отмены
  * - Редактирование по двойному клику
- * - Сохранение/публикация изменений
+ * - "Сохранить" — Local → Shared Draft
+ * - "Опубликовать" — Shared Draft → Production
  */
 function AdminConsole() {
   // Из scheduleStore только читаем production данные
@@ -25,10 +31,15 @@ function AdminConsole() {
 
   // Из adminStore — всё что касается редактирования
   const initializeDraft = useAdminStore(s => s.initializeDraft);
+  const saveDraft = useAdminStore(s => s.saveDraft);
   const publishDraft = useAdminStore(s => s.publishDraft);
+  const discardLocalChanges = useAdminStore(s => s.discardLocalChanges);
   const discardDraft = useAdminStore(s => s.discardDraft);
   const clearDraft = useAdminStore(s => s.clearDraft);
-  const hasUnsavedChanges = useAdminStore(s => s.hasUnsavedChanges);
+
+  // Флаги состояния
+  const hasLocalChanges = useAdminStore(s => s.hasLocalChanges);
+  const draftDiffersFromProduction = useAdminStore(s => s.draftDiffersFromProduction);
 
   // Текущий год для инициализации
   const currentYear = useDateStore(s => s.currentYear);
@@ -62,16 +73,35 @@ function AdminConsole() {
     };
   }, [currentYear, initializeDraft, setAdminMode, clearDraft, clearSelection]);
 
-  // Handlers
+  // === HANDLERS ===
+
+  // Сохранить локальные изменения в shared draft (синхронизация между админами)
+  const handleSaveDraft = async () => {
+    const count = await saveDraft();
+    if (count > 0) {
+      alert(`Сохранено в драфт: ${count} изменений`);
+    }
+  };
+
+  // Опубликовать shared draft в production
   const handlePublish = async () => {
-    if (window.confirm('Опубликовать изменения?')) {
+    if (window.confirm('Опубликовать изменения? Они станут видны всем пользователям.')) {
       const count = await publishDraft();
       alert(`Опубликовано ${count} изменений`);
     }
   };
 
-  const handleDiscard = () => {
-    if (window.confirm('Отменить все изменения?')) {
+  // Отменить локальные изменения (вернуться к shared draft)
+  const handleDiscardLocal = () => {
+    if (window.confirm('Отменить локальные изменения?')) {
+      discardLocalChanges();
+      clearSelection();
+    }
+  };
+
+  // Отменить весь драфт (вернуться к production)
+  const handleDiscardAll = () => {
+    if (window.confirm('Сбросить драфт до состояния production?')) {
       discardDraft();
       clearSelection();
     }
@@ -82,14 +112,48 @@ function AdminConsole() {
       {/* Header */}
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ margin: 0 }}>Редактирование графика</h2>
-        <div>
-          <button onClick={handleDiscard} disabled={!hasUnsavedChanges}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Отмена локальных изменений */}
+          <button
+            onClick={handleDiscardLocal}
+            disabled={!hasLocalChanges}
+            style={{ opacity: hasLocalChanges ? 1 : 0.5 }}
+          >
             Отменить
           </button>
+
+          {/* Сохранить в драфт (Local → Shared Draft) */}
+          <button
+            onClick={handleSaveDraft}
+            disabled={!hasLocalChanges}
+            style={{
+              backgroundColor: hasLocalChanges ? '#2196f3' : undefined,
+              color: hasLocalChanges ? 'white' : undefined
+            }}
+          >
+            Сохранить
+          </button>
+
+          {/* Разделитель */}
+          <span style={{ color: '#ccc', margin: '0 4px' }}>|</span>
+
+          {/* Сброс драфта к production */}
+          <button
+            onClick={handleDiscardAll}
+            disabled={!draftDiffersFromProduction}
+            style={{ opacity: draftDiffersFromProduction ? 1 : 0.5 }}
+          >
+            Сбросить
+          </button>
+
+          {/* Опубликовать (Shared Draft → Production) */}
           <button
             onClick={handlePublish}
-            disabled={!hasUnsavedChanges}
-            style={{ backgroundColor: hasUnsavedChanges ? '#4caf50' : undefined, color: hasUnsavedChanges ? 'white' : undefined }}
+            disabled={!draftDiffersFromProduction && !hasLocalChanges}
+            style={{
+              backgroundColor: (draftDiffersFromProduction || hasLocalChanges) ? '#4caf50' : undefined,
+              color: (draftDiffersFromProduction || hasLocalChanges) ? 'white' : undefined
+            }}
           >
             Опубликовать
           </button>
@@ -108,6 +172,16 @@ function AdminConsole() {
       }}>
         <span>
           {statusMessage || (selectedCount > 0 ? `Выбрано: ${selectedCount} ячеек` : 'Выделите ячейки для редактирования')}
+          {hasLocalChanges && (
+            <span style={{ marginLeft: '12px', color: '#2196f3' }}>
+              ● Есть несохранённые изменения
+            </span>
+          )}
+          {draftDiffersFromProduction && !hasLocalChanges && (
+            <span style={{ marginLeft: '12px', color: '#ff9800' }}>
+              ● Драфт отличается от production
+            </span>
+          )}
         </span>
         <span style={{ color: '#666' }}>
           Ctrl+C копировать | Ctrl+V вставить | Ctrl+Z отменить | Esc снять выделение

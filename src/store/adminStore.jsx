@@ -12,10 +12,23 @@ export const useAdminStore = create(
         ownedDepartments: [],          // ["dept-1"]
         editableDepartments: [],       // ["dept-1", "dept-2"]
 
+        // === THREE-LEVEL DATA MODEL ===
+        // Level 1: Local Changes (unsaved edits in this browser session)
+        localChanges: {},              // { "empId-date": "status" } - локальные изменения
+
+        // Level 2: Shared Draft (synced between all admins via server)
+        sharedDraft: {},               // { "empId-date": "status" } - общий драфт с сервера
+
+        // Level 3: Production - хранится в scheduleStore.scheduleMap
+
         // === DRAFT STATE ===
-        draftSchedule: {},             // Рабочая копия: { "empId-date": "status" }
-        hasUnsavedChanges: false,
+        draftSchedule: {},             // Объединённое представление: sharedDraft + localChanges
+        hasLocalChanges: false,        // Есть несохранённые локальные изменения
+        hasUnsavedChanges: false,      // Для обратной совместимости (= hasLocalChanges)
         undoStack: [],                 // Для Ctrl+Z
+
+        // Флаг: драфт на сервере отличается от production
+        draftDiffersFromProduction: false,
 
         // Текущий редактируемый год
         editingYear: null,
@@ -47,8 +60,12 @@ export const useAdminStore = create(
             user: null,
             ownedDepartments: [],
             editableDepartments: [],
+            sharedDraft: {},
+            localChanges: {},
             draftSchedule: {},
+            hasLocalChanges: false,
             hasUnsavedChanges: false,
+            draftDiffersFromProduction: false,
             undoStack: [],
             editingYear: null
           });
@@ -64,13 +81,17 @@ export const useAdminStore = create(
 
         // === DRAFT OPERATIONS ===
 
-        // Инициализировать draft — копирует из production или создаёт пустой
-        initializeDraft: (year) => {
+        // Инициализировать draft — загружает shared draft с сервера или создаёт из production
+        initializeDraft: async (year) => {
           const scheduleStore = useScheduleStore.getState();
           const { scheduleMap, employeeIds } = scheduleStore;
           const yearPrefix = `${year}-`;
 
-          // Фильтруем production по году
+          // TODO: Загрузить shared draft с сервера
+          // const response = await api.get(`/api/admin/draft/${year}`);
+          // const serverDraft = response.data.draft;
+
+          // Временно: проверяем есть ли данные в production
           const yearData = {};
           Object.entries(scheduleMap).forEach(([key, value]) => {
             if (key.includes(yearPrefix)) {
@@ -79,11 +100,15 @@ export const useAdminStore = create(
           });
 
           if (Object.keys(yearData).length > 0) {
-            // Год существует — копируем из production
-            console.log(`📋 Инициализация draft из production для ${year}`);
+            // Год существует в production — инициализируем shared draft из него
+            console.log(`📋 Инициализация shared draft из production для ${year}`);
             set({
+              sharedDraft: { ...yearData },
+              localChanges: {},
               draftSchedule: { ...yearData },
+              hasLocalChanges: false,
               hasUnsavedChanges: false,
+              draftDiffersFromProduction: false,
               undoStack: [],
               editingYear: year
             });
@@ -114,8 +139,12 @@ export const useAdminStore = create(
           }
 
           set({
+            sharedDraft: emptyDraft,
+            localChanges: {},
             draftSchedule: emptyDraft,
+            hasLocalChanges: false,
             hasUnsavedChanges: false,
+            draftDiffersFromProduction: true, // Новый год отличается от production
             undoStack: [],
             editingYear: year
           });
@@ -123,48 +152,75 @@ export const useAdminStore = create(
           console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками`);
         },
 
-        // Обновить одну ячейку в draft
+        // Обновить одну ячейку в draft (записывает в localChanges)
         updateDraftCell: (employeeId, date, status) => {
           const key = `${employeeId}-${date}`;
 
-          set(state => ({
-            draftSchedule: {
-              ...state.draftSchedule,
+          set(state => {
+            const newLocalChanges = {
+              ...state.localChanges,
               [key]: status
-            },
-            hasUnsavedChanges: true
-          }));
+            };
+
+            // Объединяем sharedDraft + localChanges → draftSchedule
+            return {
+              localChanges: newLocalChanges,
+              draftSchedule: {
+                ...state.sharedDraft,
+                ...newLocalChanges
+              },
+              hasLocalChanges: true,
+              hasUnsavedChanges: true
+            };
+          });
         },
 
         // Массовое обновление ячеек (для вставки)
         batchUpdateDraftCells: (updates) => {
-          set(state => ({
-            draftSchedule: {
-              ...state.draftSchedule,
+          set(state => {
+            const newLocalChanges = {
+              ...state.localChanges,
               ...updates
-            },
-            hasUnsavedChanges: true
-          }));
+            };
+
+            // Объединяем sharedDraft + localChanges → draftSchedule
+            return {
+              localChanges: newLocalChanges,
+              draftSchedule: {
+                ...state.sharedDraft,
+                ...newLocalChanges
+              },
+              hasLocalChanges: true,
+              hasUnsavedChanges: true
+            };
+          });
         },
 
         // Сохранить состояние для undo
         saveUndoState: () => {
-          const { draftSchedule, undoStack } = get();
+          const { localChanges, undoStack } = get();
           set({
-            undoStack: [...undoStack, { ...draftSchedule }]
+            undoStack: [...undoStack, { ...localChanges }]
           });
         },
 
         // Отменить последнее действие (Ctrl+Z)
         undo: () => {
-          const { undoStack } = get();
+          const { undoStack, sharedDraft } = get();
           if (undoStack.length === 0) return false;
 
-          const previousState = undoStack[undoStack.length - 1];
+          const previousLocalChanges = undoStack[undoStack.length - 1];
+          const hasChanges = Object.keys(previousLocalChanges).length > 0;
+
           set({
-            draftSchedule: previousState,
+            localChanges: previousLocalChanges,
+            draftSchedule: {
+              ...sharedDraft,
+              ...previousLocalChanges
+            },
             undoStack: undoStack.slice(0, -1),
-            hasUnsavedChanges: true
+            hasLocalChanges: hasChanges,
+            hasUnsavedChanges: hasChanges
           });
 
           return true;
@@ -172,31 +228,163 @@ export const useAdminStore = create(
 
         // Восстановить draft (альтернатива undo для полного восстановления)
         restoreDraftSchedule: (previousDraft) => {
+          const { sharedDraft } = get();
+          // Вычисляем localChanges как разницу между previousDraft и sharedDraft
+          const localChanges = {};
+          Object.entries(previousDraft).forEach(([key, value]) => {
+            if (sharedDraft[key] !== value) {
+              localChanges[key] = value;
+            }
+          });
+
           set({
+            localChanges,
             draftSchedule: previousDraft,
-            hasUnsavedChanges: true
+            hasLocalChanges: Object.keys(localChanges).length > 0,
+            hasUnsavedChanges: Object.keys(localChanges).length > 0
           });
         },
 
-        // Опубликовать draft → production
-        publishDraft: async () => {
-          const { draftSchedule } = get();
-          const scheduleStore = useScheduleStore.getState();
+        // === SAVE DRAFT (Local → Shared Draft) ===
+        // Сохраняет локальные изменения в общий драфт (синхронизация между админами)
+        saveDraft: async () => {
+          const { localChanges, sharedDraft, editingYear } = get();
+
+          if (Object.keys(localChanges).length === 0) {
+            console.log('ℹ️ Нет локальных изменений для сохранения');
+            return 0;
+          }
 
           // TODO: Отправить на сервер
-          // await api.post('/api/admin/publish', { changes: draftSchedule });
+          // await api.post('/api/admin/draft/save', {
+          //   year: editingYear,
+          //   changes: localChanges
+          // });
+
+          // Объединяем localChanges в sharedDraft
+          const newSharedDraft = {
+            ...sharedDraft,
+            ...localChanges
+          };
+
+          const changedCount = Object.keys(localChanges).length;
+
+          set({
+            sharedDraft: newSharedDraft,
+            localChanges: {},
+            draftSchedule: newSharedDraft,
+            hasLocalChanges: false,
+            hasUnsavedChanges: false,
+            draftDiffersFromProduction: true,
+            undoStack: [] // Очищаем undo после сохранения
+          });
+
+          console.log(`💾 Сохранено в драфт: ${changedCount} изменений (год ${editingYear})`);
+          return changedCount;
+        },
+
+        // === WEBSOCKET: Обработка обновления драфта от другого админа ===
+        onDraftUpdated: (incomingChanges, fromUserId) => {
+          const { sharedDraft, localChanges, user } = get();
+
+          // Игнорируем свои собственные изменения
+          if (user && fromUserId === user.userId) {
+            return;
+          }
+
+          console.log(`📥 Получены изменения драфта от админа ${fromUserId}`);
+
+          // Обновляем sharedDraft
+          const newSharedDraft = {
+            ...sharedDraft,
+            ...incomingChanges
+          };
+
+          // Проверяем конфликты с локальными изменениями
+          const conflicts = [];
+          Object.keys(incomingChanges).forEach(key => {
+            if (localChanges[key] !== undefined && localChanges[key] !== incomingChanges[key]) {
+              conflicts.push(key);
+            }
+          });
+
+          if (conflicts.length > 0) {
+            console.warn(`⚠️ Конфликты с локальными изменениями: ${conflicts.length} ячеек`);
+            // Локальные изменения имеют приоритет (пользователь сам решит)
+          }
+
+          // Объединяем: sharedDraft + localChanges (локальные имеют приоритет)
+          set({
+            sharedDraft: newSharedDraft,
+            draftSchedule: {
+              ...newSharedDraft,
+              ...localChanges
+            }
+          });
+        },
+
+        // Получить количество конфликтов с входящими изменениями
+        getConflicts: (incomingChanges) => {
+          const { localChanges } = get();
+          const conflicts = [];
+
+          Object.keys(incomingChanges).forEach(key => {
+            if (localChanges[key] !== undefined && localChanges[key] !== incomingChanges[key]) {
+              conflicts.push({
+                key,
+                localValue: localChanges[key],
+                incomingValue: incomingChanges[key]
+              });
+            }
+          });
+
+          return conflicts;
+        },
+
+        // === PUBLISH (Shared Draft → Production) ===
+        // Публикует драфт в production (видимый всем пользователям)
+        publishDraft: async () => {
+          const { localChanges, editingYear } = get();
+          const scheduleStore = useScheduleStore.getState();
+
+          // Сначала сохраняем локальные изменения в shared draft
+          if (Object.keys(localChanges).length > 0) {
+            await get().saveDraft();
+          }
+
+          // Получаем актуальный sharedDraft после возможного saveDraft()
+          const finalDraft = get().sharedDraft;
+
+          // TODO: Отправить на сервер
+          // await api.post('/api/admin/publish', {
+          //   year: editingYear,
+          //   schedule: finalDraft
+          // });
 
           // Применяем изменения в production
-          const changedCount = scheduleStore.applyChanges(draftSchedule);
+          const changedCount = scheduleStore.applyChanges(finalDraft);
 
-          // Очищаем undo стек, но оставляем draft синхронизированным
+          // Сбрасываем флаг отличия от production
           set({
-            hasUnsavedChanges: false,
+            draftDiffersFromProduction: false,
             undoStack: []
           });
 
-          console.log(`✅ Опубликовано ${changedCount} изменений`);
+          console.log(`✅ Опубликовано ${changedCount} изменений (год ${editingYear})`);
           return changedCount;
+        },
+
+        // Отменить локальные изменения — вернуть к shared draft
+        discardLocalChanges: () => {
+          const { sharedDraft } = get();
+          set({
+            localChanges: {},
+            draftSchedule: { ...sharedDraft },
+            hasLocalChanges: false,
+            hasUnsavedChanges: false,
+            undoStack: []
+          });
+          console.log('🔄 Локальные изменения отменены');
         },
 
         // Отменить все изменения — вернуть draft к production
@@ -210,8 +398,12 @@ export const useAdminStore = create(
         // Очистить draft (при выходе из режима редактирования)
         clearDraft: () => {
           set({
+            sharedDraft: {},
+            localChanges: {},
             draftSchedule: {},
+            hasLocalChanges: false,
             hasUnsavedChanges: false,
+            draftDiffersFromProduction: false,
             undoStack: [],
             editingYear: null
           });
@@ -225,12 +417,45 @@ export const useAdminStore = create(
           return get().draftSchedule[key] ?? '';
         },
 
+        // Проверить, есть ли локальное изменение для ячейки
+        hasCellLocalChange: (employeeId, date) => {
+          const key = `${employeeId}-${date}`;
+          return get().localChanges[key] !== undefined;
+        },
+
+        // Проверить, изменена ли ячейка относительно shared draft
+        isCellModifiedFromDraft: (employeeId, date) => {
+          const key = `${employeeId}-${date}`;
+          const { localChanges, sharedDraft } = get();
+          return localChanges[key] !== undefined && localChanges[key] !== sharedDraft[key];
+        },
+
         // Проверить, изменена ли ячейка относительно production
         isCellModified: (employeeId, date) => {
           const key = `${employeeId}-${date}`;
           const { draftSchedule } = get();
           const productionValue = useScheduleStore.getState().scheduleMap[key];
           return draftSchedule[key] !== productionValue;
+        },
+
+        // Получить количество локальных изменений
+        getLocalChangesCount: () => {
+          return Object.keys(get().localChanges).length;
+        },
+
+        // Получить количество изменений в shared draft относительно production
+        getDraftChangesCount: () => {
+          const { sharedDraft } = get();
+          const { scheduleMap } = useScheduleStore.getState();
+          let count = 0;
+
+          Object.entries(sharedDraft).forEach(([key, value]) => {
+            if (scheduleMap[key] !== value) {
+              count++;
+            }
+          });
+
+          return count;
         }
       }),
       {
