@@ -41,9 +41,13 @@ function AdminConsole() {
   const hasLocalChanges = useAdminStore(s => s.hasLocalChanges);
   const draftDiffersFromProduction = useAdminStore(s => s.draftDiffersFromProduction);
 
-  // Текущий год для инициализации
+  // Текущий год и навигация
   const currentYear = useDateStore(s => s.currentYear);
   const setAdminMode = useDateStore(s => s.setAdminMode);
+  const setYear = useDateStore(s => s.setYear);
+
+  // Год, для которого редактируется draft
+  const editingYear = useAdminStore(s => s.editingYear);
 
   const statusMessage = useSelectionStore(s => s.statusMessage);
   const startCell = useSelectionStore(s => s.startCell);
@@ -107,11 +111,102 @@ function AdminConsole() {
     }
   };
 
+  // Переход к другому году
+  const handleYearChange = async (newYear) => {
+    // Если есть несохранённые изменения — спрашиваем
+    if (hasLocalChanges) {
+      const action = window.confirm(
+        'Есть несохранённые изменения. Сохранить перед переходом?\n\n' +
+        'OK = Сохранить и перейти\n' +
+        'Отмена = Остаться на текущем году'
+      );
+
+      if (action) {
+        await saveDraft();
+      } else {
+        return; // Остаёмся
+      }
+    }
+
+    // Очищаем выделение
+    clearSelection();
+
+    // Переходим к новому году (dateStore.setYear расширит индекс если нужно)
+    setYear(newYear);
+
+    // Инициализируем draft для нового года
+    initializeDraft(newYear);
+  };
+
+  // Навигация по годам
+  const handlePrevYear = () => handleYearChange(currentYear - 1);
+  const handleNextYear = () => handleYearChange(currentYear + 1);
+
   return (
     <div style={{ padding: '20px' }}>
       {/* Header */}
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Редактирование графика</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <h2 style={{ margin: 0 }}>Редактирование графика</h2>
+
+          {/* Year Selector */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '4px 8px',
+            backgroundColor: '#f0f0f0',
+            borderRadius: '4px'
+          }}>
+            <button
+              onClick={handlePrevYear}
+              style={{
+                padding: '4px 8px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+              title="Предыдущий год"
+            >
+              ◀
+            </button>
+
+            <span style={{
+              fontWeight: 'bold',
+              fontSize: '16px',
+              minWidth: '50px',
+              textAlign: 'center'
+            }}>
+              {editingYear || currentYear}
+            </span>
+
+            <button
+              onClick={handleNextYear}
+              style={{
+                padding: '4px 8px',
+                border: 'none',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+              title="Следующий год"
+            >
+              ▶
+            </button>
+
+            {/* Индикатор нового года */}
+            {draftDiffersFromProduction && editingYear && (
+              <span style={{
+                fontSize: '12px',
+                color: '#ff9800',
+                marginLeft: '4px'
+              }}>
+                (новый)
+              </span>
+            )}
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {/* Отмена локальных изменений */}
           <button

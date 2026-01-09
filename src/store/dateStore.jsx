@@ -48,6 +48,40 @@ const generateDateIndex = (startYear, endYear) => {
   return { allDates, datesByYear, datesByMonth, datesByQuarter, dateDays };
 };
 
+// Генерируем год для добавления в существующий индекс
+const generateYearData = (year) => {
+  const datesByYear = [];
+  const datesByMonth = {};
+  const datesByQuarter = {};
+  const dateDays = {};
+
+  // Инициализируем кварталы
+  for (let q = 0; q < 4; q++) {
+    const quarterKey = `${year}-Q${q + 1}`;
+    datesByQuarter[quarterKey] = [];
+  }
+
+  for (let month = 0; month < 12; month++) {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+    datesByMonth[monthKey] = [];
+
+    const quarter = Math.floor(month / 3);
+    const quarterKey = `${year}-Q${quarter + 1}`;
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+      datesByYear.push(dateStr);
+      datesByMonth[monthKey].push(dateStr);
+      datesByQuarter[quarterKey].push(dateStr);
+      dateDays[dateStr] = day;
+    }
+  }
+
+  return { datesByYear, datesByMonth, datesByQuarter, dateDays };
+};
+
 // Генерируем индекс для диапазона 2024-2026 (один раз!)
 const startYear = 2025;
 const DATE_INDEX = generateDateIndex(2025, startYear + 1);
@@ -352,12 +386,17 @@ export const useDateStore = create(
 
     // Переход на конкретный год
     setYear: (year) => {
-      const { minYear, maxYear } = get();
+      const { minYear, maxYear, isAdminMode } = get();
 
-      // Проверка границ
-      if (year < minYear || year > maxYear) {
+      // Если не админ — проверка границ
+      if (!isAdminMode && (year < minYear || year > maxYear)) {
         console.log(`⚠️ Год ${year} за пределами допустимого диапазона (${minYear}-${maxYear})`);
         return;
+      }
+
+      // Если админ и год за пределами — расширяем индекс
+      if (isAdminMode) {
+        get().ensureYearExists(year);
       }
 
       const newBaseDate = new Date(year, 0, 1); // 1 января
@@ -370,6 +409,44 @@ export const useDateStore = create(
       const { period } = get();
       const dates = get().calculateVisibleDates(period, newBaseDate, year);
       get().updateSlots(dates);
+    },
+
+    // Расширить индекс дат, если год ещё не существует (для админа)
+    ensureYearExists: (year) => {
+      const { datesByYear, datesByMonth, datesByQuarter, dateDays, allDates, minYear, maxYear } = get();
+
+      // Уже существует?
+      if (datesByYear[year]) {
+        return;
+      }
+
+      console.log(`📆 Расширяем индекс дат для года ${year}`);
+
+      // Генерируем данные для нового года
+      const yearData = generateYearData(year);
+
+      // Объединяем с существующими данными
+      const newDatesByYear = { ...datesByYear, [year]: yearData.datesByYear };
+      const newDatesByMonth = { ...datesByMonth, ...yearData.datesByMonth };
+      const newDatesByQuarter = { ...datesByQuarter, ...yearData.datesByQuarter };
+      const newDateDays = { ...dateDays, ...yearData.dateDays };
+      const newAllDates = [...allDates, ...yearData.datesByYear].sort();
+
+      // Обновляем границы
+      const newMinYear = Math.min(minYear, year);
+      const newMaxYear = Math.max(maxYear, year);
+
+      set({
+        datesByYear: newDatesByYear,
+        datesByMonth: newDatesByMonth,
+        datesByQuarter: newDatesByQuarter,
+        dateDays: newDateDays,
+        allDates: newAllDates,
+        minYear: newMinYear,
+        maxYear: newMaxYear
+      });
+
+      console.log(`✅ Год ${year} добавлен. Диапазон: ${newMinYear}-${newMaxYear}`);
     },
 
     // Сброс к текущему году
