@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import {useMetaStore} from './store/metaStore'
 import {useWorkspaceStore} from './store/workspaceStore'
@@ -7,11 +7,13 @@ import {useDateStore} from './store/dateStore'
 import {DepartmentSelector} from './components/Selectors/DepartmentSelector'
 import {PeriodSelector} from './components/Selectors/PeriodSelector'
 import UserTable from './components/Table/UserTable'
+import AdminConsole from './components/Table/AdminConsole'
 
 
 function Main() {
   const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
-  
+  const [isAdminMode, setIsAdminMode] = useState(false);
+
   useEffect(() => {
     console.log('🟢 App initialization started');
 
@@ -27,11 +29,32 @@ function Main() {
 
   return (
     <>
-      <DepartmentSelector />
-      <PeriodSelector />
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
+        <DepartmentSelector />
+        {!isAdminMode && <PeriodSelector />}
+
+        <button
+          onClick={() => setIsAdminMode(!isAdminMode)}
+          style={{
+            padding: '6px 16px',
+            backgroundColor: isAdminMode ? '#d32f2f' : '#1976d2',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 500
+          }}
+        >
+          {isAdminMode ? 'Выйти из админки' : 'Режим админа'}
+        </button>
+      </div>
 
       {currentDepartmentId ? (
-        <UserTable period={'3months'} />
+        isAdminMode ? (
+          <AdminConsole />
+        ) : (
+          <UserTable period={'1year'} />
+        )
       ) : (
         <div className="empty-state">
           <p>Выберите отдел для просмотра расписания</p>

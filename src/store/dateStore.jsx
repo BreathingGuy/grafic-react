@@ -49,8 +49,8 @@ const generateDateIndex = (startYear, endYear) => {
 };
 
 // Генерируем индекс для диапазона 2024-2026 (один раз!)
-const startYear = new Date().getFullYear();
-const DATE_INDEX = generateDateIndex(startYear, startYear + 1);
+const startYear = 2025;
+const DATE_INDEX = generateDateIndex(2025, startYear + 1);
 
 // ======================================================
 // 🎯 ZUSTAND STORE
@@ -76,6 +76,9 @@ export const useDateStore = create(
     period: '3months',                      // По умолчанию 3 месяца
     periods: ['3months', '1month', '7days'],
     baseDate: new Date(),                   // Базовая дата для расчета диапазона
+
+    // Режим админа — без ограничений навигации
+    isAdminMode: false,
 
     // 🎯 СИСТЕМА СЛОТОВ - ключевая оптимизация!
     // visibleSlots - ФИКСИРОВАННЫЙ массив индексов (НИКОГДА НЕ МЕНЯЕТСЯ!)
@@ -111,6 +114,10 @@ export const useDateStore = create(
 
       console.log(slotToDate);
       console.log(slotToDay);
+
+      console.log(get().datesByYear);
+      console.log(get().datesByQuarter);
+      
       
     },
 
@@ -208,7 +215,10 @@ export const useDateStore = create(
 
     // Можно ли идти вперед?
     canGoNext: () => {
-      const { period, baseDate, currentYear, maxYear } = get();
+      const { period, baseDate, currentYear, maxYear, isAdminMode } = get();
+
+      // Админ может идти куда угодно
+      if (isAdminMode) return true;
 
       if (period === '1year') {
         return currentYear < maxYear;
@@ -238,7 +248,10 @@ export const useDateStore = create(
 
     // Можно ли идти назад?
     canGoPrev: () => {
-      const { period, baseDate, currentYear, minYear } = get();
+      const { period, baseDate, currentYear, minYear, isAdminMode } = get();
+
+      // Админ может идти куда угодно
+      if (isAdminMode) return true;
 
       if (period === '1year') {
         return currentYear > minYear;
@@ -264,6 +277,11 @@ export const useDateStore = create(
       }
 
       return false;
+    },
+
+    // Установить режим админа
+    setAdminMode: (isAdmin) => {
+      set({ isAdminMode: isAdmin });
     },
 
     // === ACTIONS ===
