@@ -1,6 +1,6 @@
 import { useRef } from 'react';
-import { useScheduleStore } from '../../../store/scheduleStore';
-import { useDateStore } from '../../../store/dateStore';
+import { useAdminStore } from '../../../store/adminStore';
+import { useDateAdminStore } from '../../../store/dateAdminStore';
 
 import AdminEmployeeRow from '../Rows/AdminEmployeeRow';
 import MonthHeaders from './MonthHeaders';
@@ -11,11 +11,11 @@ import styles from '../Table.module.css';
 
 const AdminScrollableScheduleTable = () => {
     const tableRef = useRef(null);
-    const employeeIds = useScheduleStore(state => state.employeeIds);
-    const visibleSlots = useDateStore(state => state.visibleSlots);
-    const slotToDate = useDateStore(state => state.slotToDate);
-    const slotToDay = useDateStore(s => s.slotToDay);
-    const monthGroups = useDateStore(state => state.monthGroups);
+    const employeeIds = useAdminStore(state => state.employeeIds);
+    const visibleSlots = useDateAdminStore(state => state.visibleSlots);
+    const slotToDate = useDateAdminStore(state => state.slotToDate);
+    const slotToDay = useDateAdminStore(s => s.slotToDay);
+    const monthGroups = useDateAdminStore(state => state.monthGroups);
 
     return (
         <div className={styles.scrollable_container} style={{ position: 'relative' }}>

@@ -1,6 +1,6 @@
 import { memo, useState, useCallback } from 'react';
 import { useAdminStore } from '../../../store/adminStore';
-import { useDateStore } from '../../../store/dateStore';
+import { useDateAdminStore } from '../../../store/dateAdminStore';
 import { useSelectionStore } from '../../../store/selectionStore';
 import CellEditor from './CellEditor';
 
@@ -11,7 +11,7 @@ import CellEditor from './CellEditor';
  * Для единичной ячейки редактор открывается по двойному клику.
  */
 const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
-  const date = useDateStore(state => state.slotToDate[slotIndex]);
+  const date = useDateAdminStore(state => state.slotToDate[slotIndex]);
 
   // Читаем из adminStore.draftSchedule
   const status = useAdminStore(state => {

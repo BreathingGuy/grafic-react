@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSelectionStore } from '../../store/selectionStore';
-import { useScheduleStore } from '../../store/scheduleStore';
-import { useDateStore } from '../../store/dateStore';
 import { useAdminStore } from '../../store/adminStore';
+import { useDateAdminStore } from '../../store/dateAdminStore';
 import styles from './Table.module.css';
 
 /**
@@ -73,7 +72,7 @@ function SelectionOverlay({ tableRef }) {
   const selections = useSelectionStore(s => s.selections);
   const isDragging = useSelectionStore(s => s.isDragging);
   const hasCopiedData = useSelectionStore(s => s.hasCopiedData);
-  const employeeIds = useScheduleStore(s => s.employeeIds);
+  const employeeIds = useAdminStore(s => s.employeeIds);
 
   // Пересчитываем позиции всех регионов
   const updateOverlayPositions = useCallback(() => {
@@ -155,9 +154,8 @@ function SelectionOverlay({ tableRef }) {
   // Применить значение ко ВСЕМ выделенным ячейкам (включая множественные регионы)
   const handleSelectValue = useCallback((newValue) => {
     const { getAllSelections, setStatus } = useSelectionStore.getState();
-    const { saveUndoState, batchUpdateDraftCells } = useAdminStore.getState();
-    const { employeeIds } = useScheduleStore.getState();
-    const { slotToDate } = useDateStore.getState();
+    const { saveUndoState, batchUpdateDraftCells, employeeIds } = useAdminStore.getState();
+    const { slotToDate } = useDateAdminStore.getState();
 
     const allSelections = getAllSelections();
     if (allSelections.length === 0) return;

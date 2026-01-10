@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { useScheduleStore } from '../../store/scheduleStore';
 import { useAdminStore } from '../../store/adminStore';
 import { useSelectionStore } from '../../store/selectionStore';
-import { useDateStore } from '../../store/dateStore';
+import { useDateAdminStore } from '../../store/dateAdminStore';
+import { useDateUserStore } from '../../store/dateUserStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
@@ -21,19 +21,21 @@ import styles from './Table.module.css';
  * - Сохранение/публикация изменений
  */
 function AdminConsole() {
-  // Из scheduleStore только читаем production данные
-  const employeeIds = useScheduleStore(s => s.employeeIds);
-
   // Из adminStore — всё что касается редактирования
   const initializeDraft = useAdminStore(s => s.initializeDraft);
+  const employeeIds = useAdminStore(s => s.employeeIds);
   const publishDraft = useAdminStore(s => s.publishDraft);
   const discardDraft = useAdminStore(s => s.discardDraft);
   const clearDraft = useAdminStore(s => s.clearDraft);
   const hasUnsavedChanges = useAdminStore(s => s.hasUnsavedChanges);
 
-  // Текущий год и отдел для инициализации
-  const currentYear = useDateStore(s => s.currentYear);
-  const setAdminMode = useDateStore(s => s.setAdminMode);
+  // Из dateAdminStore — слоты для года
+  const initializeYear = useDateAdminStore(s => s.initializeYear);
+  const currentYear = useDateAdminStore(s => s.currentYear);
+
+  // Получаем год из user store при первом открытии
+  const userCurrentYear = useDateUserStore(s => s.currentYear);
+
   const currentDepartmentId = useWorkspaceStore(s => s.currentDepartmentId);
 
   const statusMessage = useSelectionStore(s => s.statusMessage);
@@ -49,23 +51,24 @@ function AdminConsole() {
   // Keyboard shortcuts
   useKeyboardShortcuts();
 
-  // Инициализация при монтировании и смене года/отдела
+  // Инициализация при монтировании
   useEffect(() => {
-    // Включаем режим админа (без ограничений навигации)
-    setAdminMode(true);
-
-    // Инициализируем draft только если есть отдел и год
-    if (currentDepartmentId && currentYear) {
-      initializeDraft(currentDepartmentId, currentYear);
-    }
+    // Инициализируем слоты для года (берём год из user store)
+    initializeYear(userCurrentYear);
 
     return () => {
-      // При выходе — выключаем режим админа и очищаем
-      setAdminMode(false);
+      // При выходе — очищаем
       clearDraft();
       clearSelection();
     };
-  }, [currentDepartmentId, currentYear, initializeDraft, setAdminMode, clearDraft, clearSelection]);
+  }, [initializeYear, userCurrentYear, clearDraft, clearSelection]);
+
+  // Инициализация draft при смене отдела/года
+  useEffect(() => {
+    if (currentDepartmentId && currentYear) {
+      initializeDraft(currentDepartmentId, currentYear);
+    }
+  }, [currentDepartmentId, currentYear, initializeDraft]);
 
   // Handlers
   const handlePublish = async () => {

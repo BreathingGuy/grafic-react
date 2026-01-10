@@ -1,12 +1,12 @@
 import { memo } from 'react';
-import { useDateStore } from '../../../store/dateStore';
+import { useDateAdminStore } from '../../../store/dateAdminStore';
 import AdminScheduleCell from '../Cells/AdminScheduleCell';
 
 /**
  * AdminEmployeeRow - Строка сотрудника для админской консоли
  */
 const AdminEmployeeRow = memo(({ empId, empIdx }) => {
-  const visibleSlots = useDateStore(state => state.visibleSlots);
+  const visibleSlots = useDateAdminStore(state => state.visibleSlots);
 
   return (
     <tr>

@@ -3,7 +3,7 @@ import { devtools } from 'zustand/middleware';
 
 import { useMetaStore } from './metaStore'
 import { useScheduleStore } from './scheduleStore'
-import { useDateStore } from './dateStore'
+import { useDateUserStore } from './dateUserStore'
 
 export const useWorkspaceStore = create(
   devtools((set, get) => ({
@@ -11,9 +11,9 @@ export const useWorkspaceStore = create(
     currentDepartmentId: null,
 
     // === ACTIONS ===
-    
+
     // Выбрать отдел
-    setDepartment: async (departmentId) => {      
+    setDepartment: async (departmentId) => {
       const prevDepartmentId = get().currentDepartmentId;
 
       if (prevDepartmentId === departmentId) return;
@@ -23,7 +23,7 @@ export const useWorkspaceStore = create(
       // Загружаем данные для нового отдела
       const metaStore = useMetaStore.getState();
       const scheduleStore = useScheduleStore.getState();
-      const dateStore = useDateStore.getState();
+      const dateUserStore = useDateUserStore.getState();
 
       // Очищаем старые данные
       if (prevDepartmentId) {
@@ -31,8 +31,8 @@ export const useWorkspaceStore = create(
         scheduleStore.clearSchedule();
       }
 
-      // Получаем текущий год из dateStore
-      const currentYear = dateStore.currentYear;
+      // Получаем текущий год из dateUserStore
+      const currentYear = dateUserStore.currentYear;
 
       // Загружаем новые
       await metaStore.loadDepartmentConfig(departmentId);
@@ -41,16 +41,15 @@ export const useWorkspaceStore = create(
       // Подписываемся на WebSocket
       // scheduleStore.subscribeToUpdates(departmentId);
     },
-    
-    // Навигация по годам теперь в dateStore
-    // При изменении года в dateStore - загружаем данные для нового года
+
+    // Навигация по годам — загружаем данные для нового года
     loadYearData: async (year) => {
       const departmentId = get().currentDepartmentId;
       if (departmentId) {
         await useScheduleStore.getState().loadSchedule(departmentId, year);
       }
     },
-    
+
     // Сброс (при выходе или переходе на главную)
     reset: () => {
       set({
@@ -59,7 +58,7 @@ export const useWorkspaceStore = create(
 
       useMetaStore.getState().clearCurrentConfig();
       useScheduleStore.getState().clearCache();
-      useDateStore.getState().resetToCurrentYear();
+      useDateUserStore.getState().resetToCurrentYear();
     }
   }), { name: 'WorkspaceStore' })
 );
