@@ -15,12 +15,14 @@ export const useFetchWebStore = create(
     // === STATE ===
     loading: {
       schedule: false,
+      scheduleDraft: false,
       departmentsList: false,
       departmentConfig: false,
       publish: false
     },
     errors: {
       schedule: null,
+      scheduleDraft: null,
       departmentsList: null,
       departmentConfig: null,
       publish: null
@@ -49,16 +51,38 @@ export const useFetchWebStore = create(
 
     /**
      * Загрузить расписание для отдела и года
+     * @param {string} departmentId - ID отдела
+     * @param {number} year - год
+     * @param {Object} options - опции
+     * @param {string} options.mode - 'production' (по умолчанию) или 'draft'
      * @returns {{ employeeById, employeeIds, scheduleMap }}
      */
-    fetchSchedule: async (departmentId, year) => {
-      get().setLoading('schedule', true);
-      get().clearError('schedule');
+    fetchSchedule: async (departmentId, year, options = {}) => {
+      const { mode = 'production' } = options;
+
+      // Валидация параметров
+      if (!departmentId) {
+        throw new Error('fetchSchedule: departmentId is required');
+      }
+      if (!year) {
+        throw new Error('fetchSchedule: year is required');
+      }
+
+      const loadingKey = mode === 'draft' ? 'scheduleDraft' : 'schedule';
+      get().setLoading(loadingKey, true);
+      get().clearError(loadingKey);
 
       try {
-        const response = await fetch(
-          `../../public/data-${departmentId}-${year}.json`
-        );
+        // TODO: Разные endpoints для production и draft
+        // const endpoint = mode === 'draft'
+        //   ? `/api/admin/draft/${departmentId}/${year}`
+        //   : `/api/schedule/${departmentId}/${year}`;
+
+        // Пока используем один файл для обоих режимов
+        const url = `../../public/data-${departmentId}-${year}.json`;
+        console.log(`📥 fetchSchedule [${mode}]: ${url}`);
+
+        const response = await fetch(url);
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -67,13 +91,13 @@ export const useFetchWebStore = create(
         const data = await response.json();
         const normalized = get().normalizeScheduleData(data, year);
 
-        get().setLoading('schedule', false);
+        get().setLoading(loadingKey, false);
         return normalized;
 
       } catch (error) {
-        console.error('fetchSchedule error:', error);
-        get().setError('schedule', error.message);
-        get().setLoading('schedule', false);
+        console.error(`fetchSchedule [${mode}] error:`, error);
+        get().setError(loadingKey, error.message);
+        get().setLoading(loadingKey, false);
         throw error;
       }
     },

@@ -3,6 +3,7 @@ import { useScheduleStore } from '../../store/scheduleStore';
 import { useAdminStore } from '../../store/adminStore';
 import { useSelectionStore } from '../../store/selectionStore';
 import { useDateStore } from '../../store/dateStore';
+import { useWorkspaceStore } from '../../store/workspaceStore';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 import FixedEmployeeColumn from './Static/FixedEmployeeColumn';
@@ -30,9 +31,10 @@ function AdminConsole() {
   const clearDraft = useAdminStore(s => s.clearDraft);
   const hasUnsavedChanges = useAdminStore(s => s.hasUnsavedChanges);
 
-  // Текущий год для инициализации
+  // Текущий год и отдел для инициализации
   const currentYear = useDateStore(s => s.currentYear);
   const setAdminMode = useDateStore(s => s.setAdminMode);
+  const currentDepartmentId = useWorkspaceStore(s => s.currentDepartmentId);
 
   const statusMessage = useSelectionStore(s => s.statusMessage);
   const startCell = useSelectionStore(s => s.startCell);
@@ -47,12 +49,15 @@ function AdminConsole() {
   // Keyboard shortcuts
   useKeyboardShortcuts();
 
-  // Инициализация при монтировании
+  // Инициализация при монтировании и смене года/отдела
   useEffect(() => {
     // Включаем режим админа (без ограничений навигации)
     setAdminMode(true);
-    // Инициализируем draft для текущего года
-    initializeDraft(currentYear);
+
+    // Инициализируем draft только если есть отдел и год
+    if (currentDepartmentId && currentYear) {
+      initializeDraft(currentDepartmentId, currentYear);
+    }
 
     return () => {
       // При выходе — выключаем режим админа и очищаем
@@ -60,7 +65,7 @@ function AdminConsole() {
       clearDraft();
       clearSelection();
     };
-  }, [currentYear, initializeDraft, setAdminMode, clearDraft, clearSelection]);
+  }, [currentDepartmentId, currentYear, initializeDraft, setAdminMode, clearDraft, clearSelection]);
 
   // Handlers
   const handlePublish = async () => {

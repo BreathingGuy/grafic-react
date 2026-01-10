@@ -79,9 +79,20 @@ export const useAdminStore = create(
         initializeDraft: async (departmentId, year) => {
           console.log(`📋 Инициализация draft для отдела ${departmentId}, год ${year}`);
 
+          // Валидация
+          if (!departmentId || !year) {
+            console.error('initializeDraft: departmentId и year обязательны');
+            return;
+          }
+
           try {
             const fetchStore = useFetchWebStore.getState();
-            const { employeeIds, scheduleMap } = await fetchStore.fetchSchedule(departmentId, year);
+            // Загружаем как draft (в будущем может быть отдельный endpoint)
+            const { employeeIds, scheduleMap } = await fetchStore.fetchSchedule(
+              departmentId,
+              year,
+              { mode: 'draft' }
+            );
 
             // Фильтруем только нужный год
             const yearPrefix = `${year}-`;
