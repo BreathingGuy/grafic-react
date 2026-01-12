@@ -170,21 +170,18 @@ export const getWeekDates = (baseDate) => {
 };
 
 /**
- * Получить даты года со сдвигом на N месяцев
+ * Получить даты года со сдвигом на N месяцев вперёд
  * (для админской таблицы со сдвинутыми кварталами)
  * @param {number} year
- * @param {number} offsetMonths - сдвиг в месяцах (например, 3)
+ * @param {number} offsetMonths - сдвиг вперёд в месяцах (например, 3 = начать с апреля)
  * @returns {string[]}
  */
 export const getYearDatesWithOffset = (year, offsetMonths) => {
   const dates = [];
 
-  // Начинаем с offsetMonths месяца предыдущего года
-  const startYear = offsetMonths > 0 ? year - 1 : year;
-  const startMonth = offsetMonths > 0 ? 12 - offsetMonths : 0;
-
-  let currentYear = startYear;
-  let currentMonth = startMonth;
+  // Начинаем с апреля текущего года (offsetMonths = 3)
+  let currentYear = year;
+  let currentMonth = offsetMonths; // 3 = апрель (индекс 0-11)
   let daysCollected = 0;
 
   // Собираем 365/366 дней

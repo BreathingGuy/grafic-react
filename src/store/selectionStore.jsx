@@ -15,12 +15,27 @@ export const useSelectionStore = create(
     isDragging: false,
     statusMessage: '',
     hasCopiedData: false,
+    // Активная таблица для выделения ('main' | 'offset' | null)
+    activeTableId: null,
 
     // === SELECTION ACTIONS ===
 
     // Начать выделение (withCtrl = true для добавления к существующему)
-    startSelection: (employeeId, slotIndex, withCtrl = false) => {
-      const { startCell, endCell, selections } = get();
+    // tableId = 'main' | 'offset' для разделения выделения между таблицами
+    startSelection: (employeeId, slotIndex, withCtrl = false, tableId = 'main') => {
+      const { startCell, endCell, selections, activeTableId } = get();
+
+      // Если кликнули в другую таблицу - сбрасываем выделение
+      if (activeTableId && activeTableId !== tableId) {
+        set({
+          selections: [],
+          startCell: { employeeId, slotIndex },
+          endCell: { employeeId, slotIndex },
+          isDragging: true,
+          activeTableId: tableId
+        });
+        return;
+      }
 
       if (withCtrl && startCell && endCell) {
         // Ctrl+click: сохраняем текущее выделение и начинаем новое
@@ -28,7 +43,8 @@ export const useSelectionStore = create(
           selections: [...selections, { startCell, endCell }],
           startCell: { employeeId, slotIndex },
           endCell: { employeeId, slotIndex },
-          isDragging: true
+          isDragging: true,
+          activeTableId: tableId
         });
       } else {
         // Обычный клик: сбрасываем все и начинаем новое
@@ -36,7 +52,8 @@ export const useSelectionStore = create(
           selections: [],
           startCell: { employeeId, slotIndex },
           endCell: { employeeId, slotIndex },
-          isDragging: true
+          isDragging: true,
+          activeTableId: tableId
         });
       }
     },
@@ -53,7 +70,7 @@ export const useSelectionStore = create(
     },
 
     clearSelection: () => {
-      set({ startCell: null, endCell: null, selections: [], isDragging: false });
+      set({ startCell: null, endCell: null, selections: [], isDragging: false, activeTableId: null });
     },
 
     // === COMPUTED: Получить все регионы выделения ===

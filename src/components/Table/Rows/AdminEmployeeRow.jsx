@@ -4,8 +4,11 @@ import AdminScheduleCell from '../Cells/AdminScheduleCell';
 
 /**
  * AdminEmployeeRow - Строка сотрудника для админской консоли
+ *
+ * @param {string} tableId - 'main' | 'offset' для разделения выделения между таблицами
+ * @param {Object} slotToDate - маппинг слотов к датам (для offset передаётся offsetSlotToDate)
  */
-const AdminEmployeeRow = memo(({ empId, empIdx }) => {
+const AdminEmployeeRow = memo(({ empId, empIdx, tableId = 'main', slotToDate }) => {
   const visibleSlots = useDateAdminStore(state => state.visibleSlots);
 
   return (
@@ -16,12 +19,14 @@ const AdminEmployeeRow = memo(({ empId, empIdx }) => {
           employeeId={empId}
           slotIndex={slotIndex}
           empIdx={empIdx}
+          tableId={tableId}
+          slotToDate={slotToDate}
         />
       ))}
     </tr>
   );
 }, (prevProps, nextProps) => {
-  return prevProps.empId === nextProps.empId && prevProps.empIdx === nextProps.empIdx;
+  return prevProps.empId === nextProps.empId && prevProps.empIdx === nextProps.empIdx && prevProps.tableId === nextProps.tableId;
 });
 
 AdminEmployeeRow.displayName = 'AdminEmployeeRow';

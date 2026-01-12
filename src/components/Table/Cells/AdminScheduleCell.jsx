@@ -9,9 +9,15 @@ import CellEditor from './CellEditor';
  *
  * Выделение отрисовывается через SelectionOverlay.
  * Для единичной ячейки редактор открывается по двойному клику.
+ *
+ * @param {string} tableId - 'main' | 'offset' для разделения выделения между таблицами
+ * @param {Object} slotToDate - маппинг слотов к датам (для offset передаётся offsetSlotToDate)
  */
-const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
-  const date = useDateAdminStore(state => state.slotToDate[slotIndex]);
+const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main', slotToDate: slotToDateProp }) => {
+  // Если slotToDate передан как проп - используем его, иначе берём из стора
+  const storeSlotToDate = useDateAdminStore(state => state.slotToDate);
+  const slotToDate = slotToDateProp || storeSlotToDate;
+  const date = slotToDate[slotIndex];
 
   // Читаем из adminStore.draftSchedule
   const status = useAdminStore(state => {
@@ -24,8 +30,8 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
   const handleMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
     e.preventDefault();
-    useSelectionStore.getState().startSelection(employeeId, slotIndex, e.ctrlKey || e.metaKey);
-  }, [employeeId, slotIndex]);
+    useSelectionStore.getState().startSelection(employeeId, slotIndex, e.ctrlKey || e.metaKey, tableId);
+  }, [employeeId, slotIndex, tableId]);
 
   const handleMouseOver = useCallback(() => {
     if (!useSelectionStore.getState().isDragging) return;
@@ -73,7 +79,7 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx }) => {
       )}
     </td>
   );
-}, (prev, next) => prev.employeeId === next.employeeId && prev.slotIndex === next.slotIndex && prev.empIdx === next.empIdx);
+}, (prev, next) => prev.employeeId === next.employeeId && prev.slotIndex === next.slotIndex && prev.empIdx === next.empIdx && prev.tableId === next.tableId);
 
 AdminScheduleCell.displayName = 'AdminScheduleCell';
 
