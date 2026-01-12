@@ -30,7 +30,7 @@ export const useDateUserStore = create(
     // Текущее состояние навигации
     currentYear: new Date().getFullYear(),
     period: '3months',
-    periods: ['3months', '1month', '7days', '1year'],
+    periods: ['1year', '3months', '1month', '7days'],
     baseDate: new Date(),
 
     // Система слотов
