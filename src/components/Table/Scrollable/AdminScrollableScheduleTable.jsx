@@ -33,66 +33,70 @@ const AdminScrollableScheduleTable = () => {
     const offsetMonthGroups = useDateAdminStore(state => state.offsetMonthGroups);
 
     return (
-        <div className={styles.scrollable_container} style={{ position: 'relative' }}>
+        <div className={styles.scrollable_container}>
           {/* Основная таблица (январь-декабрь) */}
-          <table ref={mainTableRef} className={styles.scrollable_column}>
-            <thead>
-              <MonthHeaders monthGroups={monthGroups}/>
-              <tr>
-                {visibleSlots.map(slotIndex => {
-                  const date = slotToDate[slotIndex];
-                  if (!date) {return null;}
-                  return (
-                    <th key={slotIndex}>
-                      {slotToDay[slotIndex]}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {employeeIds.map((empId, empIdx) => (
-                <AdminEmployeeRow
-                  key={empId}
-                  empId={empId}
-                  empIdx={empIdx}
-                  tableId="main"
-                  slotToDate={slotToDate}
-                />
-              ))}
-            </tbody>
-          </table>
-          <SelectionOverlay tableRef={mainTableRef} tableId="main" slotToDate={slotToDate} />
+          <div style={{ position: 'relative' }}>
+            <table ref={mainTableRef} className={styles.scrollable_column}>
+              <thead>
+                <MonthHeaders monthGroups={monthGroups}/>
+                <tr>
+                  {visibleSlots.map(slotIndex => {
+                    const date = slotToDate[slotIndex];
+                    if (!date) {return null;}
+                    return (
+                      <th key={slotIndex}>
+                        {slotToDay[slotIndex]}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {employeeIds.map((empId, empIdx) => (
+                  <AdminEmployeeRow
+                    key={empId}
+                    empId={empId}
+                    empIdx={empIdx}
+                    tableId="main"
+                    slotToDate={slotToDate}
+                  />
+                ))}
+              </tbody>
+            </table>
+            <SelectionOverlay tableRef={mainTableRef} tableId="main" slotToDate={slotToDate} />
+          </div>
 
           {/* Offset таблица (апрель-март) */}
-          <table ref={offsetTableRef} className={styles.scrollable_column} style={{ marginTop: '40px' }}>
-            <thead>
-              <MonthHeaders monthGroups={offsetMonthGroups}/>
-              <tr>
-                {visibleSlots.map(slotIndex => {
-                  const date = offsetSlotToDate[slotIndex];
-                  if (!date) {return null;}
-                  return (
-                    <th key={slotIndex}>
-                      {offsetSlotToDay[slotIndex]}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {employeeIds.map((empId, empIdx) => (
-                <AdminEmployeeRow
-                  key={empId}
-                  empId={empId}
-                  empIdx={empIdx}
-                  tableId="offset"
-                  slotToDate={offsetSlotToDate}
-                />
-              ))}
-            </tbody>
-          </table>
-          <SelectionOverlay tableRef={offsetTableRef} tableId="offset" slotToDate={offsetSlotToDate} />
+          <div style={{ position: 'relative', marginTop: '40px' }}>
+            <table ref={offsetTableRef} className={styles.scrollable_column}>
+              <thead>
+                <MonthHeaders monthGroups={offsetMonthGroups}/>
+                <tr>
+                  {visibleSlots.map(slotIndex => {
+                    const date = offsetSlotToDate[slotIndex];
+                    if (!date) {return null;}
+                    return (
+                      <th key={slotIndex}>
+                        {offsetSlotToDay[slotIndex]}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {employeeIds.map((empId, empIdx) => (
+                  <AdminEmployeeRow
+                    key={empId}
+                    empId={empId}
+                    empIdx={empIdx}
+                    tableId="offset"
+                    slotToDate={offsetSlotToDate}
+                  />
+                ))}
+              </tbody>
+            </table>
+            <SelectionOverlay tableRef={offsetTableRef} tableId="offset" slotToDate={offsetSlotToDate} />
+          </div>
         </div>
     )
 }

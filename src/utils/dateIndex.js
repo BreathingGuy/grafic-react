@@ -54,7 +54,7 @@ const generateDateIndex = (startYear, endYear) => {
 
 // Конфигурация диапазона годов
 export const START_YEAR = 2025;
-export const END_YEAR = 2026;
+export const END_YEAR = 2027;
 
 // Генерируем индекс один раз при загрузке модуля
 export const DATE_INDEX = generateDateIndex(START_YEAR, END_YEAR);
@@ -187,9 +187,19 @@ export const getYearDatesWithOffset = (year, offsetMonths) => {
   // Собираем 365/366 дней
   const targetDays = (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) ? 366 : 365;
 
-  while (daysCollected < targetDays) {
+  // Защита от бесконечного цикла - максимум 24 месяца (2 года)
+  let iterations = 0;
+  const maxIterations = 24;
+
+  while (daysCollected < targetDays && iterations < maxIterations) {
     const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
     const monthDates = DATE_INDEX.datesByMonth[monthKey] || [];
+
+    // Если нет данных для месяца - выходим (достигли конца индекса)
+    if (monthDates.length === 0) {
+      console.warn(`⚠️ Нет данных для ${monthKey}, собрано ${daysCollected} дней`);
+      break;
+    }
 
     monthDates.forEach(date => {
       if (daysCollected < targetDays) {
@@ -203,6 +213,7 @@ export const getYearDatesWithOffset = (year, offsetMonths) => {
       currentMonth = 0;
       currentYear++;
     }
+    iterations++;
   }
 
   return dates;
