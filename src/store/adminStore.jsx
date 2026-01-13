@@ -118,6 +118,12 @@ export const useAdminStore = create(
                 editingDepartmentId: departmentId
               });
               console.log(`✅ Draft инициализирован: ${Object.keys(yearData).length} ячеек`);
+
+              // Warming: триггерим фиктивное обновление для оптимизации Zustand selectors
+              // Это заставляет React/Zustand полностью инициализировать мемоизацию
+              requestAnimationFrame(() => {
+                set(state => ({ draftSchedule: { ...state.draftSchedule } }));
+              });
             } else {
               // Год не существует — создаём пустой
               console.log(`📝 Создание пустого draft для ${year}`);
@@ -162,6 +168,11 @@ export const useAdminStore = create(
           });
 
           console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками`);
+
+          // Warming: триггерим фиктивное обновление для оптимизации Zustand selectors
+          requestAnimationFrame(() => {
+            set(state => ({ draftSchedule: { ...state.draftSchedule } }));
+          });
         },
 
         // Обновить одну ячейку в draft
