@@ -5,7 +5,9 @@ import { devtools } from 'zustand/middleware';
 const cellKey = (employeeId, slotIndex) => `${employeeId}-${slotIndex}`;
 
 export const useSelectionStore = create(
-  devtools((set, get) => ({
+  // devtools временно отключен для теста производительности
+  // devtools(
+  (set, get) => ({
     // === STATE ===
     // Текущее активное выделение (которое редактируется)
     startCell: null,       // { employeeId, slotIndex }
@@ -148,5 +150,6 @@ export const useSelectionStore = create(
       set({ hasCopiedData: hasCopied });
     }
 
-  }), { name: 'SelectionStore' })
+  })
+  // , { name: 'SelectionStore' })
 );
