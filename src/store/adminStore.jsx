@@ -119,10 +119,25 @@ export const useAdminStore = create(
               });
               console.log(`✅ Draft инициализирован: ${Object.keys(yearData).length} ячеек`);
 
-              // Warming: триггерим фиктивное обновление для оптимизации Zustand selectors
-              // Это заставляет React/Zustand полностью инициализировать мемоизацию
+              // Warming: делаем реальное изменение значения и откатываем
+              // Это заставляет React полностью инициализировать reconciliation
               requestAnimationFrame(() => {
-                set(state => ({ draftSchedule: { ...state.draftSchedule } }));
+                const keys = Object.keys(yearData);
+                if (keys.length > 0) {
+                  const firstKey = keys[0];
+                  const originalValue = yearData[firstKey];
+                  // Меняем на временное значение
+                  set(state => ({
+                    draftSchedule: { ...state.draftSchedule, [firstKey]: '__warming__' }
+                  }));
+                  // Сразу возвращаем обратно
+                  requestAnimationFrame(() => {
+                    set(state => ({
+                      draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
+                      hasUnsavedChanges: false // сбрасываем флаг изменений
+                    }));
+                  });
+                }
               });
             } else {
               // Год не существует — создаём пустой
@@ -169,9 +184,22 @@ export const useAdminStore = create(
 
           console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками`);
 
-          // Warming: триггерим фиктивное обновление для оптимизации Zustand selectors
+          // Warming: делаем реальное изменение значения и откатываем
           requestAnimationFrame(() => {
-            set(state => ({ draftSchedule: { ...state.draftSchedule } }));
+            const keys = Object.keys(emptyDraft);
+            if (keys.length > 0) {
+              const firstKey = keys[0];
+              const originalValue = emptyDraft[firstKey];
+              set(state => ({
+                draftSchedule: { ...state.draftSchedule, [firstKey]: '__warming__' }
+              }));
+              requestAnimationFrame(() => {
+                set(state => ({
+                  draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
+                  hasUnsavedChanges: false
+                }));
+              });
+            }
           });
         },
 
