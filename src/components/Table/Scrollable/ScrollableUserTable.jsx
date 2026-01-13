@@ -12,13 +12,12 @@ const ScrollableUserTable = () => {
     const visibleSlots = useDateUserStore(state => state.visibleSlots);
     const slotToDate = useDateUserStore(state => state.slotToDate);
     const slotToDay = useDateUserStore(s => s.slotToDay);
-    const monthGroups = useDateUserStore(state => state.monthGroups);
 
     return (
         <div className={styles.scrollable_container}>
           <table className={styles.scrollable_column}>
             <thead>
-              <MonthHeaders monthGroups={monthGroups}/>
+              <MonthHeaders />
               <tr>
                 {visibleSlots.map(slotIndex => {
                   const date = slotToDate[slotIndex];

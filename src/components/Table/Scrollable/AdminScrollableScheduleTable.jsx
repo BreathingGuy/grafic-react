@@ -25,12 +25,10 @@ const AdminScrollableScheduleTable = () => {
     // Данные основной таблицы
     const slotToDate = useDateAdminStore(state => state.slotToDate);
     const slotToDay = useDateAdminStore(s => s.slotToDay);
-    const monthGroups = useDateAdminStore(state => state.monthGroups);
 
     // Данные offset таблицы
     const offsetSlotToDate = useDateAdminStore(state => state.offsetSlotToDate);
     const offsetSlotToDay = useDateAdminStore(state => state.offsetSlotToDay);
-    const offsetMonthGroups = useDateAdminStore(state => state.offsetMonthGroups);
 
     return (
         <div className={styles.scrollable_container}>
@@ -38,7 +36,7 @@ const AdminScrollableScheduleTable = () => {
           <div style={{ position: 'relative' }}>
             <table ref={mainTableRef} className={styles.scrollable_column}>
               <thead>
-                <MonthHeaders monthGroups={monthGroups}/>
+                <MonthHeaders isAdmin tableId="main" />
                 <tr>
                   {visibleSlots.map(slotIndex => {
                     const date = slotToDate[slotIndex];
@@ -70,7 +68,7 @@ const AdminScrollableScheduleTable = () => {
           <div style={{ position: 'relative', marginTop: '40px' }}>
             <table ref={offsetTableRef} className={styles.scrollable_column}>
               <thead>
-                <MonthHeaders monthGroups={offsetMonthGroups}/>
+                <MonthHeaders isAdmin tableId="offset" />
                 <tr>
                   {visibleSlots.map(slotIndex => {
                     const date = offsetSlotToDate[slotIndex];
