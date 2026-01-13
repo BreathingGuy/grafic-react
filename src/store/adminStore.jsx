@@ -16,7 +16,8 @@ export const useAdminStore = create(
         // === DRAFT STATE ===
         draftSchedule: {},             // Рабочая копия: { "empId-date": "status" }
         originalSchedule: {},          // Исходное состояние (для сравнения)
-        employeeIds: [],               // Список сотрудников для этого draft
+        employeeIds: [],               // Список ID сотрудников
+        employeeById: {},              // Данные сотрудников: { id: { id, name, fullName, position } }
         hasUnsavedChanges: false,
         undoStack: [],                 // Для Ctrl+Z
 
@@ -54,6 +55,7 @@ export const useAdminStore = create(
             draftSchedule: {},
             originalSchedule: {},
             employeeIds: [],
+            employeeById: {},
             hasUnsavedChanges: false,
             undoStack: [],
             editingYear: null,
@@ -88,7 +90,7 @@ export const useAdminStore = create(
           try {
             const fetchStore = useFetchWebStore.getState();
             // Загружаем как draft (в будущем может быть отдельный endpoint)
-            const { employeeIds, scheduleMap } = await fetchStore.fetchSchedule(
+            const { employeeIds, employeeById, scheduleMap } = await fetchStore.fetchSchedule(
               departmentId,
               year,
               { mode: 'draft' }
@@ -109,6 +111,7 @@ export const useAdminStore = create(
                 draftSchedule: { ...yearData },
                 originalSchedule: { ...yearData },
                 employeeIds: employeeIds,
+                employeeById: employeeById || {},
                 hasUnsavedChanges: false,
                 undoStack: [],
                 editingYear: year,
@@ -118,18 +121,18 @@ export const useAdminStore = create(
             } else {
               // Год не существует — создаём пустой
               console.log(`📝 Создание пустого draft для ${year}`);
-              get().createEmptyYear(year, employeeIds, departmentId);
+              get().createEmptyYear(year, employeeIds, employeeById || {}, departmentId);
             }
 
           } catch (error) {
             console.error('Failed to initialize draft:', error);
             // Создаём пустой draft если загрузка не удалась
-            get().createEmptyYear(year, [], departmentId);
+            get().createEmptyYear(year, [], {}, departmentId);
           }
         },
 
         // Создать пустой год
-        createEmptyYear: (year, employeeIds, departmentId) => {
+        createEmptyYear: (year, employeeIds, employeeById, departmentId) => {
           const emptyDraft = {};
 
           // Генерируем все даты года
@@ -151,6 +154,7 @@ export const useAdminStore = create(
             draftSchedule: emptyDraft,
             originalSchedule: { ...emptyDraft },
             employeeIds: employeeIds,
+            employeeById: employeeById,
             hasUnsavedChanges: false,
             undoStack: [],
             editingYear: year,
@@ -276,6 +280,7 @@ export const useAdminStore = create(
             draftSchedule: {},
             originalSchedule: {},
             employeeIds: [],
+            employeeById: {},
             hasUnsavedChanges: false,
             undoStack: [],
             editingYear: null,
