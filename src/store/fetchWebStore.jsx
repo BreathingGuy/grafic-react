@@ -18,6 +18,9 @@ export const useFetchWebStore = create(
       scheduleDraft: false,
       departmentsList: false,
       departmentConfig: false,
+      departmentYears: false,
+      yearVersions: false,
+      versionSchedule: false,
       publish: false
     },
     errors: {
@@ -25,6 +28,9 @@ export const useFetchWebStore = create(
       scheduleDraft: null,
       departmentsList: null,
       departmentConfig: null,
+      departmentYears: null,
+      yearVersions: null,
+      versionSchedule: null,
       publish: null
     },
 
@@ -194,6 +200,133 @@ export const useFetchWebStore = create(
     },
 
     // === ADMIN API ===
+
+    /**
+     * Получить список доступных годов для отдела
+     * GET /api/departments/{id}/years
+     * @param {string} departmentId
+     * @returns {{ departmentId, name, years: string[] }}
+     */
+    fetchDepartmentYears: async (departmentId) => {
+      get().setLoading('departmentYears', true);
+      get().clearError('departmentYears');
+
+      try {
+        // TODO: Реальный API запрос
+        // const response = await fetch(`/api/departments/${departmentId}/years`);
+        // const data = await response.json();
+
+        // Заглушка — возвращаем текущий и следующий год
+        const currentYear = new Date().getFullYear();
+        console.log(`📥 fetchDepartmentYears: ${departmentId}`);
+
+        // Имитация задержки сети
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        const data = {
+          departmentId,
+          name: 'Отдел',
+          years: [String(currentYear - 1), String(currentYear), String(currentYear + 1)]
+        };
+
+        get().setLoading('departmentYears', false);
+        return data;
+
+      } catch (error) {
+        console.error('fetchDepartmentYears error:', error);
+        get().setError('departmentYears', error.message);
+        get().setLoading('departmentYears', false);
+        throw error;
+      }
+    },
+
+    /**
+     * Получить список версий года для отдела
+     * GET /api/departments/{id}/{year}/versions
+     * @param {string} departmentId
+     * @param {number|string} year
+     * @returns {{ departmentId, name, year, versions: string[] }}
+     */
+    fetchYearVersions: async (departmentId, year) => {
+      get().setLoading('yearVersions', true);
+      get().clearError('yearVersions');
+
+      try {
+        // TODO: Реальный API запрос
+        // const response = await fetch(`/api/departments/${departmentId}/${year}/versions`);
+        // const data = await response.json();
+
+        console.log(`📥 fetchYearVersions: ${departmentId}/${year}`);
+
+        // Имитация задержки сети
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Заглушка — генерируем несколько версий
+        const data = {
+          departmentId,
+          name: 'Отдел',
+          year: Number(year),
+          versions: [`${year}.02.15`, `${year}.03.16`, `${year}.06.20`, `${year}.08.09`]
+        };
+
+        get().setLoading('yearVersions', false);
+        return data;
+
+      } catch (error) {
+        console.error('fetchYearVersions error:', error);
+        get().setError('yearVersions', error.message);
+        get().setLoading('yearVersions', false);
+        throw error;
+      }
+    },
+
+    /**
+     * Получить расписание конкретной версии
+     * GET /api/departments/{id}/schedule?year={year}&version={version}&include=employees,schedule,buffers
+     * @param {string} departmentId
+     * @param {number|string} year
+     * @param {string} version
+     * @returns {{ year, version, departmentId, employeeById, employeeIds, scheduleMap }}
+     */
+    fetchVersionSchedule: async (departmentId, year, version) => {
+      get().setLoading('versionSchedule', true);
+      get().clearError('versionSchedule');
+
+      try {
+        // TODO: Реальный API запрос
+        // const response = await fetch(
+        //   `/api/departments/${departmentId}/schedule?year=${year}&version=${version}&include=employees,schedule,buffers`
+        // );
+        // const data = await response.json();
+
+        console.log(`📥 fetchVersionSchedule: ${departmentId}/${year}/${version}`);
+
+        // Пока используем тот же файл что и для обычного расписания
+        const url = `../../public/data-${departmentId}-${year}.json`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const rawData = await response.json();
+        const normalized = get().normalizeScheduleData(rawData, year);
+
+        get().setLoading('versionSchedule', false);
+        return {
+          year: Number(year),
+          version,
+          departmentId,
+          ...normalized
+        };
+
+      } catch (error) {
+        console.error('fetchVersionSchedule error:', error);
+        get().setError('versionSchedule', error.message);
+        get().setLoading('versionSchedule', false);
+        throw error;
+      }
+    },
 
     /**
      * Опубликовать изменения расписания

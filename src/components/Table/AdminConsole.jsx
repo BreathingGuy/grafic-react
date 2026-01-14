@@ -7,6 +7,7 @@ import { useWorkspaceStore } from '../../store/workspaceStore';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 import AdminHeader from './AdminHeader';
+import AdminYearSelector from './AdminYearSelector';
 import AdminStatusBar from './AdminStatusBar';
 import FixedEmployeeColumn from './Static/FixedEmployeeColumn';
 import AdminScrollableScheduleTable from './Scrollable/AdminScrollableScheduleTable';
@@ -55,6 +56,7 @@ function AdminConsole() {
   return (
     <div style={{ padding: '20px' }}>
       <AdminHeader />
+      <AdminYearSelector />
       <AdminStatusBar />
 
       <div className={styles.container}>

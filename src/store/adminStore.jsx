@@ -25,6 +25,13 @@ export const useAdminStore = create(
         editingYear: null,
         editingDepartmentId: null,
 
+        // === YEARS & VERSIONS ===
+        availableYears: [],            // Доступные года для отдела: ["2024", "2025", "2026"]
+        yearVersions: [],              // Версии выбранного года: ["2025.02.15", "2025.03.16", ...]
+        selectedVersion: null,         // Выбранная версия (null = текущий draft)
+        loadingYears: false,
+        loadingVersions: false,
+
         // === AUTH ACTIONS ===
 
         login: async (email, _password) => {
@@ -59,7 +66,12 @@ export const useAdminStore = create(
             hasUnsavedChanges: false,
             undoStack: [],
             editingYear: null,
-            editingDepartmentId: null
+            editingDepartmentId: null,
+            availableYears: [],
+            yearVersions: [],
+            selectedVersion: null,
+            loadingYears: false,
+            loadingVersions: false
           });
         },
 
@@ -323,8 +335,125 @@ export const useAdminStore = create(
             hasUnsavedChanges: false,
             undoStack: [],
             editingYear: null,
-            editingDepartmentId: null
+            editingDepartmentId: null,
+            availableYears: [],
+            yearVersions: [],
+            selectedVersion: null
           });
+        },
+
+        // === YEARS & VERSIONS ACTIONS ===
+
+        /**
+         * Загрузить список доступных годов для отдела
+         * @param {string} departmentId
+         */
+        loadAvailableYears: async (departmentId) => {
+          set({ loadingYears: true });
+
+          try {
+            const fetchStore = useFetchWebStore.getState();
+            const data = await fetchStore.fetchDepartmentYears(departmentId);
+
+            set({
+              availableYears: data.years || [],
+              loadingYears: false
+            });
+
+            return data.years;
+          } catch (error) {
+            console.error('loadAvailableYears error:', error);
+            set({ loadingYears: false });
+            throw error;
+          }
+        },
+
+        /**
+         * Загрузить версии для выбранного года
+         * @param {string} departmentId
+         * @param {number|string} year
+         */
+        loadYearVersions: async (departmentId, year) => {
+          set({ loadingVersions: true, yearVersions: [] });
+
+          try {
+            const fetchStore = useFetchWebStore.getState();
+            const data = await fetchStore.fetchYearVersions(departmentId, year);
+
+            set({
+              yearVersions: data.versions || [],
+              loadingVersions: false
+            });
+
+            return data.versions;
+          } catch (error) {
+            console.error('loadYearVersions error:', error);
+            set({ loadingVersions: false });
+            throw error;
+          }
+        },
+
+        /**
+         * Переключить год (загрузить draft для другого года)
+         * @param {number|string} year
+         */
+        switchYear: async (year) => {
+          const { editingDepartmentId } = get();
+          if (!editingDepartmentId) return;
+
+          // Сбросить выбранную версию
+          set({ selectedVersion: null, yearVersions: [] });
+
+          // Загрузить draft для нового года
+          await get().initializeDraft(editingDepartmentId, Number(year));
+
+          // Загрузить версии для этого года
+          await get().loadYearVersions(editingDepartmentId, year);
+        },
+
+        /**
+         * Загрузить конкретную версию (только для просмотра)
+         * @param {string} version
+         */
+        loadVersion: async (version) => {
+          const { editingDepartmentId, editingYear } = get();
+          if (!editingDepartmentId || !editingYear) return;
+
+          try {
+            const fetchStore = useFetchWebStore.getState();
+            const data = await fetchStore.fetchVersionSchedule(
+              editingDepartmentId,
+              editingYear,
+              version
+            );
+
+            // Загружаем версию как draft (только для просмотра)
+            set({
+              draftSchedule: { ...data.scheduleMap },
+              originalSchedule: { ...data.scheduleMap },
+              employeeIds: data.employeeIds,
+              employeeById: data.employeeById,
+              selectedVersion: version,
+              hasUnsavedChanges: false,
+              undoStack: []
+            });
+
+            console.log(`✅ Загружена версия ${version}`);
+          } catch (error) {
+            console.error('loadVersion error:', error);
+            throw error;
+          }
+        },
+
+        /**
+         * Вернуться к текущему draft (сбросить просмотр версии)
+         */
+        exitVersionView: async () => {
+          const { editingDepartmentId, editingYear } = get();
+          if (!editingDepartmentId || !editingYear) return;
+
+          set({ selectedVersion: null });
+          await get().initializeDraft(editingDepartmentId, editingYear);
         },
 
         // === GETTERS ===
