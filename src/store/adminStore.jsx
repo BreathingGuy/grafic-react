@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useFetchWebStore } from './fetchWebStore';
 import { useScheduleStore } from './scheduleStore';
+import { useDateAdminStore } from './dateAdminStore';
 
 export const useAdminStore = create(
   devtools(
@@ -403,6 +404,9 @@ export const useAdminStore = create(
 
           // Сбросить выбранную версию
           set({ selectedVersion: null, yearVersions: [] });
+
+          // Обновить dateAdminStore для нового года (важно сделать до загрузки данных)
+          useDateAdminStore.getState().initializeYear(Number(year));
 
           // Загрузить draft для нового года
           await get().initializeDraft(editingDepartmentId, Number(year));
