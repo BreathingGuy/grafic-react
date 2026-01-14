@@ -27,24 +27,24 @@ function AdminConsole() {
   // Keyboard shortcuts
   useKeyboardShortcuts();
 
-  // Только для инициализации — не вызывают ререндер при изменении данных таблицы
+  // Только для инициализации
   const initializeDraft = useAdminStore(s => s.initializeDraft);
-  const clearDraft = useAdminStore(s => s.clearDraft);
-  const initializeYear = useDateAdminStore(s => s.initializeYear);
   const currentYear = useDateAdminStore(s => s.currentYear);
   const userCurrentYear = useDateUserStore(s => s.currentYear);
   const currentDepartmentId = useWorkspaceStore(s => s.currentDepartmentId);
-  const clearSelection = useSelectionStore(s => s.clearSelection);
 
-  // Инициализация при монтировании
+  // Инициализация при монтировании (только один раз)
   useEffect(() => {
-    initializeYear(userCurrentYear);
+    // Используем userCurrentYear только при первой инициализации
+    // Дальнейшие переключения года происходят через switchYear
+    useDateAdminStore.getState().initializeYear(userCurrentYear);
 
     return () => {
-      clearDraft();
-      clearSelection();
+      useAdminStore.getState().clearDraft();
+      useSelectionStore.getState().clearSelection();
     };
-  }, [initializeYear, userCurrentYear, clearDraft, clearSelection]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Пустой массив — только при монтировании
 
   // Инициализация draft при смене отдела/года
   useEffect(() => {
