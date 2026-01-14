@@ -26,7 +26,14 @@ const AdminEmployeeRow = memo(({ empId, empIdx, tableId = 'main', slotToDate }) 
     </tr>
   );
 }, (prevProps, nextProps) => {
-  return prevProps.empId === nextProps.empId && prevProps.empIdx === nextProps.empIdx && prevProps.tableId === nextProps.tableId;
+  // Проверяем slotToDate[0] чтобы обнаружить смену года
+  const prevFirstDate = prevProps.slotToDate?.[0];
+  const nextFirstDate = nextProps.slotToDate?.[0];
+
+  return prevProps.empId === nextProps.empId &&
+         prevProps.empIdx === nextProps.empIdx &&
+         prevProps.tableId === nextProps.tableId &&
+         prevFirstDate === nextFirstDate;
 });
 
 AdminEmployeeRow.displayName = 'AdminEmployeeRow';
