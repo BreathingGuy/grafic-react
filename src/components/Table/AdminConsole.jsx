@@ -9,7 +9,7 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import AdminHeader from './AdminHeader';
 import AdminYearSelector from './AdminYearSelector';
 import AdminStatusBar from './AdminStatusBar';
-import FixedEmployeeColumn from './Static/FixedEmployeeColumn';
+import AdminFixedEmployeeColumn from './Static/AdminFixedEmployeeColumn';
 import AdminScrollableScheduleTable from './Scrollable/AdminScrollableScheduleTable';
 
 import styles from './Table.module.css';
@@ -60,7 +60,7 @@ function AdminConsole() {
       <AdminStatusBar />
 
       <div className={styles.container}>
-        <FixedEmployeeColumn />
+        <AdminFixedEmployeeColumn />
         <AdminScrollableScheduleTable />
       </div>
     </div>
