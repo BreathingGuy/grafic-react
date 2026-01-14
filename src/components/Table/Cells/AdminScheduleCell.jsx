@@ -13,10 +13,9 @@ import CellEditor from './CellEditor';
  * @param {string} tableId - 'main' | 'offset' для разделения выделения между таблицами
  * @param {Object} slotToDate - маппинг слотов к датам (для offset передаётся offsetSlotToDate)
  */
-const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main', slotToDate: slotToDateProp }) => {
+const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main' }) => {
   // Если slotToDate передан как проп - используем его, иначе берём из стора
-  const storeSlotToDate = useDateAdminStore(state => state.slotToDate);
-  const slotToDate = slotToDateProp || storeSlotToDate;
+  const slotToDate = useDateAdminStore(state => state.slotToDate);
   const date = slotToDate[slotIndex];
 
   // Читаем из adminStore.draftSchedule

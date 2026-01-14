@@ -20,7 +20,6 @@ const AdminEmployeeRow = memo(({ empId, empIdx, tableId = 'main', slotToDate }) 
           slotIndex={slotIndex}
           empIdx={empIdx}
           tableId={tableId}
-          slotToDate={slotToDate}
         />
       ))}
     </tr>

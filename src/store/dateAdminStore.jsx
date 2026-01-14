@@ -64,7 +64,8 @@ export const useDateAdminStore = create(
         offsetMonthGroups
       });
 
-      console.log(`✅ [Admin] Слоты инициализированы: ${dates.length} дней`);
+      console.log(`✅ [Admin] Слоты инициализированы: ${dates.length} дней, год ${year}`);
+      console.log(`✅ [Admin] Слоты инициализированы: ${dates.length} дней, ${dates}`);
     },
 
     // === ACTIONS ===
