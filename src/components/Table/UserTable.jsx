@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useDateStore } from '../../store/dateStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 
-import ScrollableUserTable from './Scrollable/ScrollableUserTable';
+import ScrollableUserTable from './Scrollable/User/ScrollableUserTable';
 import FixedEmployeeColumn from './Static/FixedEmployeeColumn'
 import TableNavigation from '../Controls/TableNavigation';
 

@@ -10,7 +10,7 @@ import AdminHeader from './AdminHeader';
 import AdminYearSelector from './AdminYearSelector';
 import AdminStatusBar from './AdminStatusBar';
 import AdminFixedEmployeeColumn from './Static/AdminFixedEmployeeColumn';
-import AdminScrollableScheduleTable from './Scrollable/AdminScrollableScheduleTable';
+import AdminScrollableScheduleTable from './Scrollable/Admin/AdminScrollableScheduleTable';
 
 import styles from './Table.module.css';
 

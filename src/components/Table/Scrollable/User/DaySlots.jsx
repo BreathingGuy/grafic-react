@@ -1,4 +1,4 @@
-import { useDateStore } from '../../../store/dateStore';
+import { useDateStore } from '../../../../store/dateStore';
 
 
 const DaySlots = () => {
