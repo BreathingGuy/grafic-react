@@ -56,7 +56,6 @@ const AdminScrollableScheduleTable = () => {
                     empId={empId}
                     empIdx={empIdx}
                     tableId="main"
-                    slotToDate={slotToDate}
                   />
                 ))}
               </tbody>
@@ -88,7 +87,6 @@ const AdminScrollableScheduleTable = () => {
                     empId={empId}
                     empIdx={empIdx}
                     tableId="offset"
-                    slotToDate={offsetSlotToDate}
                   />
                 ))}
               </tbody>

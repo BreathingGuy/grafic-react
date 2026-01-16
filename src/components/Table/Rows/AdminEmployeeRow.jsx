@@ -5,10 +5,9 @@ import AdminScheduleCell from '../Cells/AdminScheduleCell';
 /**
  * AdminEmployeeRow - Строка сотрудника для админской консоли
  *
- * @param {string} tableId - 'main' | 'offset' для разделения выделения между таблицами
- * @param {Object} slotToDate - маппинг слотов к датам (для offset передаётся offsetSlotToDate)
+ * @param {string} tableId - 'main' | 'offset' для передачи в AdminScheduleCell
  */
-const AdminEmployeeRow = memo(({ empId, empIdx, tableId = 'main', slotToDate }) => {
+const AdminEmployeeRow = memo(({ empId, empIdx, tableId = 'main' }) => {
   const visibleSlots = useDateAdminStore(state => state.visibleSlots);
 
   return (
@@ -25,14 +24,9 @@ const AdminEmployeeRow = memo(({ empId, empIdx, tableId = 'main', slotToDate }) 
     </tr>
   );
 }, (prevProps, nextProps) => {
-  // Проверяем slotToDate[0] чтобы обнаружить смену года
-  const prevFirstDate = prevProps.slotToDate?.[0];
-  const nextFirstDate = nextProps.slotToDate?.[0];
-
   return prevProps.empId === nextProps.empId &&
          prevProps.empIdx === nextProps.empIdx &&
-         prevProps.tableId === nextProps.tableId &&
-         prevFirstDate === nextFirstDate;
+         prevProps.tableId === nextProps.tableId;
 });
 
 AdminEmployeeRow.displayName = 'AdminEmployeeRow';

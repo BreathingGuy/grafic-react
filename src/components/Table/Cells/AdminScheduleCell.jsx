@@ -10,13 +10,16 @@ import CellEditor from './CellEditor';
  * Выделение отрисовывается через SelectionOverlay.
  * Для единичной ячейки редактор открывается по двойному клику.
  *
- * @param {string} tableId - 'main' | 'offset' для разделения выделения между таблицами
- * @param {Object} slotToDate - маппинг слотов к датам (для offset передаётся offsetSlotToDate)
+ * @param {string} tableId - 'main' | 'offset' для выбора slotToDate из store
  */
 const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main' }) => {
-  // Если slotToDate передан как проп - используем его, иначе берём из стора
-  const slotToDate = useDateAdminStore(state => state.slotToDate);
-  const date = slotToDate[slotIndex];
+  // Берём дату напрямую из store в зависимости от tableId
+  // Это гарантирует ререндер при смене года
+  const date = useDateAdminStore(state =>
+    tableId === 'offset'
+      ? state.offsetSlotToDate[slotIndex]
+      : state.slotToDate[slotIndex]
+  );
 
   // Читаем из adminStore.draftSchedule
   const status = useAdminStore(state => {
