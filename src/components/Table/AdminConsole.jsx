@@ -33,18 +33,14 @@ function AdminConsole() {
   const userCurrentYear = useDateUserStore(s => s.currentYear);
   const currentDepartmentId = useWorkspaceStore(s => s.currentDepartmentId);
 
-  // Инициализация при монтировании (только один раз)
   useEffect(() => {
-    // Используем userCurrentYear только при первой инициализации
-    // Дальнейшие переключения года происходят через switchYear
     useDateAdminStore.getState().initializeYear(userCurrentYear);
 
     return () => {
       useAdminStore.getState().clearDraft();
       useSelectionStore.getState().clearSelection();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Пустой массив — только при монтировании
+  }, []);
 
   // Инициализация draft при смене отдела/года
   useEffect(() => {
