@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSelectionStore } from '../../store/selectionStore';
-import { useScheduleStore } from '../../store/scheduleStore';
-import { useDateStore } from '../../store/dateStore';
 import { useAdminStore } from '../../store/adminStore';
+import { useDateAdminStore } from '../../store/dateAdminStore';
 import styles from './Table.module.css';
 
 /**
@@ -62,7 +61,13 @@ function computeRegionStyle(startCell, endCell, employeeIds, tableRef) {
   };
 }
 
-function SelectionOverlay({ tableRef }) {
+/**
+ * SelectionOverlay - Оверлей для визуализации выделения
+ * @param {Object} tableRef - ref на таблицу
+ * @param {string} tableId - идентификатор таблицы ('main' | 'offset')
+ * @param {Object} slotToDate - маппинг слотов к датам (для offset таблицы передаётся offsetSlotToDate)
+ */
+function SelectionOverlay({ tableRef, tableId = 'main', slotToDate: slotToDateProp }) {
   const [regionStyles, setRegionStyles] = useState([]);
   const [editorPosition, setEditorPosition] = useState(null);
   const [hoveredValue, setHoveredValue] = useState(null);
@@ -73,11 +78,20 @@ function SelectionOverlay({ tableRef }) {
   const selections = useSelectionStore(s => s.selections);
   const isDragging = useSelectionStore(s => s.isDragging);
   const hasCopiedData = useSelectionStore(s => s.hasCopiedData);
-  const employeeIds = useScheduleStore(s => s.employeeIds);
+  const activeTableId = useSelectionStore(s => s.activeTableId);
+  const employeeIds = useAdminStore(s => s.employeeIds);
+
+  // slotToDate может передаваться как проп (для offset таблицы) или браться из store
+  const storeSlotToDate = useDateAdminStore(s => s.slotToDate);
+  const slotToDate = slotToDateProp || storeSlotToDate;
+
+  // Этот overlay активен только если выделение в этой таблице
+  const isActive = activeTableId === tableId;
 
   // Пересчитываем позиции всех регионов
   const updateOverlayPositions = useCallback(() => {
-    if (!tableRef?.current) {
+    // Не рисуем если это не активная таблица или нет ref
+    if (!tableRef?.current || !isActive) {
       setRegionStyles([]);
       setEditorPosition(null);
       return;
@@ -130,7 +144,7 @@ function SelectionOverlay({ tableRef }) {
     if (allStyles.length === 0) {
       setEditorPosition(null);
     }
-  }, [startCell, endCell, selections, employeeIds, tableRef]);
+  }, [startCell, endCell, selections, employeeIds, tableRef, isActive]);
 
   // Обновляем позиции при изменении выделения
   useEffect(() => {
@@ -155,9 +169,8 @@ function SelectionOverlay({ tableRef }) {
   // Применить значение ко ВСЕМ выделенным ячейкам (включая множественные регионы)
   const handleSelectValue = useCallback((newValue) => {
     const { getAllSelections, setStatus } = useSelectionStore.getState();
-    const { saveUndoState, batchUpdateDraftCells } = useAdminStore.getState();
-    const { employeeIds } = useScheduleStore.getState();
-    const { slotToDate } = useDateStore.getState();
+    const { saveUndoState, batchUpdateDraftCells, employeeIds } = useAdminStore.getState();
+    // Используем slotToDate из пропа/state (уже определён выше)
 
     const allSelections = getAllSelections();
     if (allSelections.length === 0) return;
@@ -192,7 +205,7 @@ function SelectionOverlay({ tableRef }) {
     batchUpdateDraftCells(updates);
     setStatus(`Установлено "${newValue || '-'}" для ${count} ячеек`);
     setHoveredValue(null);
-  }, []);
+  }, [slotToDate]);
 
   // Остановка событий мыши
   const stopPropagation = useCallback((e) => {
@@ -207,7 +220,8 @@ function SelectionOverlay({ tableRef }) {
   // Показывать CellEditor если есть множественное выделение и нет скопированных данных
   const showEditor = editorPosition && !isDragging && !hasCopiedData && !isSingleCell && regionStyles.length > 0;
 
-  if (regionStyles.length === 0) return null;
+  // Не рендерим если это не активная таблица или нет выделения
+  if (!isActive || regionStyles.length === 0) return null;
 
   return (
     <>

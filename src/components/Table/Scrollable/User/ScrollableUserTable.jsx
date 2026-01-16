@@ -1,9 +1,9 @@
-import { useScheduleStore } from '../../../store/scheduleStore';
+import { useScheduleStore } from '../../../../store/scheduleStore';
 
-import EmployeeRow from './EmployeeRow';
+import EmployeeRow from '../../Rows/EmployeeRow';
 import DatingComps from './DatingComps';
 
-import styles from '../Table.module.css';
+import styles from '../../Table.module.css';
 
 
 const ScrollableUserTable = () => {

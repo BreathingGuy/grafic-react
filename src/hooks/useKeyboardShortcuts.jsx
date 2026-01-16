@@ -1,8 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useSelectionStore } from '../store/selectionStore';
 import { useAdminStore } from '../store/adminStore';
-import { useScheduleStore } from '../store/scheduleStore';
-import { useDateStore } from '../store/dateStore';
+import { useDateAdminStore } from '../store/dateAdminStore';
 
 /**
  * useKeyboardShortcuts - Хук для Ctrl+C, Ctrl+V, Ctrl+Z, Escape
@@ -13,9 +12,8 @@ export function useKeyboardShortcuts() {
   // Копируется только первый (активный) регион выделения
   const copySelected = useCallback(() => {
     const { getAllSelections, setStatus, setCopiedData } = useSelectionStore.getState();
-    const { draftSchedule } = useAdminStore.getState();
-    const { employeeIds } = useScheduleStore.getState();
-    const { slotToDate } = useDateStore.getState();
+    const { draftSchedule, employeeIds } = useAdminStore.getState();
+    const { slotToDate } = useDateAdminStore.getState();
 
     const allSelections = getAllSelections();
     if (allSelections.length === 0) {
@@ -66,9 +64,8 @@ export function useKeyboardShortcuts() {
   // === ВСТАВКА (Ctrl+V) ===
   const pasteSelected = useCallback(() => {
     const { getAllSelections, setStatus } = useSelectionStore.getState();
-    const { saveUndoState, batchUpdateDraftCells } = useAdminStore.getState();
-    const { employeeIds } = useScheduleStore.getState();
-    const { slotToDate } = useDateStore.getState();
+    const { saveUndoState, batchUpdateDraftCells, employeeIds } = useAdminStore.getState();
+    const { slotToDate } = useDateAdminStore.getState();
 
     const allSelections = getAllSelections();
     if (allSelections.length === 0) {
