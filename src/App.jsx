@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { shallow } from 'zustand/shallow';
 
 import {useMetaStore} from './store/metaStore'
 import {useWorkspaceStore} from './store/workspaceStore'
@@ -14,13 +13,12 @@ import AdminConsole from './components/Table/AdminConsole'
 
 function Main() {
   const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
-  const { isAdminMode, toggleAdminMode } = useAdminStore(
-    state => ({
-      isAdminMode: state.isAdminMode,
-      toggleAdminMode: state.toggleAdminMode
-    }),
-    shallow
-  );
+  const isAdminMode = useAdminStore(state => state.isAdminMode);
+
+  // Функция не меняется, поэтому вызываем через getState()
+  const handleToggleAdminMode = () => {
+    useAdminStore.getState().toggleAdminMode();
+  };
 
   useEffect(() => {
     console.log('🟢 App initialization started');
@@ -42,7 +40,7 @@ function Main() {
         {!isAdminMode && <PeriodSelector />}
 
         <button
-          onClick={toggleAdminMode}
+          onClick={handleToggleAdminMode}
           style={{
             padding: '6px 16px',
             backgroundColor: isAdminMode ? '#d32f2f' : '#1976d2',
