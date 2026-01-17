@@ -1,24 +1,18 @@
 import { useEffect } from 'react';
 
-import {useMetaStore} from './store/metaStore'
-import {useWorkspaceStore} from './store/workspaceStore'
-import {useDateStore} from './store/dateStore'
-import {useAdminStore} from './store/adminStore'
+import { useMetaStore } from './store/metaStore';
+import { useDateStore } from './store/dateStore';
+import { useAdminStore } from './store/adminStore';
 
-import {DepartmentSelector} from './components/Selectors/DepartmentSelector'
-import {PeriodSelector} from './components/Selectors/PeriodSelector'
-import UserTable from './components/Table/UserTable'
-import AdminConsole from './components/Table/AdminConsole'
+import UserView from './components/Views/UserView';
+import AdminView from './components/Views/AdminView';
 
-
+/**
+ * Main - корневой компонент приложения
+ * Переключатель между режимами просмотра и редактирования
+ */
 function Main() {
-  const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
   const isAdminMode = useAdminStore(state => state.isAdminMode);
-
-  // Функция не меняется, поэтому вызываем через getState()
-  const handleToggleAdminMode = () => {
-    useAdminStore.getState().toggleAdminMode();
-  };
 
   useEffect(() => {
     console.log('🟢 App initialization started');
@@ -30,44 +24,10 @@ function Main() {
     // Загружаем список отделов
     useMetaStore.getState().loadDepartmentsList();
     console.log('🏢 Departments list loading...');
-
   }, []);
 
-  return (
-    <>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
-        <DepartmentSelector />
-        {!isAdminMode && <PeriodSelector />}
-
-        <button
-          onClick={handleToggleAdminMode}
-          style={{
-            padding: '6px 16px',
-            backgroundColor: isAdminMode ? '#d32f2f' : '#1976d2',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: 500
-          }}
-        >
-          {isAdminMode ? 'Выйти из админки' : 'Режим админа'}
-        </button>
-      </div>
-
-      {currentDepartmentId ? (
-        isAdminMode ? (
-          <AdminConsole />
-        ) : (
-          <UserTable period={'1year'} />
-        )
-      ) : (
-        <div className="empty-state">
-          <p>Выберите отдел для просмотра расписания</p>
-        </div>
-      )}
-    </>
-  );
+  // Простой переключатель между режимами
+  return isAdminMode ? <AdminView /> : <UserView />;
 }
 
 export default function App() {
