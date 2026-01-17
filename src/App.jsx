@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 import {useMetaStore} from './store/metaStore'
 import {useWorkspaceStore} from './store/workspaceStore'
 import {useDateStore} from './store/dateStore'
+import {useAdminStore} from './store/adminStore'
 
 import {DepartmentSelector} from './components/Selectors/DepartmentSelector'
 import {PeriodSelector} from './components/Selectors/PeriodSelector'
@@ -12,7 +13,8 @@ import AdminConsole from './components/Table/AdminConsole'
 
 function Main() {
   const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
-  const [isAdminMode, setIsAdminMode] = useState(false);
+  const isAdminMode = useAdminStore(state => state.isAdminMode);
+  const toggleAdminMode = useAdminStore(state => state.toggleAdminMode);
 
   useEffect(() => {
     console.log('🟢 App initialization started');
@@ -34,7 +36,7 @@ function Main() {
         {!isAdminMode && <PeriodSelector />}
 
         <button
-          onClick={() => setIsAdminMode(!isAdminMode)}
+          onClick={toggleAdminMode}
           style={{
             padding: '6px 16px',
             backgroundColor: isAdminMode ? '#d32f2f' : '#1976d2',

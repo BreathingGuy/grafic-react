@@ -14,6 +14,9 @@ export const useAdminStore = create(
         ownedDepartments: [],          // ["dept-1"]
         editableDepartments: [],       // ["dept-1", "dept-2"]
 
+        // === UI STATE ===
+        isAdminMode: false,            // Режим админ-консоли
+
         // === DRAFT STATE ===
         draftSchedule: {},             // Рабочая копия: { "empId-date": "status" }
         originalSchedule: {},          // Исходное состояние (для сравнения)
@@ -32,6 +35,16 @@ export const useAdminStore = create(
         selectedVersion: null,         // Выбранная версия (null = текущий draft)
         loadingYears: false,
         loadingVersions: false,
+
+        // === UI ACTIONS ===
+
+        toggleAdminMode: () => {
+          set(state => ({ isAdminMode: !state.isAdminMode }));
+        },
+
+        setAdminMode: (isAdmin) => {
+          set({ isAdminMode: isAdmin });
+        },
 
         // === AUTH ACTIONS ===
 
@@ -60,6 +73,7 @@ export const useAdminStore = create(
             user: null,
             ownedDepartments: [],
             editableDepartments: [],
+            isAdminMode: false,
             draftSchedule: {},
             originalSchedule: {},
             employeeIds: [],
@@ -324,6 +338,7 @@ export const useAdminStore = create(
         // Очистить draft (при выходе из режима редактирования)
         clearDraft: () => {
           set({
+            isAdminMode: false,
             draftSchedule: {},
             originalSchedule: {},
             employeeIds: [],
