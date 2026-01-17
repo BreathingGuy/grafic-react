@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { shallow } from 'zustand/shallow';
 
 import {useMetaStore} from './store/metaStore'
 import {useWorkspaceStore} from './store/workspaceStore'
@@ -13,8 +14,13 @@ import AdminConsole from './components/Table/AdminConsole'
 
 function Main() {
   const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
-  const isAdminMode = useAdminStore(state => state.isAdminMode);
-  const toggleAdminMode = useAdminStore(state => state.toggleAdminMode);
+  const { isAdminMode, toggleAdminMode } = useAdminStore(
+    state => ({
+      isAdminMode: state.isAdminMode,
+      toggleAdminMode: state.toggleAdminMode
+    }),
+    shallow
+  );
 
   useEffect(() => {
     console.log('🟢 App initialization started');
