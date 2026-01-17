@@ -3,7 +3,7 @@ import { useAdminStore } from '../../../../store/adminStore';
 import { useDateAdminStore } from '../../../../store/dateAdminStore';
 
 import AdminDatingComps from './AdminDatingComps';
-import AdminEmployeeRow from '../../Rows/AdminEmployeeRow';
+import AdminRows from './AdminRows'
 import SelectionOverlay from '../../SelectionOverlay';
 
 import styles from '../../Table.module.css';
@@ -19,12 +19,7 @@ const AdminScrollableScheduleTable = () => {
     const mainTableRef = useRef(null);
     const offsetTableRef = useRef(null);
 
-    const employeeIds = useAdminStore(state => state.employeeIds);
-
-    // Данные основной таблицы
     const slotToDate = useDateAdminStore(state => state.slotToDate);
-
-    // Данные offset таблицы
     const offsetSlotToDate = useDateAdminStore(state => state.offsetSlotToDate);
 
     return (
@@ -33,16 +28,7 @@ const AdminScrollableScheduleTable = () => {
           <div style={{ position: 'relative' }}>
             <table ref={mainTableRef} className={styles.scrollable_column}>
               <AdminDatingComps tableId="main" />
-              <tbody>
-                {employeeIds.map((empId, empIdx) => (
-                  <AdminEmployeeRow
-                    key={empId}
-                    empId={empId}
-                    empIdx={empIdx}
-                    tableId="main"
-                  />
-                ))}
-              </tbody>
+              <AdminRows tableId="main"/>
             </table>
             <SelectionOverlay tableRef={mainTableRef} tableId="main" slotToDate={slotToDate} />
           </div>
@@ -51,16 +37,7 @@ const AdminScrollableScheduleTable = () => {
           <div style={{ position: 'relative', marginTop: '40px' }}>
             <table ref={offsetTableRef} className={styles.scrollable_column}>
               <AdminDatingComps tableId="offset" />
-              <tbody>
-                {employeeIds.map((empId, empIdx) => (
-                  <AdminEmployeeRow
-                    key={empId}
-                    empId={empId}
-                    empIdx={empIdx}
-                    tableId="offset"
-                  />
-                ))}
-              </tbody>
+              <AdminRows tableId="offset"/>
             </table>
             <SelectionOverlay tableRef={offsetTableRef} tableId="offset" slotToDate={offsetSlotToDate} />
           </div>
