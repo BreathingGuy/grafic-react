@@ -1,7 +1,7 @@
 import {useMetaStore} from '../../store/metaStore'
 import {useWorkspaceStore} from '../../store/workspaceStore'
 
-export function DepartmentSelector() {
+export const DepartmentSelector = () => {
   const departmentsList = useMetaStore(state => state.departmentsList);  
   const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
   const setDepartment = useWorkspaceStore(state => state.setDepartment);
@@ -17,4 +17,4 @@ export function DepartmentSelector() {
       ))}
     </select>
   );
-}
+};

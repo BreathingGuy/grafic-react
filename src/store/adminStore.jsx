@@ -143,13 +143,10 @@ export const useAdminStore = create(
                   set(state => ({
                     draftSchedule: { ...state.draftSchedule, [firstKey]: '__warming__' }
                   }));
-                  // Сразу возвращаем обратно
-                  requestAnimationFrame(() => {
-                    set(state => ({
+                  set(state => ({
                       draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
                       hasUnsavedChanges: false // сбрасываем флаг изменений
                     }));
-                  });
                 }
               });
             } else {
@@ -206,12 +203,10 @@ export const useAdminStore = create(
               set(state => ({
                 draftSchedule: { ...state.draftSchedule, [firstKey]: '__warming__' }
               }));
-              requestAnimationFrame(() => {
-                set(state => ({
-                  draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
-                  hasUnsavedChanges: false
-                }));
-              });
+              set(state => ({
+                      draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
+                      hasUnsavedChanges: false // сбрасываем флаг изменений
+                    }));
             }
           });
         },

@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react';
-import { useAdminStore } from '../../store/adminStore';
-import { useSelectionStore } from '../../store/selectionStore';
+import { useAdminStore } from '../../../store/adminStore';
+import { useSelectionStore } from '../../../store/selectionStore';
 
 /**
  * AdminHeader - Заголовок и кнопки управления админ-консоли

@@ -6,9 +6,9 @@ import { useDateUserStore } from '../../store/dateUserStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
-import AdminHeader from './AdminHeader';
-import AdminYearSelector from './AdminYearSelector';
-import AdminStatusBar from './AdminStatusBar';
+import AdminHeader from './AdminStaticComponents/AdminHeader';
+import AdminYearSelector from './AdminStaticComponents/AdminYearSelector';
+import AdminStatusBar from './AdminStaticComponents/AdminStatusBar';
 import AdminFixedEmployeeColumn from './Static/AdminFixedEmployeeColumn';
 import AdminScrollableScheduleTable from './Scrollable/Admin/AdminScrollableScheduleTable';
 

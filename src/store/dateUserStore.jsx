@@ -140,10 +140,17 @@ export const useDateUserStore = create(
 
     setPeriod: (newPeriod) => {
       const { baseDate, currentYear } = get();
-      set({ period: newPeriod });
 
       const dates = get().calculateVisibleDates(newPeriod, baseDate, currentYear);
-      get().updateSlots(dates);
+      const { slotToDate, slotToDay } = createSlotMapping(dates);
+      const monthGroups = calculateMonthGroups(dates);
+
+      set({
+        period: newPeriod,
+        slotToDate,
+        slotToDay,
+        monthGroups
+      });
     },
 
     shiftDates: (direction) => {
@@ -174,10 +181,19 @@ export const useDateUserStore = create(
         newDate.setFullYear(newYear);
       }
 
-      set({ baseDate: newDate, currentYear: newYear });
-
+      // Вычисляем всё до set() чтобы сделать один батч
       const dates = get().calculateVisibleDates(period, newDate, newYear);
-      get().updateSlots(dates);
+      const { slotToDate, slotToDay } = createSlotMapping(dates);
+      const monthGroups = calculateMonthGroups(dates);
+
+      // Один set вместо двух — React сделает один ререндер
+      set({
+        baseDate: newDate,
+        currentYear: newYear,
+        slotToDate,
+        slotToDay,
+        monthGroups
+      });
     },
 
     setBaseDate: (date) => {
@@ -185,14 +201,21 @@ export const useDateUserStore = create(
       const newDate = new Date(date);
       const newYear = newDate.getFullYear();
 
-      set({ baseDate: newDate, currentYear: newYear });
-
       const dates = get().calculateVisibleDates(period, newDate, newYear);
-      get().updateSlots(dates);
+      const { slotToDate, slotToDay } = createSlotMapping(dates);
+      const monthGroups = calculateMonthGroups(dates);
+
+      set({
+        baseDate: newDate,
+        currentYear: newYear,
+        slotToDate,
+        slotToDay,
+        monthGroups
+      });
     },
 
     setYear: (year) => {
-      const { minYear, maxYear } = get();
+      const { minYear, maxYear, period } = get();
 
       if (year < minYear || year > maxYear) {
         console.log(`⚠️ Год ${year} за пределами допустимого диапазона (${minYear}-${maxYear})`);
@@ -200,23 +223,35 @@ export const useDateUserStore = create(
       }
 
       const newBaseDate = new Date(year, 0, 1);
-
-      set({ currentYear: year, baseDate: newBaseDate });
-
-      const { period } = get();
       const dates = get().calculateVisibleDates(period, newBaseDate, year);
-      get().updateSlots(dates);
+      const { slotToDate, slotToDay } = createSlotMapping(dates);
+      const monthGroups = calculateMonthGroups(dates);
+
+      set({
+        currentYear: year,
+        baseDate: newBaseDate,
+        slotToDate,
+        slotToDay,
+        monthGroups
+      });
     },
 
     resetToCurrentYear: () => {
+      const { period } = get();
       const currentYear = new Date().getFullYear();
       const newBaseDate = new Date();
 
-      set({ currentYear, baseDate: newBaseDate });
-
-      const { period } = get();
       const dates = get().calculateVisibleDates(period, newBaseDate, currentYear);
-      get().updateSlots(dates);
+      const { slotToDate, slotToDay } = createSlotMapping(dates);
+      const monthGroups = calculateMonthGroups(dates);
+
+      set({
+        currentYear,
+        baseDate: newBaseDate,
+        slotToDate,
+        slotToDay,
+        monthGroups
+      });
     },
 
     getCurrentYear: () => {
