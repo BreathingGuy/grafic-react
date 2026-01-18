@@ -171,8 +171,26 @@ export const useAdminStore = create(
 
           } catch (error) {
             console.error('Failed to initialize draft:', error);
+
+            // Проверяем - может быть draft уже создан (новый год)?
+            const currentState = get();
+            if (currentState.editingYear === year &&
+                currentState.employeeIds.length > 0 &&
+                Object.keys(currentState.draftSchedule).length > 0) {
+              console.log('✅ Draft уже существует для этого года, пропускаем повторное создание');
+              return;
+            }
+
             // Создаём пустой draft если загрузка не удалась
-            get().createEmptyYear(year, [], {}, departmentId);
+            // Используем текущих сотрудников из state если они есть
+            const employeeIds = currentState.employeeIds.length > 0
+              ? currentState.employeeIds
+              : [];
+            const employeeById = Object.keys(currentState.employeeById).length > 0
+              ? currentState.employeeById
+              : {};
+
+            get().createEmptyYear(year, employeeIds, employeeById, departmentId);
           }
         },
 
