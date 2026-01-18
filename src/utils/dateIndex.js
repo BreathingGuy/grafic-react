@@ -1,64 +1,63 @@
 import { MONTHS } from '../constants/index';
 
 /**
- * dateIndex.js — общие функции и индексы для работы с датами
+ * dateIndex.js — динамические функции для работы с датами
  *
- * Используется в dateUserStore и dateAdminStore
+ * Генерация дат происходит динамически по запросу,
+ * без жестко заданных ограничений по годам.
  */
 
 // ======================================================
-// ГЕНЕРАЦИЯ СТАТИЧНОГО ИНДЕКСА ДАТ (один раз при загрузке модуля)
+// КЭШИРОВАНИЕ СГЕНЕРИРОВАННЫХ ДАТ
 // ======================================================
 
-const generateDateIndex = (startYear, endYear) => {
-  const datesByYear = {};
-  const datesByMonth = {};
-  const datesByQuarter = {};
-  const dateDays = {};
-  const allDates = [];
-
-  for (let year = startYear; year <= endYear; year++) {
-    datesByYear[year] = [];
-
-    // Инициализируем кварталы
-    for (let q = 0; q < 4; q++) {
-      const quarterKey = `${year}-Q${q + 1}`;
-      datesByQuarter[quarterKey] = [];
-    }
-
-    for (let month = 0; month < 12; month++) {
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-      datesByMonth[monthKey] = [];
-
-      // Определяем квартал (0-3)
-      const quarter = Math.floor(month / 3);
-      const quarterKey = `${year}-Q${quarter + 1}`;
-
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-        allDates.push(dateStr);
-        datesByYear[year].push(dateStr);
-        datesByMonth[monthKey].push(dateStr);
-        datesByQuarter[quarterKey].push(dateStr);
-
-        // Сохраняем только число дня (для заголовков)
-        dateDays[dateStr] = day;
-      }
-    }
-  }
-
-  return { allDates, datesByYear, datesByMonth, datesByQuarter, dateDays };
+// Кэш для хранения уже сгенерированных годов (для производительности)
+const dateCache = {
+  datesByYear: {},
+  datesByMonth: {},
+  datesByQuarter: {},
+  dateDays: {}
 };
 
-// Конфигурация диапазона годов
-// END_YEAR расширен для поддержки offset таблиц (Q1 следующего года)
-export const START_YEAR = 2025;
-export const END_YEAR = 2030;
+/**
+ * Генерировать даты для конкретного года
+ * @param {number} year
+ */
+const generateYearDates = (year) => {
+  // Проверяем кэш
+  if (dateCache.datesByYear[year]) {
+    return;
+  }
 
-// Генерируем индекс один раз при загрузке модуля
-export const DATE_INDEX = generateDateIndex(START_YEAR, END_YEAR);
+  dateCache.datesByYear[year] = [];
+
+  // Инициализируем кварталы
+  for (let q = 0; q < 4; q++) {
+    const quarterKey = `${year}-Q${q + 1}`;
+    dateCache.datesByQuarter[quarterKey] = [];
+  }
+
+  for (let month = 0; month < 12; month++) {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+    dateCache.datesByMonth[monthKey] = [];
+
+    // Определяем квартал (0-3)
+    const quarter = Math.floor(month / 3);
+    const quarterKey = `${year}-Q${quarter + 1}`;
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+      dateCache.datesByYear[year].push(dateStr);
+      dateCache.datesByMonth[monthKey].push(dateStr);
+      dateCache.datesByQuarter[quarterKey].push(dateStr);
+
+      // Сохраняем только число дня (для заголовков)
+      dateCache.dateDays[dateStr] = day;
+    }
+  }
+};
 
 // ======================================================
 // HELPER ФУНКЦИИ
@@ -75,7 +74,8 @@ export const createSlotMapping = (dates) => {
 
   dates.forEach((date, index) => {
     slotToDate[index] = date;
-    slotToDay[index] = DATE_INDEX.dateDays[date];
+    // Извлекаем день из даты (формат YYYY-MM-DD)
+    slotToDay[index] = parseInt(date.split('-')[2], 10);
   });
 
   return { slotToDate, slotToDay };
@@ -121,7 +121,9 @@ export const calculateMonthGroups = (dates) => {
  * @returns {string[]}
  */
 export const getYearDates = (year) => {
-  return DATE_INDEX.datesByYear[year] || [];
+  // Генерируем год если его нет в кэше
+  generateYearDates(year);
+  return dateCache.datesByYear[year] || [];
 };
 
 /**
@@ -131,8 +133,10 @@ export const getYearDates = (year) => {
  * @returns {string[]}
  */
 export const getQuarterDates = (year, quarter) => {
+  // Генерируем год если его нет в кэше
+  generateYearDates(year);
   const quarterKey = `${year}-Q${quarter}`;
-  return DATE_INDEX.datesByQuarter[quarterKey] || [];
+  return dateCache.datesByQuarter[quarterKey] || [];
 };
 
 /**
@@ -142,8 +146,10 @@ export const getQuarterDates = (year, quarter) => {
  * @returns {string[]}
  */
 export const getMonthDates = (year, month) => {
+  // Генерируем год если его нет в кэше
+  generateYearDates(year);
   const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-  return DATE_INDEX.datesByMonth[monthKey] || [];
+  return dateCache.datesByMonth[monthKey] || [];
 };
 
 /**
@@ -180,23 +186,32 @@ export const getWeekDates = (baseDate) => {
 export const getYearDatesWithOffset = (year, offsetMonths) => {
   const dates = [];
 
-  // Начинаем с апреля текущего года (offsetMonths = 3)
+  // Начинаем с offsetMonths текущего года (3 = апрель, индекс 0-11)
   let currentYear = year;
-  let currentMonth = offsetMonths; // 3 = апрель (индекс 0-11)
+  let currentMonth = offsetMonths;
   let daysCollected = 0;
 
   // Собираем 365/366 дней
   const targetDays = (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) ? 366 : 365;
+
+  // Предварительно генерируем нужные года
+  generateYearDates(year);
+  if (offsetMonths > 0) {
+    generateYearDates(year + 1); // Может понадобиться следующий год
+  }
 
   // Защита от бесконечного цикла - максимум 24 месяца (2 года)
   let iterations = 0;
   const maxIterations = 24;
 
   while (daysCollected < targetDays && iterations < maxIterations) {
-    const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-    const monthDates = DATE_INDEX.datesByMonth[monthKey] || [];
+    // Генерируем год если его нет
+    generateYearDates(currentYear);
 
-    // Если нет данных для месяца - выходим (достигли конца индекса)
+    const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+    const monthDates = dateCache.datesByMonth[monthKey] || [];
+
+    // Если нет данных для месяца (не должно происходить с динамической генерацией)
     if (monthDates.length === 0) {
       console.warn(`⚠️ Нет данных для ${monthKey}, собрано ${daysCollected} дней`);
       break;
@@ -225,3 +240,46 @@ export const MAX_SLOTS = 366;
 
 // Фиксированный массив индексов слотов
 export const VISIBLE_SLOTS = Array.from({ length: MAX_SLOTS }, (_, i) => i);
+
+// ======================================================
+// УПРАВЛЕНИЕ КЭШЕМ
+// ======================================================
+
+/**
+ * Предзагрузить диапазон годов в кэш (для производительности)
+ * @param {number} startYear
+ * @param {number} endYear
+ */
+export const preloadYears = (startYear, endYear) => {
+  for (let year = startYear; year <= endYear; year++) {
+    generateYearDates(year);
+  }
+  console.log(`📅 Предзагружены года: ${startYear}-${endYear}`);
+};
+
+/**
+ * Очистить кэш дат (если нужна экономия памяти)
+ */
+export const clearDateCache = () => {
+  dateCache.datesByYear = {};
+  dateCache.datesByMonth = {};
+  dateCache.datesByQuarter = {};
+  dateCache.dateDays = {};
+  console.log('🗑️ Кэш дат очищен');
+};
+
+/**
+ * Получить информацию о кэше
+ */
+export const getCacheInfo = () => {
+  const years = Object.keys(dateCache.datesByYear).sort();
+  return {
+    cachedYears: years,
+    yearCount: years.length,
+    totalDates: Object.keys(dateCache.dateDays).length
+  };
+};
+
+// Предзагружаем текущий год и несколько лет вперёд при инициализации
+const currentYear = new Date().getFullYear();
+preloadYears(currentYear, currentYear + 5);
