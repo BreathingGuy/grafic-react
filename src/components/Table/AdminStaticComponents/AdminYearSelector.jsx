@@ -21,6 +21,7 @@ const AdminYearSelector = memo(() => {
   const switchYear = useAdminStore(s => s.switchYear);
   const loadVersion = useAdminStore(s => s.loadVersion);
   const exitVersionView = useAdminStore(s => s.exitVersionView);
+  const createNewYear = useAdminStore(s => s.createNewYear);
 
   // Загрузить список годов при инициализации
   useEffect(() => {
@@ -61,6 +62,27 @@ const AdminYearSelector = memo(() => {
     }
   };
 
+  const handleCreateNewYear = async () => {
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        'Есть несохранённые изменения. Продолжить без сохранения?'
+      );
+      if (!confirmed) return;
+    }
+
+    // Определяем следующий год (максимальный + 1)
+    const maxYear = Math.max(...availableYears.map(y => Number(y)));
+    const newYear = maxYear + 1;
+
+    const confirmed = window.confirm(
+      `Создать новый год ${newYear}?\n\nБудут созданы пустые ячейки для всех сотрудников (включая Q1 ${newYear + 1} для offset таблицы).`
+    );
+
+    if (!confirmed) return;
+
+    await createNewYear(newYear);
+  };
+
   return (
     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
       {/* Выбор года */}
@@ -86,6 +108,26 @@ const AdminYearSelector = memo(() => {
             ))
           )}
         </select>
+
+        {/* Кнопка создания нового года */}
+        <button
+          onClick={handleCreateNewYear}
+          disabled={loadingYears || !editingDepartmentId}
+          style={{
+            padding: '6px 12px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 500,
+            opacity: (loadingYears || !editingDepartmentId) ? 0.5 : 1
+          }}
+          title="Создать следующий год"
+        >
+          + Новый год
+        </button>
       </div>
 
       {/* Выбор версии */}

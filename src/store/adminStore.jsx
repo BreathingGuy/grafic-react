@@ -195,6 +195,21 @@ export const useAdminStore = create(
             currentDate.setDate(currentDate.getDate() + 1);
           }
 
+          // Добавляем первые 3 месяца следующего года (для offset таблицы)
+          const nextYearStart = new Date(year + 1, 0, 1);
+          const nextYearEnd = new Date(year + 1, 2, 31); // конец марта следующего года
+
+          const nextYearDate = new Date(nextYearStart);
+          while (nextYearDate <= nextYearEnd) {
+            const dateStr = nextYearDate.toISOString().slice(0, 10);
+
+            employeeIds.forEach(empId => {
+              emptyDraft[`${empId}-${dateStr}`] = '';  // Пустая ячейка
+            });
+
+            nextYearDate.setDate(nextYearDate.getDate() + 1);
+          }
+
           set({
             draftSchedule: emptyDraft,
             originalSchedule: { ...emptyDraft },
@@ -206,7 +221,7 @@ export const useAdminStore = create(
             editingDepartmentId: departmentId
           });
 
-          console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками`);
+          console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками (включая Q1 ${year + 1})`);
 
           // Warming: делаем реальное изменение значения и откатываем
           requestAnimationFrame(() => {
@@ -423,6 +438,36 @@ export const useAdminStore = create(
 
           // Загрузить версии для этого года
           await get().loadYearVersions(editingDepartmentId, year);
+        },
+
+        /**
+         * Создать новый год
+         * @param {number} year - год для создания
+         */
+        createNewYear: async (year) => {
+          const { editingDepartmentId, employeeIds, employeeById } = get();
+          if (!editingDepartmentId) {
+            console.error('Не выбран отдел');
+            return;
+          }
+
+          console.log(`📝 Создание нового года ${year}`);
+
+          // Обновить dateAdminStore для нового года
+          useDateAdminStore.getState().initializeYear(Number(year));
+
+          // Создать пустой год с текущими сотрудниками
+          get().createEmptyYear(Number(year), employeeIds, employeeById, editingDepartmentId);
+
+          // Добавить год в список доступных
+          const { availableYears } = get();
+          if (!availableYears.includes(String(year))) {
+            set({
+              availableYears: [...availableYears, String(year)].sort()
+            });
+          }
+
+          console.log(`✅ Новый год ${year} создан`);
         },
 
         /**

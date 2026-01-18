@@ -53,8 +53,9 @@ const generateDateIndex = (startYear, endYear) => {
 };
 
 // Конфигурация диапазона годов
+// END_YEAR расширен для поддержки offset таблиц (Q1 следующего года)
 export const START_YEAR = 2025;
-export const END_YEAR = 2027;
+export const END_YEAR = 2030;
 
 // Генерируем индекс один раз при загрузке модуля
 export const DATE_INDEX = generateDateIndex(START_YEAR, END_YEAR);
