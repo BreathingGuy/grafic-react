@@ -445,7 +445,8 @@ export const useAdminStore = create(
          * @param {number} year - год для создания
          */
         createNewYear: async (year) => {
-          const { editingDepartmentId, employeeIds, employeeById } = get();
+          let { editingDepartmentId, employeeIds, employeeById } = get();
+
           if (!editingDepartmentId) {
             console.error('Не выбран отдел');
             return;
@@ -453,10 +454,26 @@ export const useAdminStore = create(
 
           console.log(`📝 Создание нового года ${year}`);
 
+          // Если нет списка сотрудников - загружаем его
+          if (!employeeIds || employeeIds.length === 0) {
+            console.log('📋 Загрузка списка сотрудников отдела...');
+            try {
+              const fetchStore = useFetchWebStore.getState();
+              const employees = await fetchStore.fetchDepartmentEmployees(editingDepartmentId);
+              employeeIds = employees.employeeIds;
+              employeeById = employees.employeeById;
+              console.log(`✅ Загружено ${employeeIds.length} сотрудников`);
+            } catch (error) {
+              console.error('Не удалось загрузить список сотрудников:', error);
+              alert('Не удалось загрузить список сотрудников. Создайте сначала любой существующий год.');
+              return;
+            }
+          }
+
           // Обновить dateAdminStore для нового года
           useDateAdminStore.getState().initializeYear(Number(year));
 
-          // Создать пустой год с текущими сотрудниками
+          // Создать пустой год с сотрудниками
           get().createEmptyYear(Number(year), employeeIds, employeeById, editingDepartmentId);
 
           // Добавить год в список доступных
@@ -467,7 +484,7 @@ export const useAdminStore = create(
             });
           }
 
-          console.log(`✅ Новый год ${year} создан`);
+          console.log(`✅ Новый год ${year} создан с ${employeeIds.length} сотрудниками`);
         },
 
         /**

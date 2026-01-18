@@ -202,6 +202,62 @@ export const useFetchWebStore = create(
     // === ADMIN API ===
 
     /**
+     * Загрузить список сотрудников отдела (без привязки к году)
+     * GET /api/departments/{id}/employees
+     * @param {string} departmentId
+     * @returns {{ employeeById, employeeIds }}
+     */
+    fetchDepartmentEmployees: async (departmentId) => {
+      get().setLoading('departmentConfig', true);
+      get().clearError('departmentConfig');
+
+      try {
+        // TODO: Реальный API запрос
+        // const response = await fetch(`/api/departments/${departmentId}/employees`);
+        // const data = await response.json();
+
+        console.log(`📥 fetchDepartmentEmployees: ${departmentId}`);
+
+        // Заглушка — загружаем данные любого существующего года и берем сотрудников
+        const currentYear = new Date().getFullYear();
+        const url = `../../public/data-${departmentId}-${currentYear}.json`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const rawData = await response.json();
+
+        // Извлекаем только сотрудников, без расписания
+        const employeeById = {};
+        const employeeIds = [];
+
+        rawData.data.forEach(employee => {
+          const employeeId = String(employee.id);
+          employeeIds.push(employeeId);
+
+          employeeById[employeeId] = {
+            id: employeeId,
+            name: `${employee.fio.family} ${employee.fio.name1[0]}.${employee.fio.name2[0]}.`,
+            fullName: `${employee.fio.family} ${employee.fio.name1} ${employee.fio.name2}`,
+            position: employee.position || ''
+          };
+        });
+
+        get().setLoading('departmentConfig', false);
+        return { employeeById, employeeIds };
+
+      } catch (error) {
+        console.error('fetchDepartmentEmployees error:', error);
+        get().setError('departmentConfig', error.message);
+        get().setLoading('departmentConfig', false);
+        throw error;
+      }
+    },
+
+    /**
      * Получить список доступных годов для отдела
      * GET /api/departments/{id}/years
      * @param {string} departmentId
