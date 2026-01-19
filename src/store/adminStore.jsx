@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useFetchWebStore } from './fetchWebStore';
+import { usePostWebStore } from './postWebStore';
 import { useScheduleStore } from './scheduleStore';
 import { useDateAdminStore } from './dateAdminStore';
 
@@ -325,7 +326,7 @@ export const useAdminStore = create(
          * Отправляет изменения на сервер и обновляет scheduleStore
          */
         publishDraft: async () => {
-          const { draftSchedule, originalSchedule, editingDepartmentId } = get();
+          const { draftSchedule, originalSchedule, editingDepartmentId, editingYear } = get();
 
           // Вычисляем только изменённые ячейки
           const changes = {};
@@ -341,9 +342,9 @@ export const useAdminStore = create(
           }
 
           try {
-            // Отправляем на сервер через fetchWebStore
-            const fetchStore = useFetchWebStore.getState();
-            await fetchStore.publishSchedule(editingDepartmentId, changes);
+            // Отправляем на сервер через postWebStore
+            const postStore = usePostWebStore.getState();
+            await postStore.publishSchedule(editingDepartmentId, editingYear, changes);
 
             // Применяем изменения в production (scheduleStore)
             const scheduleStore = useScheduleStore.getState();

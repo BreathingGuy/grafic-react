@@ -1,14 +1,12 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { STORAGE_KEYS } from '../services/localStorageInit';
 
 /**
- * fetchWebStore — единый сетевой слой для всех API запросов
+ * fetchWebStore — чтение данных из localStorage (имитация GET запросов)
  *
- * Все stores используют этот store для получения данных с сервера.
- * Это обеспечивает:
- * - Единую точку для сетевых запросов
- * - Централизованную обработку ошибок
- * - Возможность легко переключить на реальный API
+ * Все stores используют этот store для получения данных.
+ * Данные хранятся в localStorage вместо JSON файлов.
  */
 export const useFetchWebStore = create(
   devtools((set, get) => ({
@@ -79,22 +77,20 @@ export const useFetchWebStore = create(
       get().clearError(loadingKey);
 
       try {
-        // TODO: Разные endpoints для production и draft
-        // const endpoint = mode === 'draft'
-        //   ? `/api/admin/draft/${departmentId}/${year}`
-        //   : `/api/schedule/${departmentId}/${year}`;
+        console.log(`📥 fetchSchedule [${mode}]: ${departmentId}/${year}`);
 
-        // Пока используем один файл для обоих режимов
-        const url = `../../public/data-${departmentId}-${year}.json`;
-        console.log(`📥 fetchSchedule [${mode}]: ${url}`);
+        // Имитация задержки сети
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-        const response = await fetch(url);
+        // Загружаем из localStorage
+        const key = STORAGE_KEYS.schedule(departmentId, year);
+        const stored = localStorage.getItem(key);
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (!stored) {
+          throw new Error(`Расписание ${departmentId}/${year} не найдено в localStorage`);
         }
 
-        const data = await response.json();
+        const data = JSON.parse(stored);
         const normalized = get().normalizeScheduleData(data, year);
 
         get().setLoading(loadingKey, false);
@@ -212,42 +208,20 @@ export const useFetchWebStore = create(
       get().clearError('departmentConfig');
 
       try {
-        // TODO: Реальный API запрос
-        // const response = await fetch(`/api/departments/${departmentId}/employees`);
-        // const data = await response.json();
-
         console.log(`📥 fetchDepartmentEmployees: ${departmentId}`);
 
-        // Заглушка — загружаем данные любого существующего года и берем сотрудников
-        const currentYear = new Date().getFullYear();
-        const url = `../../public/data-${departmentId}-${currentYear}.json`;
+        // Загружаем из localStorage
+        const key = STORAGE_KEYS.employees(departmentId);
+        const stored = localStorage.getItem(key);
 
-        const response = await fetch(url);
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (!stored) {
+          throw new Error(`Сотрудники отдела ${departmentId} не найдены в localStorage`);
         }
 
-        const rawData = await response.json();
-
-        // Извлекаем только сотрудников, без расписания
-        const employeeById = {};
-        const employeeIds = [];
-
-        rawData.data.forEach(employee => {
-          const employeeId = String(employee.id);
-          employeeIds.push(employeeId);
-
-          employeeById[employeeId] = {
-            id: employeeId,
-            name: `${employee.fio.family} ${employee.fio.name1[0]}.${employee.fio.name2[0]}.`,
-            fullName: `${employee.fio.family} ${employee.fio.name1} ${employee.fio.name2}`,
-            position: employee.position || ''
-          };
-        });
+        const data = JSON.parse(stored);
 
         get().setLoading('departmentConfig', false);
-        return { employeeById, employeeIds };
+        return data;
 
       } catch (error) {
         console.error('fetchDepartmentEmployees error:', error);
@@ -268,23 +242,17 @@ export const useFetchWebStore = create(
       get().clearError('departmentYears');
 
       try {
-        // TODO: Реальный API запрос
-        // const response = await fetch(`/api/departments/${departmentId}/years`);
-        // const data = await response.json();
-
         console.log(`📥 fetchDepartmentYears: ${departmentId}`);
 
-        // Заглушка — возвращаем только реально существующие года
-        // TODO: В реальном API сервер вернет список годов из БД
-        // Сейчас hardcode для dept-1: [2025, 2026]
-        const availableYears = departmentId === 'dept-1'
-          ? ['2025', '2026']
-          : ['2025']; // для остальных отделов
+        // Загружаем из localStorage
+        const key = STORAGE_KEYS.availableYears(departmentId);
+        const stored = localStorage.getItem(key);
+        const years = stored ? JSON.parse(stored) : [];
 
         const data = {
           departmentId,
           name: 'Отдел',
-          years: availableYears
+          years
         };
 
         get().setLoading('departmentYears', false);
@@ -310,21 +278,21 @@ export const useFetchWebStore = create(
       get().clearError('yearVersions');
 
       try {
-        // TODO: Реальный API запрос
-        // const response = await fetch(`/api/departments/${departmentId}/${year}/versions`);
-        // const data = await response.json();
-
         console.log(`📥 fetchYearVersions: ${departmentId}/${year}`);
 
-        // Имитация задержки сети
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Загружаем из localStorage
+        const key = STORAGE_KEYS.versions(departmentId, year);
+        const stored = localStorage.getItem(key);
+        const versionsData = stored ? JSON.parse(stored) : {};
 
-        // Заглушка — генерируем несколько версий
+        // Извлекаем ID версий
+        const versions = Object.keys(versionsData).sort().reverse(); // новые сначала
+
         const data = {
           departmentId,
           name: 'Отдел',
           year: Number(year),
-          versions: [`${year}.02.15`, `${year}.03.16`, `${year}.06.20`, `${year}.08.09`]
+          versions
         };
 
         get().setLoading('yearVersions', false);
@@ -351,24 +319,25 @@ export const useFetchWebStore = create(
       get().clearError('versionSchedule');
 
       try {
-        // TODO: Реальный API запрос
-        // const response = await fetch(
-        //   `/api/departments/${departmentId}/schedule?year=${year}&version=${version}&include=employees,schedule,buffers`
-        // );
-        // const data = await response.json();
-
         console.log(`📥 fetchVersionSchedule: ${departmentId}/${year}/${version}`);
 
-        // Пока используем тот же файл что и для обычного расписания
-        const url = `../../public/data-${departmentId}-${year}.json`;
-        const response = await fetch(url);
+        // Загружаем версию из localStorage
+        const key = STORAGE_KEYS.versions(departmentId, year);
+        const stored = localStorage.getItem(key);
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (!stored) {
+          throw new Error(`Версии для ${departmentId}/${year} не найдены`);
         }
 
-        const rawData = await response.json();
-        const normalized = get().normalizeScheduleData(rawData, year);
+        const versionsData = JSON.parse(stored);
+        const versionData = versionsData[version];
+
+        if (!versionData) {
+          throw new Error(`Версия ${version} не найдена`);
+        }
+
+        // Нормализуем данные версии
+        const normalized = get().normalizeScheduleData(versionData.data, year);
 
         get().setLoading('versionSchedule', false);
         return {
@@ -385,42 +354,6 @@ export const useFetchWebStore = create(
         throw error;
       }
     },
-
-    /**
-     * Опубликовать изменения расписания
-     * @param {string} departmentId
-     * @param {Object} changes - { "empId-date": "status", ... }
-     * @returns {Object} результат публикации
-     */
-    publishSchedule: async (departmentId, changes) => {
-      get().setLoading('publish', true);
-      get().clearError('publish');
-
-      try {
-        // TODO: Реальный API запрос
-        // const response = await fetch('/api/admin/publish', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ departmentId, changes })
-        // });
-        // const result = await response.json();
-
-        // Заглушка — имитация успешной публикации
-        console.log(`📤 Публикация ${Object.keys(changes).length} изменений для отдела ${departmentId}`);
-
-        // Имитация задержки сети
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        get().setLoading('publish', false);
-        return { success: true, changedCount: Object.keys(changes).length };
-
-      } catch (error) {
-        console.error('publishSchedule error:', error);
-        get().setError('publish', error.message);
-        get().setLoading('publish', false);
-        throw error;
-      }
-    }
 
   }), { name: 'FetchWebStore' })
 );
