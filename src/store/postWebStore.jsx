@@ -348,6 +348,75 @@ export const usePostWebStore = create(
         get().setSaving('department', false);
         throw error;
       }
+    },
+
+    /**
+     * Обновить настройки отдела
+     * PUT /api/departments/{departmentId}
+     * @param {Object} departmentData - { departmentId, departmentName, employees, statusConfig }
+     */
+    updateDepartment: async (departmentData) => {
+      get().setSaving('department', true);
+      get().clearError('department');
+
+      try {
+        const { departmentId, departmentName, employees, statusConfig } = departmentData;
+
+        console.log(`📝 Обновление настроек отдела: ${departmentId}`);
+
+        // 1. Обновить список сотрудников
+        const employeeById = {};
+        const employeeIds = [];
+
+        employees.forEach(emp => {
+          const empId = String(emp.id);
+          employeeIds.push(empId);
+          employeeById[empId] = {
+            id: empId,
+            name: `${emp.family} ${emp.name1[0]}.${emp.name2[0]}.`,
+            fullName: `${emp.family} ${emp.name1} ${emp.name2}`,
+            position: emp.position || ''
+          };
+        });
+
+        const employeesKey = STORAGE_KEYS.employees(departmentId);
+        localStorage.setItem(employeesKey, JSON.stringify({ employeeIds, employeeById }));
+
+        // 2. Обновить конфигурацию отдела
+        const configKey = `department-config-${departmentId}`;
+        const config = {
+          departmentId,
+          name: departmentName,
+          statusConfig
+        };
+        localStorage.setItem(configKey, JSON.stringify(config));
+
+        // 3. Обновить название в списке отделов
+        const departmentListKey = 'department-list';
+        const stored = localStorage.getItem(departmentListKey);
+        let departmentList = stored ? JSON.parse(stored) : { departments: [] };
+
+        if (!departmentList.departments) {
+          departmentList = { departments: [] };
+        }
+
+        const deptIndex = departmentList.departments.findIndex(d => d.id === departmentId);
+        if (deptIndex !== -1) {
+          departmentList.departments[deptIndex].name = departmentName;
+          localStorage.setItem(departmentListKey, JSON.stringify(departmentList));
+        }
+
+        get().setSaving('department', false);
+
+        console.log(`✅ Настройки отдела ${departmentId} обновлены`);
+        return { success: true, departmentId };
+
+      } catch (error) {
+        console.error('updateDepartment error:', error);
+        get().setError('department', error.message);
+        get().setSaving('department', false);
+        throw error;
+      }
     }
 
   }), { name: 'PostWebStore' })

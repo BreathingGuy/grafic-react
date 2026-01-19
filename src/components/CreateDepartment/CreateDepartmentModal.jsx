@@ -1,17 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import EmployeeEditor from './EmployeeEditor';
 import StatusConfigEditor from './StatusConfigEditor';
 import styles from './CreateDepartmentModal.module.css';
 
 /**
- * CreateDepartmentModal - Модальное окно для создания нового отдела
+ * CreateDepartmentModal - Модальное окно для создания/редактирования отдела
  *
  * Включает:
  * - Основная информация (ID, название)
  * - Редактор списка сотрудников
  * - Редактор конфигурации статусов
+ *
+ * @param {boolean} editMode - режим редактирования (true) или создания (false)
+ * @param {Object} initialData - начальные данные для редактирования
  */
-export default function CreateDepartmentModal({ isOpen, onClose, onSave }) {
+export default function CreateDepartmentModal({ isOpen, onClose, onSave, editMode = false, initialData = null }) {
   const [departmentId, setDepartmentId] = useState('');
   const [departmentName, setDepartmentName] = useState('');
   const [employees, setEmployees] = useState([
@@ -29,6 +32,31 @@ export default function CreateDepartmentModal({ isOpen, onClose, onSave }) {
   ]);
 
   const [currentStep, setCurrentStep] = useState(1); // 1: основная информация, 2: сотрудники, 3: статусы
+
+  // Загружаем данные при редактировании
+  useEffect(() => {
+    if (editMode && initialData && isOpen) {
+      setDepartmentId(initialData.departmentId || '');
+      setDepartmentName(initialData.departmentName || '');
+      setEmployees(initialData.employees || []);
+      setStatusConfig(initialData.statusConfig || []);
+    } else if (!editMode && isOpen) {
+      // Сброс при создании нового
+      setDepartmentId('');
+      setDepartmentName('');
+      setEmployees([{ id: 1000, family: '', name1: '', name2: '', position: '' }]);
+      setStatusConfig([
+        {
+          codeList: 'Д',
+          codeWork: 'working',
+          label: 'Дневная смена',
+          colorBackground: '#d4edda',
+          colorText: '#155724',
+          description: 'с 8 до 16.30 вечера'
+        }
+      ]);
+    }
+  }, [editMode, initialData, isOpen]);
 
   const handleSubmit = async () => {
     // Валидация
@@ -83,7 +111,7 @@ export default function CreateDepartmentModal({ isOpen, onClose, onSave }) {
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <h2>Создать новый отдел</h2>
+          <h2>{editMode ? 'Настройки отдела' : 'Создать новый отдел'}</h2>
           <button className={styles.closeButton} onClick={onClose}>×</button>
         </div>
 
@@ -120,8 +148,10 @@ export default function CreateDepartmentModal({ isOpen, onClose, onSave }) {
                   value={departmentId}
                   onChange={(e) => setDepartmentId(e.target.value)}
                   placeholder="dept-5"
+                  disabled={editMode}
+                  style={editMode ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
                 />
-                <small>Латинские буквы, цифры, дефис. Например: dept-5</small>
+                <small>{editMode ? 'ID отдела нельзя изменить' : 'Латинские буквы, цифры, дефис. Например: dept-5'}</small>
               </div>
 
               <div className={styles.formGroup}>
@@ -180,7 +210,7 @@ export default function CreateDepartmentModal({ isOpen, onClose, onSave }) {
             </button>
           ) : (
             <button className={styles.saveButton} onClick={handleSubmit}>
-              Создать отдел
+              {editMode ? 'Сохранить изменения' : 'Создать отдел'}
             </button>
           )}
         </div>
