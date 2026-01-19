@@ -26,6 +26,7 @@ export const useAdminStore = create(
         employeeById: {},              // Данные сотрудников: { id: { id, name, fullName, position } }
         hasUnsavedChanges: false,
         undoStack: [],                 // Для Ctrl+Z
+        lastDraftSaved: null,          // Timestamp последнего сохранения черновика
 
         // Текущий редактируемый год и отдел
         editingYear: null,
@@ -319,6 +320,41 @@ export const useAdminStore = create(
             draftSchedule: previousDraft,
             hasUnsavedChanges: true
           });
+        },
+
+        /**
+         * Сохранить draft в localStorage (без публикации в production)
+         * Сохраняет черновик для работы между админами
+         */
+        saveDraftToStorage: async () => {
+          const { draftSchedule, employeeIds, employeeById, editingDepartmentId, editingYear } = get();
+
+          if (!editingDepartmentId || !editingYear) {
+            console.error('Нет активного draft для сохранения');
+            return false;
+          }
+
+          try {
+            // Сохраняем через postWebStore
+            const postStore = usePostWebStore.getState();
+            await postStore.saveDraft(editingDepartmentId, editingYear, {
+              draftSchedule,
+              employeeIds,
+              employeeById
+            });
+
+            // Обновляем timestamp последнего сохранения
+            set({
+              lastDraftSaved: new Date().toISOString()
+            });
+
+            console.log(`💾 Черновик сохранен: ${editingDepartmentId}/${editingYear}`);
+            return true;
+
+          } catch (error) {
+            console.error('Failed to save draft:', error);
+            throw error;
+          }
         },
 
         /**
