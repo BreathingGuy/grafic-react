@@ -1,7 +1,8 @@
-import { memo, useState, useCallback } from 'react';
+import { memo, useState, useCallback, useMemo } from 'react';
 import { useAdminStore } from '../../../store/adminStore';
 import { useDateAdminStore } from '../../../store/dateAdminStore';
 import { useSelectionStore } from '../../../store/selectionStore';
+import { useMetaStore } from '../../../store/metaStore';
 import CellEditor from './CellEditor';
 
 /**
@@ -26,6 +27,26 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
     if (!date) return '';
     return state.draftSchedule[`${employeeId}-${date}`] ?? '';
   });
+
+  // Получаем конфигурацию статусов из metaStore
+  const statusConfig = useMetaStore(state => state.currentDepartmentConfig?.statusConfig);
+
+  // Вычисляем стили на основе конфигурации статусов
+  const cellStyle = useMemo(() => {
+    if (!status || !statusConfig) return {};
+
+    // Ищем конфигурацию для текущего статуса
+    const config = statusConfig.find(s =>
+      s.codeList === status || s.code === status
+    );
+
+    if (!config) return {};
+
+    return {
+      backgroundColor: config.colorBackground || config.color || undefined,
+      color: config.colorText || undefined
+    };
+  }, [status, statusConfig]);
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -69,7 +90,10 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
     <td
       data-emp-idx={empIdx}
       data-slot={slotIndex}
-      style={{ position: 'relative' }}
+      style={{
+        position: 'relative',
+        ...cellStyle
+      }}
       onMouseDown={handleMouseDown}
       onMouseOver={handleMouseOver}
       onMouseUp={handleMouseUp}
