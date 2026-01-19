@@ -272,17 +272,19 @@ export const useFetchWebStore = create(
         // const response = await fetch(`/api/departments/${departmentId}/years`);
         // const data = await response.json();
 
-        // Заглушка — возвращаем текущий и следующий год
-        const currentYear = new Date().getFullYear();
         console.log(`📥 fetchDepartmentYears: ${departmentId}`);
 
-        // Имитация задержки сети
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Заглушка — возвращаем только реально существующие года
+        // TODO: В реальном API сервер вернет список годов из БД
+        // Сейчас hardcode для dept-1: [2025, 2026]
+        const availableYears = departmentId === 'dept-1'
+          ? ['2025', '2026']
+          : ['2025']; // для остальных отделов
 
         const data = {
           departmentId,
           name: 'Отдел',
-          years: [String(currentYear - 1), String(currentYear), String(currentYear + 1)]
+          years: availableYears
         };
 
         get().setLoading('departmentYears', false);
