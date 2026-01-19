@@ -464,6 +464,46 @@ export const useAdminStore = create(
           });
         },
 
+        /**
+         * Установить контекст редактирования (отдел и год)
+         * Используется при переключении отделов в админ режиме
+         * @param {string} departmentId
+         * @param {number} year
+         */
+        setEditingContext: async (departmentId, year) => {
+          console.log(`📋 Установка контекста редактирования: ${departmentId}/${year}`);
+
+          // Очистить предыдущий draft
+          set({
+            draftSchedule: {},
+            originalSchedule: {},
+            employeeIds: [],
+            employeeById: {},
+            hasUnsavedChanges: false,
+            undoStack: [],
+            yearVersions: [],
+            selectedVersion: null
+          });
+
+          // Установить новый контекст
+          set({
+            editingDepartmentId: departmentId,
+            editingYear: year
+          });
+
+          // Обновить dateAdminStore для нового года
+          useDateAdminStore.getState().initializeYear(Number(year));
+
+          // Загрузить доступные годы
+          await get().loadAvailableYears(departmentId);
+
+          // Загрузить draft для этого года
+          await get().initializeDraft(departmentId, Number(year));
+
+          // Загрузить версии
+          await get().loadYearVersions(departmentId, year);
+        },
+
         // === YEARS & VERSIONS ACTIONS ===
 
         /**

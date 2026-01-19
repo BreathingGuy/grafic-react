@@ -333,9 +333,21 @@ export const usePostWebStore = create(
           localStorage.setItem(departmentListKey, JSON.stringify(departmentList));
         }
 
-        // 5. Инициализировать пустой список доступных годов
+        // 5. Создать текущий год с пустым расписанием
+        const currentYear = new Date().getFullYear();
         const yearsKey = STORAGE_KEYS.availableYears(departmentId);
-        localStorage.setItem(yearsKey, JSON.stringify([]));
+        localStorage.setItem(yearsKey, JSON.stringify([String(currentYear)]));
+
+        // Создать пустое расписание для текущего года
+        const scheduleKey = STORAGE_KEYS.schedule(departmentId, currentYear);
+        const emptySchedule = {
+          employeeIds,
+          employeeById,
+          scheduleMap: {} // Пустая карта расписания
+        };
+        localStorage.setItem(scheduleKey, JSON.stringify(emptySchedule));
+
+        console.log(`📅 Создан год ${currentYear} с пустым расписанием`);
 
         get().setSaving('department', false);
 

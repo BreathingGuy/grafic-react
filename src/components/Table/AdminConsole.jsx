@@ -27,27 +27,29 @@ function AdminConsole() {
   // Keyboard shortcuts
   useKeyboardShortcuts();
 
-  // Только для инициализации
-  const currentYear = useDateAdminStore(s => s.currentYear);
-  const userCurrentYear = useDateUserStore(s => s.currentYear);
+  // Используем editingDepartmentId и editingYear из adminStore
+  const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
+  const editingYear = useAdminStore(s => s.editingYear);
   const currentDepartmentId = useWorkspaceStore(s => s.currentDepartmentId);
+  const userCurrentYear = useDateUserStore(s => s.currentYear);
 
+  // Инициализация при первом входе в админ режим
   useEffect(() => {
-    useDateAdminStore.getState().initializeYear(userCurrentYear);
+    // Если editingDepartmentId не установлен, но есть currentDepartmentId
+    // значит мы только что вошли в админ режим
+    if (currentDepartmentId && !editingDepartmentId) {
+      console.log(`🔄 Первый вход в админ режим для отдела ${currentDepartmentId}`);
+      const adminStore = useAdminStore.getState();
+
+      // Устанавливаем контекст редактирования
+      adminStore.setEditingContext(currentDepartmentId, userCurrentYear);
+    }
 
     return () => {
       useAdminStore.getState().clearDraft();
       useSelectionStore.getState().clearSelection();
     };
-  }, [userCurrentYear]);
-
-  // Инициализация draft при смене отдела/года
-  useEffect(() => {
-    if (currentDepartmentId && currentYear) {
-      console.log(`🔄 AdminConsole: инициализация draft для ${currentDepartmentId}/${currentYear}`);
-      useAdminStore.getState().initializeDraft(currentDepartmentId, currentYear);
-    }
-  }, [currentDepartmentId, currentYear]);
+  }, [currentDepartmentId, editingDepartmentId, userCurrentYear]);
 
   return (
     <div style={{ padding: '20px' }}>
