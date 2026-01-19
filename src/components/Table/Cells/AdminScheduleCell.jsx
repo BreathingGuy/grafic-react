@@ -105,7 +105,7 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
       )}
     </td>
   );
-}, (prev, next) => prev.employeeId === next.employeeId && prev.slotIndex === next.slotIndex && prev.empIdx === next.empIdx && prev.tableId === next.tableId);
+});
 
 AdminScheduleCell.displayName = 'AdminScheduleCell';
 

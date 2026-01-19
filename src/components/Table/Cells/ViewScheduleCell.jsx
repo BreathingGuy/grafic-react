@@ -39,11 +39,6 @@ const ViewScheduleCell = memo(({ employeeId, slotIndex}) => {
       {status}
     </td>
   );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.employeeId === nextProps.employeeId &&
-    prevProps.date === nextProps.date
-  );
 });
 
 ViewScheduleCell.displayName = 'ViewScheduleCell';
