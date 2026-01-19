@@ -3,6 +3,7 @@ import { useAdminStore } from '../../../store/adminStore';
 import { useDateAdminStore } from '../../../store/dateAdminStore';
 import { useSelectionStore } from '../../../store/selectionStore';
 import { useMetaStore } from '../../../store/metaStore';
+import { getContrastColor, hasGoodContrast } from '../../../utils/colorHelpers';
 import CellEditor from './CellEditor';
 
 /**
@@ -42,9 +43,17 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
 
     if (!config) return {};
 
+    const bgColor = config.colorBackground || config.color;
+    let textColor = config.colorText;
+
+    // Если цвет текста не задан или имеет плохой контраст - вычисляем автоматически
+    if (!textColor || (bgColor && !hasGoodContrast(textColor, bgColor))) {
+      textColor = bgColor ? getContrastColor(bgColor) : '#000000';
+    }
+
     return {
-      backgroundColor: config.colorBackground || config.color || undefined,
-      color: config.colorText || undefined
+      backgroundColor: bgColor || undefined,
+      color: textColor || undefined
     };
   }, [status, statusConfig]);
 
