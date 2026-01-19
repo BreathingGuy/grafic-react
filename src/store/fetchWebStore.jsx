@@ -82,9 +82,25 @@ export const useFetchWebStore = create(
         // Имитация задержки сети
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Загружаем из localStorage
-        const key = STORAGE_KEYS.schedule(departmentId, year);
-        const stored = localStorage.getItem(key);
+        // Выбираем правильный ключ в зависимости от режима
+        let key, stored;
+
+        if (mode === 'draft') {
+          // Сначала пытаемся загрузить draft
+          key = STORAGE_KEYS.draft(departmentId, year);
+          stored = localStorage.getItem(key);
+
+          // Если draft не найден - fallback на production
+          if (!stored) {
+            console.log(`📋 Draft не найден, загружаем production как fallback`);
+            key = STORAGE_KEYS.schedule(departmentId, year);
+            stored = localStorage.getItem(key);
+          }
+        } else {
+          // Production mode - загружаем только production
+          key = STORAGE_KEYS.schedule(departmentId, year);
+          stored = localStorage.getItem(key);
+        }
 
         if (!stored) {
           throw new Error(`Расписание ${departmentId}/${year} не найдено в localStorage`);

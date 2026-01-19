@@ -28,7 +28,6 @@ function AdminConsole() {
   useKeyboardShortcuts();
 
   // Только для инициализации
-  const initializeDraft = useAdminStore(s => s.initializeDraft);
   const currentYear = useDateAdminStore(s => s.currentYear);
   const userCurrentYear = useDateUserStore(s => s.currentYear);
   const currentDepartmentId = useWorkspaceStore(s => s.currentDepartmentId);
@@ -40,14 +39,15 @@ function AdminConsole() {
       useAdminStore.getState().clearDraft();
       useSelectionStore.getState().clearSelection();
     };
-  }, []);
+  }, [userCurrentYear]);
 
   // Инициализация draft при смене отдела/года
   useEffect(() => {
     if (currentDepartmentId && currentYear) {
-      initializeDraft(currentDepartmentId, currentYear);
+      console.log(`🔄 AdminConsole: инициализация draft для ${currentDepartmentId}/${currentYear}`);
+      useAdminStore.getState().initializeDraft(currentDepartmentId, currentYear);
     }
-  }, [currentDepartmentId, currentYear, initializeDraft]);
+  }, [currentDepartmentId, currentYear]);
 
   return (
     <div style={{ padding: '20px' }}>
