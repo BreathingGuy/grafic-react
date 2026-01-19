@@ -264,6 +264,90 @@ export const usePostWebStore = create(
         get().setSaving('employees', false);
         throw error;
       }
+    },
+
+    // === DEPARTMENTS API ===
+
+    /**
+     * Создать новый отдел
+     * POST /api/departments/create
+     * @param {Object} departmentData - { departmentId, departmentName, employees, statusConfig }
+     */
+    createDepartment: async (departmentData) => {
+      get().setSaving('department', true);
+      get().clearError('department');
+
+      try {
+        const { departmentId, departmentName, employees, statusConfig } = departmentData;
+
+        console.log(`📝 Создание нового отдела: ${departmentId}`);
+
+        // 1. Проверка: отдел уже существует?
+        const employeesKey = STORAGE_KEYS.employees(departmentId);
+        if (localStorage.getItem(employeesKey)) {
+          throw new Error(`Отдел ${departmentId} уже существует`);
+        }
+
+        // 2. Сохранить список сотрудников
+        const employeeById = {};
+        const employeeIds = [];
+
+        employees.forEach(emp => {
+          const empId = String(emp.id);
+          employeeIds.push(empId);
+          employeeById[empId] = {
+            id: empId,
+            name: `${emp.family} ${emp.name1[0]}.${emp.name2[0]}.`,
+            fullName: `${emp.family} ${emp.name1} ${emp.name2}`,
+            position: emp.position || ''
+          };
+        });
+
+        localStorage.setItem(employeesKey, JSON.stringify({ employeeIds, employeeById }));
+
+        // 3. Сохранить конфигурацию отдела
+        const configKey = `department-config-${departmentId}`;
+        const config = {
+          departmentId,
+          name: departmentName,
+          statusConfig
+        };
+        localStorage.setItem(configKey, JSON.stringify(config));
+
+        // 4. Обновить список отделов
+        const departmentListKey = 'department-list';
+        const stored = localStorage.getItem(departmentListKey);
+        let departmentList = stored ? JSON.parse(stored) : { departments: [] };
+
+        if (!departmentList.departments) {
+          departmentList = { departments: [] };
+        }
+
+        // Проверка на дубликат
+        const exists = departmentList.departments.some(d => d.id === departmentId);
+        if (!exists) {
+          departmentList.departments.push({
+            id: departmentId,
+            name: departmentName
+          });
+          localStorage.setItem(departmentListKey, JSON.stringify(departmentList));
+        }
+
+        // 5. Инициализировать пустой список доступных годов
+        const yearsKey = STORAGE_KEYS.availableYears(departmentId);
+        localStorage.setItem(yearsKey, JSON.stringify([]));
+
+        get().setSaving('department', false);
+
+        console.log(`✅ Отдел ${departmentId} создан`);
+        return { success: true, departmentId };
+
+      } catch (error) {
+        console.error('createDepartment error:', error);
+        get().setError('department', error.message);
+        get().setSaving('department', false);
+        throw error;
+      }
     }
 
   }), { name: 'PostWebStore' })

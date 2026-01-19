@@ -179,6 +179,17 @@ export const useFetchWebStore = create(
       get().clearError('departmentsList');
 
       try {
+        // Сначала пытаемся загрузить из localStorage
+        const key = 'department-list';
+        const stored = localStorage.getItem(key);
+
+        if (stored) {
+          const data = JSON.parse(stored);
+          get().setLoading('departmentsList', false);
+          return data;
+        }
+
+        // Fallback: загружаем из файла (первый запуск)
         const response = await fetch('../../public/department-list.json');
 
         if (!response.ok) {
@@ -186,6 +197,9 @@ export const useFetchWebStore = create(
         }
 
         const data = await response.json();
+
+        // Сохраняем в localStorage для будущих запусков
+        localStorage.setItem(key, JSON.stringify(data));
 
         get().setLoading('departmentsList', false);
         return data;
@@ -207,6 +221,17 @@ export const useFetchWebStore = create(
       get().clearError('departmentConfig');
 
       try {
+        // Сначала пытаемся загрузить из localStorage
+        const key = `department-config-${departmentId}`;
+        const stored = localStorage.getItem(key);
+
+        if (stored) {
+          const data = JSON.parse(stored);
+          get().setLoading('departmentConfig', false);
+          return data;
+        }
+
+        // Fallback: загружаем из файла (первый запуск)
         const response = await fetch(
           `../../public/departments-config-${departmentId}.json`
         );
@@ -216,6 +241,9 @@ export const useFetchWebStore = create(
         }
 
         const data = await response.json();
+
+        // Сохраняем в localStorage для будущих запусков
+        localStorage.setItem(key, JSON.stringify(data));
 
         get().setLoading('departmentConfig', false);
         return data;
