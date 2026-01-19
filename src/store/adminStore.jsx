@@ -16,6 +16,7 @@ export const useAdminStore = create(
 
         // === UI STATE ===
         isAdminMode: false,            // Режим админ-консоли
+        isCreatingNewYear: false,      // Флаг создания нового года (защита от race condition)
 
         // === DRAFT STATE ===
         draftSchedule: {},             // Рабочая копия: { "empId-date": "status" }
@@ -111,6 +112,12 @@ export const useAdminStore = create(
           // Валидация
           if (!departmentId || !year) {
             console.error('initializeDraft: departmentId и year обязательны');
+            return;
+          }
+
+          // Проверка: не идет ли сейчас создание нового года?
+          if (get().isCreatingNewYear) {
+            console.log('⏳ Создание нового года в процессе, пропускаем initializeDraft');
             return;
           }
 
@@ -472,37 +479,46 @@ export const useAdminStore = create(
 
           console.log(`📝 Создание нового года ${year}`);
 
-          // Если нет списка сотрудников - загружаем его
-          if (!employeeIds || employeeIds.length === 0) {
-            console.log('📋 Загрузка списка сотрудников отдела...');
-            try {
-              const fetchStore = useFetchWebStore.getState();
-              const employees = await fetchStore.fetchDepartmentEmployees(editingDepartmentId);
-              employeeIds = employees.employeeIds;
-              employeeById = employees.employeeById;
-              console.log(`✅ Загружено ${employeeIds.length} сотрудников`);
-            } catch (error) {
-              console.error('Не удалось загрузить список сотрудников:', error);
-              alert('Не удалось загрузить список сотрудников. Создайте сначала любой существующий год.');
-              return;
+          // Устанавливаем флаг создания нового года
+          set({ isCreatingNewYear: true });
+
+          try {
+            // Если нет списка сотрудников - загружаем его
+            if (!employeeIds || employeeIds.length === 0) {
+              console.log('📋 Загрузка списка сотрудников отдела...');
+              try {
+                const fetchStore = useFetchWebStore.getState();
+                const employees = await fetchStore.fetchDepartmentEmployees(editingDepartmentId);
+                employeeIds = employees.employeeIds;
+                employeeById = employees.employeeById;
+                console.log(`✅ Загружено ${employeeIds.length} сотрудников`);
+              } catch (error) {
+                console.error('Не удалось загрузить список сотрудников:', error);
+                alert('Не удалось загрузить список сотрудников. Создайте сначала любой существующий год.');
+                return;
+              }
             }
+
+            // Обновить dateAdminStore для нового года
+            useDateAdminStore.getState().initializeYear(Number(year));
+
+            // Создать пустой год с сотрудниками
+            get().createEmptyYear(Number(year), employeeIds, employeeById, editingDepartmentId);
+
+            // Добавить год в список доступных
+            const { availableYears } = get();
+            if (!availableYears.includes(String(year))) {
+              set({
+                availableYears: [...availableYears, String(year)].sort()
+              });
+            }
+
+            console.log(`✅ Новый год ${year} создан с ${employeeIds.length} сотрудниками`);
+
+          } finally {
+            // Сбрасываем флаг в любом случае
+            set({ isCreatingNewYear: false });
           }
-
-          // Обновить dateAdminStore для нового года
-          useDateAdminStore.getState().initializeYear(Number(year));
-
-          // Создать пустой год с сотрудниками
-          get().createEmptyYear(Number(year), employeeIds, employeeById, editingDepartmentId);
-
-          // Добавить год в список доступных
-          const { availableYears } = get();
-          if (!availableYears.includes(String(year))) {
-            set({
-              availableYears: [...availableYears, String(year)].sort()
-            });
-          }
-
-          console.log(`✅ Новый год ${year} создан с ${employeeIds.length} сотрудниками`);
         },
 
         /**
