@@ -125,57 +125,92 @@ export const useAdminStore = create(
 
           try {
             const fetchStore = useFetchWebStore.getState();
-            // Загружаем как draft (в будущем может быть отдельный endpoint)
-            const { employeeIds, employeeById, scheduleMap } = await fetchStore.fetchSchedule(
+
+            // ВАЖНО: Всегда загружаем production версию для originalSchedule
+            console.log('📥 Загрузка production версии...');
+            const productionData = await fetchStore.fetchSchedule(
               departmentId,
               year,
-              { mode: 'draft' }
+              { mode: 'production' }
             );
 
-            // Фильтруем только нужный год
+            // Фильтруем только нужный год из production
             const yearPrefix = `${year}-`;
-            const yearData = {};
-            Object.entries(scheduleMap).forEach(([key, value]) => {
+            const productionYearData = {};
+            Object.entries(productionData.scheduleMap).forEach(([key, value]) => {
               if (key.includes(yearPrefix)) {
-                yearData[key] = value;
+                productionYearData[key] = value;
               }
             });
 
-            if (Object.keys(yearData).length > 0) {
-              // Год существует — копируем
+            // Пытаемся загрузить draft
+            console.log('📥 Загрузка draft версии...');
+            let draftYearData = null;
+            try {
+              const draftData = await fetchStore.fetchSchedule(
+                departmentId,
+                year,
+                { mode: 'draft' }
+              );
+
+              // Фильтруем только нужный год из draft
+              const filteredDraft = {};
+              Object.entries(draftData.scheduleMap).forEach(([key, value]) => {
+                if (key.includes(yearPrefix)) {
+                  filteredDraft[key] = value;
+                }
+              });
+
+              if (Object.keys(filteredDraft).length > 0) {
+                draftYearData = filteredDraft;
+                console.log(`✅ Draft найден: ${Object.keys(draftYearData).length} ячеек`);
+              }
+            } catch (draftError) {
+              console.log('ℹ️ Draft не найден, используем production');
+            }
+
+            // Устанавливаем state:
+            // - originalSchedule = production (для вычисления changedCells при публикации)
+            // - draftSchedule = draft (если есть) или копия production (если нет)
+            const scheduleToEdit = draftYearData || { ...productionYearData };
+
+            if (Object.keys(productionYearData).length > 0) {
               set({
-                draftSchedule: { ...yearData },
-                originalSchedule: { ...yearData },
-                employeeIds: employeeIds,
-                employeeById: employeeById || {},
-                hasUnsavedChanges: false,
+                draftSchedule: scheduleToEdit,
+                originalSchedule: { ...productionYearData },  // ✅ Всегда production!
+                employeeIds: productionData.employeeIds,
+                employeeById: productionData.employeeById || {},
+                hasUnsavedChanges: draftYearData !== null, // Если загрузили draft - есть несохранённые изменения
                 undoStack: [],
                 editingYear: year,
                 editingDepartmentId: departmentId
               });
-              console.log(`✅ Draft инициализирован: ${Object.keys(yearData).length} ячеек`);
+
+              if (draftYearData) {
+                console.log(`✅ Draft инициализирован с сохранёнными изменениями`);
+              } else {
+                console.log(`✅ Draft инициализирован из production`);
+              }
 
               // Warming: делаем реальное изменение значения и откатываем
-              // Это заставляет React полностью инициализировать reconciliation
               requestAnimationFrame(() => {
-                const keys = Object.keys(yearData);
+                const keys = Object.keys(scheduleToEdit);
                 if (keys.length > 0) {
                   const firstKey = keys[0];
-                  const originalValue = yearData[firstKey];
-                  // Меняем на временное значение
+                  const originalValue = scheduleToEdit[firstKey];
                   set(state => ({
                     draftSchedule: { ...state.draftSchedule, [firstKey]: '__warming__' }
                   }));
                   set(state => ({
                       draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
-                      hasUnsavedChanges: false // сбрасываем флаг изменений
+                      hasUnsavedChanges: draftYearData !== null // Сохраняем статус
                     }));
                 }
               });
             } else {
               // Год не существует — создаём пустой
               console.log(`📝 Создание пустого draft для ${year}`);
-              get().createEmptyYear(year, employeeIds, employeeById || {}, departmentId);
+              get().createEmptyYear(year, productionData.employeeIds, productionData.employeeById || {}, departmentId);
             }
 
           } catch (error) {
@@ -191,7 +226,6 @@ export const useAdminStore = create(
             }
 
             // Создаём пустой draft если загрузка не удалась
-            // Используем текущих сотрудников из state если они есть
             const employeeIds = currentState.employeeIds.length > 0
               ? currentState.employeeIds
               : [];
