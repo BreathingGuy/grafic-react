@@ -107,7 +107,24 @@ export const useFetchWebStore = create(
         }
 
         const data = JSON.parse(stored);
-        const normalized = get().normalizeScheduleData(data, year);
+
+        // Проверяем формат данных
+        let normalized;
+        if (data.draftSchedule && data.employeeIds && data.employeeById) {
+          // Draft формат (уже нормализованный)
+          console.log(`📋 Данные уже в нормализованном формате (draft)`);
+          normalized = {
+            scheduleMap: data.draftSchedule,
+            employeeIds: data.employeeIds,
+            employeeById: data.employeeById
+          };
+        } else if (data.data && Array.isArray(data.data)) {
+          // JSON формат из файлов
+          console.log(`📋 Нормализация данных из JSON формата`);
+          normalized = get().normalizeScheduleData(data, year);
+        } else {
+          throw new Error('Неизвестный формат данных');
+        }
 
         get().setLoading(loadingKey, false);
         return normalized;
