@@ -44,12 +44,16 @@ function AdminConsole() {
       // Устанавливаем контекст редактирования
       adminStore.setEditingContext(currentDepartmentId, userCurrentYear);
     }
+  }, [currentDepartmentId, editingDepartmentId, userCurrentYear]);
 
+  // Cleanup при размонтировании
+  useEffect(() => {
     return () => {
-      useAdminStore.getState().clearDraft();
+      // При размонтировании очищаем только данные, но НЕ выходим из админ режима
+      // clearDraft() вызывается только при явном выходе из админ режима (кнопка "Выйти")
       useSelectionStore.getState().clearSelection();
     };
-  }, [currentDepartmentId, editingDepartmentId, userCurrentYear]);
+  }, []);
 
   return (
     <div style={{ padding: '20px' }}>

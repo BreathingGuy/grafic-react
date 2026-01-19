@@ -174,22 +174,41 @@ export const useAdminStore = create(
             // - draftSchedule = draft (если есть) или копия production (если нет)
             const scheduleToEdit = draftYearData || { ...productionYearData };
 
+            // Проверяем, есть ли реальные изменения между draft и production
+            let hasRealChanges = false;
+            if (draftYearData) {
+              // Сравниваем draft с production
+              const draftKeys = Object.keys(draftYearData);
+              const productionKeys = Object.keys(productionYearData);
+
+              if (draftKeys.length !== productionKeys.length) {
+                hasRealChanges = true;
+              } else {
+                for (const key of draftKeys) {
+                  if (draftYearData[key] !== productionYearData[key]) {
+                    hasRealChanges = true;
+                    break;
+                  }
+                }
+              }
+            }
+
             if (Object.keys(productionYearData).length > 0) {
               set({
                 draftSchedule: scheduleToEdit,
                 originalSchedule: { ...productionYearData },  // ✅ Всегда production!
                 employeeIds: productionData.employeeIds,
                 employeeById: productionData.employeeById || {},
-                hasUnsavedChanges: draftYearData !== null, // Если загрузили draft - есть несохранённые изменения
+                hasUnsavedChanges: hasRealChanges, // Только если есть реальные изменения
                 undoStack: [],
                 editingYear: year,
                 editingDepartmentId: departmentId
               });
 
               if (draftYearData) {
-                console.log(`✅ Draft инициализирован с сохранёнными изменениями`);
+                console.log(`✅ Draft инициализирован с сохранёнными изменениями (hasUnsavedChanges: ${hasRealChanges})`);
               } else {
-                console.log(`✅ Draft инициализирован из production`);
+                console.log(`✅ Draft инициализирован из production (hasUnsavedChanges: false)`);
               }
 
               // Warming: делаем реальное изменение значения и откатываем
@@ -203,7 +222,7 @@ export const useAdminStore = create(
                   }));
                   set(state => ({
                       draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
-                      hasUnsavedChanges: draftYearData !== null // Сохраняем статус
+                      hasUnsavedChanges: hasRealChanges // Сохраняем статус на основе реальных изменений
                     }));
                 }
               });
@@ -446,7 +465,21 @@ export const useAdminStore = create(
           });
         },
 
-        // Очистить draft (при выходе из режима редактирования)
+        // Очистить draft данные (при переключении контекста, но остаться в админ режиме)
+        clearDraftData: () => {
+          set({
+            draftSchedule: {},
+            originalSchedule: {},
+            employeeIds: [],
+            employeeById: {},
+            hasUnsavedChanges: false,
+            undoStack: [],
+            yearVersions: [],
+            selectedVersion: null
+          });
+        },
+
+        // Очистить draft и выйти из режима редактирования
         clearDraft: () => {
           set({
             isAdminMode: false,
