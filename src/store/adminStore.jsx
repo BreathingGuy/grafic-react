@@ -536,13 +536,59 @@ export const useAdminStore = create(
               }
             }
 
-            // Обновить dateAdminStore для нового года
-            useDateAdminStore.getState().initializeYear(Number(year));
+            // Создать структуру данных в формате JSON
+            const scheduleData = {
+              users_id: employeeIds.join(','),
+              data: employeeIds.map(empId => {
+                const employee = employeeById[empId];
+                const schedule = {};
 
-            // Создать пустой год с сотрудниками
-            get().createEmptyYear(Number(year), employeeIds, employeeById, editingDepartmentId);
+                // Генерируем пустые ячейки для всего года
+                const startDate = new Date(year, 0, 1);
+                const endDate = new Date(year, 11, 31);
 
-            // Добавить год в список доступных
+                const currentDate = new Date(startDate);
+                while (currentDate <= endDate) {
+                  const monthDay = String(currentDate.getMonth() + 1).padStart(2, '0') + '-' +
+                                   String(currentDate.getDate()).padStart(2, '0');
+                  schedule[monthDay] = '';  // Пустая ячейка
+                  currentDate.setDate(currentDate.getDate() + 1);
+                }
+
+                // Добавляем Q1 следующего года для offset таблицы
+                const nextYearStart = new Date(year + 1, 0, 1);
+                const nextYearEnd = new Date(year + 1, 2, 31); // конец марта
+
+                const nextYearDate = new Date(nextYearStart);
+                while (nextYearDate <= nextYearEnd) {
+                  const monthDay = String(nextYearDate.getMonth() + 1).padStart(2, '0') + '-' +
+                                   String(nextYearDate.getDate()).padStart(2, '0');
+                  schedule[monthDay] = '';  // Пустая ячейка
+                  nextYearDate.setDate(nextYearDate.getDate() + 1);
+                }
+
+                // Разбираем fullName обратно на части (если возможно)
+                const fullNameParts = employee.fullName.split(' ');
+                const fio = {
+                  family: fullNameParts[0] || '',
+                  name1: fullNameParts[1] || '',
+                  name2: fullNameParts[2] || ''
+                };
+
+                return {
+                  id: Number(empId),
+                  fio,
+                  position: employee.position || '',
+                  schedule
+                };
+              })
+            };
+
+            // Сохранить в localStorage через postWebStore
+            const postStore = usePostWebStore.getState();
+            await postStore.createScheduleYear(editingDepartmentId, year, scheduleData);
+
+            // Обновить список доступных годов
             const { availableYears } = get();
             if (!availableYears.includes(String(year))) {
               set({
@@ -550,8 +596,18 @@ export const useAdminStore = create(
               });
             }
 
-            console.log(`✅ Новый год ${year} создан с ${employeeIds.length} сотрудниками`);
+            // Обновить dateAdminStore для нового года
+            useDateAdminStore.getState().initializeYear(Number(year));
 
+            // Инициализировать draft из сохранённого расписания
+            await get().initializeDraft(editingDepartmentId, Number(year));
+
+            console.log(`✅ Новый год ${year} создан в localStorage с ${employeeIds.length} сотрудниками`);
+
+          } catch (error) {
+            console.error('createNewYear error:', error);
+            alert(`Ошибка создания года: ${error.message}`);
+            throw error;
           } finally {
             // Сбрасываем флаг в любом случае
             set({ isCreatingNewYear: false });
