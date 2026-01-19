@@ -71,11 +71,31 @@ export default function AdminView() {
       // Находим название отдела
       const dept = departmentsList.find(d => d.id === currentDepartmentId);
 
+      // Преобразуем старый формат конфига в новый
+      const normalizedStatusConfig = (config.statusConfig || []).map(status => {
+        // Старый формат: { code, label, color, descriptin }
+        // Новый формат: { codeList, codeWork, label, colorBackground, colorText, description }
+        if (status.codeList && status.codeWork) {
+          // Уже новый формат
+          return status;
+        } else {
+          // Старый формат - преобразуем
+          return {
+            codeList: status.code || '',
+            codeWork: status.code?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'unknown',
+            label: status.label || '',
+            colorBackground: status.color || '#ffffff',
+            colorText: '#000000',
+            description: status.descriptin || status.description || ''
+          };
+        }
+      });
+
       setEditData({
         departmentId: currentDepartmentId,
         departmentName: dept?.name || config.name || '',
         employees,
-        statusConfig: config.statusConfig || []
+        statusConfig: normalizedStatusConfig
       });
 
       setIsEditModalOpen(true);

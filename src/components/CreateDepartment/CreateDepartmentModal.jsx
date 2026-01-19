@@ -88,7 +88,7 @@ export default function CreateDepartmentModal({ isOpen, onClose, onSave, editMod
 
     // Проверка полей статусов
     const hasEmptyStatuses = statusConfig.some(status =>
-      !status.codeList.trim() || !status.codeWork.trim() || !status.label.trim()
+      !status.codeList?.trim() || !status.codeWork?.trim() || !status.label?.trim()
     );
     if (hasEmptyStatuses) {
       alert('Заполните все поля статусов');

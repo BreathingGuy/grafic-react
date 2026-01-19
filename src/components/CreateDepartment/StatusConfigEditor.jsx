@@ -141,8 +141,8 @@ export default function StatusConfigEditor({ statusConfig, onChange }) {
             <div className={styles.cardHeader}>
               <span className={styles.statusNumber}>#{index + 1}</span>
               <div className={styles.preview} style={{
-                backgroundColor: status.colorBackground,
-                color: status.colorText
+                backgroundColor: status.colorBackground || '#ffffff',
+                color: status.colorText || '#000000'
               }}>
                 {status.codeList || '?'}
               </div>
@@ -176,7 +176,7 @@ export default function StatusConfigEditor({ statusConfig, onChange }) {
                   </label>
                   <input
                     type="text"
-                    value={status.codeList}
+                    value={status.codeList || ''}
                     onChange={(e) => handleChange(index, 'codeList', e.target.value)}
                     placeholder="Д"
                     maxLength={3}
@@ -190,7 +190,7 @@ export default function StatusConfigEditor({ statusConfig, onChange }) {
                   </label>
                   <input
                     type="text"
-                    value={status.codeWork}
+                    value={status.codeWork || ''}
                     onChange={(e) => handleChange(index, 'codeWork', e.target.value)}
                     placeholder="working"
                   />
@@ -202,7 +202,7 @@ export default function StatusConfigEditor({ statusConfig, onChange }) {
                 <label>Название *</label>
                 <input
                   type="text"
-                  value={status.label}
+                  value={status.label || ''}
                   onChange={(e) => handleChange(index, 'label', e.target.value)}
                   placeholder="Дневная смена"
                 />
@@ -215,12 +215,12 @@ export default function StatusConfigEditor({ statusConfig, onChange }) {
                   <div className={styles.colorPicker}>
                     <input
                       type="color"
-                      value={status.colorBackground}
+                      value={status.colorBackground || '#ffffff'}
                       onChange={(e) => handleChange(index, 'colorBackground', e.target.value)}
                     />
                     <input
                       type="text"
-                      value={status.colorBackground}
+                      value={status.colorBackground || ''}
                       onChange={(e) => handleChange(index, 'colorBackground', e.target.value)}
                       placeholder="#d4edda"
                     />
@@ -232,12 +232,12 @@ export default function StatusConfigEditor({ statusConfig, onChange }) {
                   <div className={styles.colorPicker}>
                     <input
                       type="color"
-                      value={status.colorText}
+                      value={status.colorText || '#000000'}
                       onChange={(e) => handleChange(index, 'colorText', e.target.value)}
                     />
                     <input
                       type="text"
-                      value={status.colorText}
+                      value={status.colorText || ''}
                       onChange={(e) => handleChange(index, 'colorText', e.target.value)}
                       placeholder="#155724"
                     />
@@ -250,7 +250,7 @@ export default function StatusConfigEditor({ statusConfig, onChange }) {
                 <label>Описание</label>
                 <input
                   type="text"
-                  value={status.description}
+                  value={status.description || ''}
                   onChange={(e) => handleChange(index, 'description', e.target.value)}
                   placeholder="с 8 до 16.30 вечера"
                 />
