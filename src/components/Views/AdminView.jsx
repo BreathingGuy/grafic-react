@@ -31,7 +31,11 @@ export default function AdminView() {
 
       // Обновить список отделов
       const metaStore = useMetaStore.getState();
-      metaStore.loadDepartmentsList();
+      await metaStore.loadDepartmentsList();
+
+      // Переключиться на новый отдел и загрузить его данные
+      const workspaceStore = useWorkspaceStore.getState();
+      await workspaceStore.setDepartment(departmentData.departmentId);
 
       alert(`Отдел "${departmentData.departmentName}" успешно создан!`);
       setIsCreateModalOpen(false);
@@ -111,10 +115,19 @@ export default function AdminView() {
 
       // Обновить список отделов
       const metaStore = useMetaStore.getState();
-      metaStore.loadDepartmentsList();
+      await metaStore.loadDepartmentsList();
 
       // Обновить конфигурацию
-      metaStore.loadDepartmentConfig(currentDepartmentId);
+      await metaStore.loadDepartmentConfig(currentDepartmentId);
+
+      // Перезагрузить draft с новыми данными сотрудников
+      const adminStore = useAdminStore.getState();
+      const editingYear = adminStore.editingYear;
+
+      if (editingYear) {
+        console.log(`🔄 Перезагрузка draft после обновления настроек отдела`);
+        await adminStore.setEditingContext(currentDepartmentId, editingYear);
+      }
 
       alert(`Настройки отдела "${departmentData.departmentName}" успешно обновлены!`);
       setIsEditModalOpen(false);

@@ -418,6 +418,43 @@ export const usePostWebStore = create(
           localStorage.setItem(departmentListKey, JSON.stringify(departmentList));
         }
 
+        // 4. Обновить список сотрудников во всех существующих годах
+        const yearsKey = STORAGE_KEYS.availableYears(departmentId);
+        const yearsStored = localStorage.getItem(yearsKey);
+        const years = yearsStored ? JSON.parse(yearsStored) : [];
+
+        years.forEach(year => {
+          // Обновить production расписание
+          const scheduleKey = STORAGE_KEYS.schedule(departmentId, year);
+          const scheduleStored = localStorage.getItem(scheduleKey);
+
+          if (scheduleStored) {
+            const schedule = JSON.parse(scheduleStored);
+
+            // Обновляем employeeIds и employeeById
+            schedule.employeeIds = employeeIds;
+            schedule.employeeById = employeeById;
+
+            localStorage.setItem(scheduleKey, JSON.stringify(schedule));
+            console.log(`✅ Обновлены сотрудники для года ${year} (production)`);
+          }
+
+          // Обновить draft расписание (если есть)
+          const draftKey = STORAGE_KEYS.draft(departmentId, year);
+          const draftStored = localStorage.getItem(draftKey);
+
+          if (draftStored) {
+            const draft = JSON.parse(draftStored);
+
+            // Обновляем employeeIds и employeeById
+            draft.employeeIds = employeeIds;
+            draft.employeeById = employeeById;
+
+            localStorage.setItem(draftKey, JSON.stringify(draft));
+            console.log(`✅ Обновлены сотрудники для года ${year} (draft)`);
+          }
+        });
+
         get().setSaving('department', false);
 
         console.log(`✅ Настройки отдела ${departmentId} обновлены`);
