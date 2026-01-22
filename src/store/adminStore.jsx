@@ -518,6 +518,14 @@ export const useAdminStore = create(
             selectedVersion: null
           });
 
+          // ✅ ВАЖНО: Очистить кэш scheduleStore для этого отдела
+          // Это заставит fetchSchedule загрузить свежие данные из localStorage
+          const scheduleStore = useScheduleStore.getState();
+          const cacheKey = `${departmentId}-${year}`;
+
+          console.log(`🗑️ Удаление кэша для ${cacheKey}`);
+          scheduleStore.clearCache(); // Очищаем весь кэш для безопасности
+
           // Установить новый контекст
           set({
             editingDepartmentId: departmentId,
@@ -530,7 +538,7 @@ export const useAdminStore = create(
           // Загрузить доступные годы
           await get().loadAvailableYears(departmentId);
 
-          // Загрузить draft для этого года
+          // Загрузить draft для этого года (теперь загрузит свежие данные из localStorage)
           await get().initializeDraft(departmentId, Number(year));
 
           // Загрузить версии

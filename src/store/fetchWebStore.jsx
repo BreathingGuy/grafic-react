@@ -118,6 +118,14 @@ export const useFetchWebStore = create(
             employeeIds: data.employeeIds,
             employeeById: data.employeeById
           };
+        } else if (data.scheduleMap && data.employeeIds && data.employeeById) {
+          // Production формат (создается при createDepartment)
+          console.log(`📋 Данные в формате production (scheduleMap)`);
+          normalized = {
+            scheduleMap: data.scheduleMap,
+            employeeIds: data.employeeIds,
+            employeeById: data.employeeById
+          };
         } else if (data.data && Array.isArray(data.data)) {
           // JSON формат из файлов
           console.log(`📋 Нормализация данных из JSON формата`);
