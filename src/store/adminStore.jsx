@@ -376,6 +376,23 @@ export const useAdminStore = create(
         },
 
         /**
+         * Обновить список сотрудников (при изменении настроек отдела)
+         * Обновляет напрямую без перезагрузки всего draft
+         * @param {Array<string>} newEmployeeIds - новый массив ID сотрудников
+         * @param {Object} newEmployeeById - новый объект с данными сотрудников
+         */
+        updateEmployees: (newEmployeeIds, newEmployeeById) => {
+          console.log(`📝 Обновление сотрудников: ${newEmployeeIds.length} человек`);
+
+          set({
+            employeeIds: newEmployeeIds,
+            employeeById: newEmployeeById
+          });
+
+          console.log('✅ Список сотрудников обновлен в adminStore');
+        },
+
+        /**
          * Сохранить draft в localStorage (без публикации в production)
          * Сохраняет черновик для работы между админами
          */
