@@ -74,7 +74,7 @@ export function useKeyboardShortcuts() {
     for (let empIdx = minEmpIdx; empIdx <= maxEmpIdx; empIdx++) {
       const rowData = [];
       for (let slot = minSlot; slot <= maxSlot; slot++) {
-        const date = slotToDate[slot];
+        const date = currentSlotToDate[slot];
         const empId = employeeIds[empIdx];
         if (date && empId) {
           const key = `${empId}-${date}`;
