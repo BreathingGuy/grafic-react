@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { useSelectionStore } from '../../../store/selectionStore';
 import { useAdminStore } from '../../../store/adminStore';
 
 
-const AdminStatusCount = () => {
+const AdminStatusCount = memo(() => {
   const startCell = useSelectionStore(s => s.startCell);
   const endCell = useSelectionStore(s => s.endCell);
   const employeeIds = useAdminStore(s => s.employeeIds);
@@ -17,7 +17,7 @@ const AdminStatusCount = () => {
   return (
     <span>Выбрано {selectedCount} ячеек</span>
   );
-};
+});
 
 AdminStatusCount.displayName = 'AdminStatusCount';
 
