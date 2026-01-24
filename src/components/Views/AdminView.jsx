@@ -27,14 +27,16 @@ export default function AdminView() {
   const handleCreateDepartment = async (departmentData) => {
     try {
       const postStore = usePostWebStore.getState();
+      const metaStore = useMetaStore.getState();
+      const workspaceStore = useWorkspaceStore.getState();
+
+      // 1. Создать отдел в localStorage
       await postStore.createDepartment(departmentData);
 
-      // Обновить список отделов
-      const metaStore = useMetaStore.getState();
+      // 2. Обновить список отделов
       await metaStore.loadDepartmentsList();
 
-      // Переключиться на новый отдел и загрузить его данные
-      const workspaceStore = useWorkspaceStore.getState();
+      // 3. Переключиться на новый отдел (загрузит данные автоматически)
       await workspaceStore.setDepartment(departmentData.departmentId);
 
       alert(`Отдел "${departmentData.departmentName}" успешно создан!`);
@@ -111,23 +113,36 @@ export default function AdminView() {
   const handleUpdateDepartment = async (departmentData) => {
     try {
       const postStore = usePostWebStore.getState();
+      const metaStore = useMetaStore.getState();
+      const adminStore = useAdminStore.getState();
+
+      // 1. Сохранить изменения в localStorage
       await postStore.updateDepartment(departmentData);
 
-      // Обновить список отделов
-      const metaStore = useMetaStore.getState();
+      // 2. Обновить список отделов
       await metaStore.loadDepartmentsList();
 
-      // Обновить конфигурацию
+      // 3. Обновить конфигурацию в metaStore (для цветов статусов)
       await metaStore.loadDepartmentConfig(currentDepartmentId);
 
-      // Перезагрузить draft с новыми данными сотрудников
-      const adminStore = useAdminStore.getState();
-      const editingYear = adminStore.editingYear;
+      // 4. Подготовить новые данные сотрудников для adminStore
+      const employeeById = {};
+      const employeeIds = [];
 
-      if (editingYear) {
-        console.log(`🔄 Перезагрузка draft после обновления настроек отдела`);
-        await adminStore.setEditingContext(currentDepartmentId, editingYear);
-      }
+      departmentData.employees.forEach(emp => {
+        const empId = String(emp.id);
+        employeeIds.push(empId);
+        employeeById[empId] = {
+          id: empId,
+          name: `${emp.family} ${emp.name1[0]}.${emp.name2[0]}.`,
+          fullName: `${emp.family} ${emp.name1} ${emp.name2}`,
+          position: emp.position || ''
+        };
+      });
+
+      // 5. Напрямую обновить adminStore (без перезагрузки всего draft)
+      console.log('🔄 Обновление списка сотрудников в adminStore');
+      adminStore.updateEmployees(employeeIds, employeeById);
 
       alert(`Настройки отдела "${departmentData.departmentName}" успешно обновлены!`);
       setIsEditModalOpen(false);
