@@ -385,6 +385,11 @@ export const useAdminStore = create(
 
         // Массовое обновление ячеек (для вставки)
         batchUpdateDraftCells: (updates) => {
+          console.log('📝 batchUpdateDraftCells: начало', {
+            updatesCount: Object.keys(updates).length,
+            currentDraftKeys: Object.keys(get().draftSchedule).length
+          });
+
           set(state => ({
             draftSchedule: {
               ...state.draftSchedule,
@@ -392,6 +397,10 @@ export const useAdminStore = create(
             },
             hasUnsavedChanges: true
           }));
+
+          console.log('📝 batchUpdateDraftCells: завершено', {
+            newDraftKeys: Object.keys(get().draftSchedule).length
+          });
         },
 
         // Сохранить состояние для undo

@@ -11,10 +11,19 @@ export function useKeyboardShortcuts() {
   // === КОПИРОВАНИЕ (Ctrl+C) ===
   // Копируется только первый (активный) регион выделения
   const copySelected = useCallback(() => {
+    console.log('📋 copySelected: начало');
     const { getAllSelections, setStatus, setCopiedData } = useSelectionStore.getState();
     const adminState = useAdminStore.getState();
     const { draftSchedule, employeeIds } = adminState;
     const { slotToDate } = useDateAdminStore.getState();
+
+    console.log('📋 copySelected: состояние', {
+      employeeIdsLength: employeeIds?.length,
+      draftScheduleKeys: Object.keys(draftSchedule).length,
+      isAdminMode: adminState.isAdminMode,
+      editingDepartmentId: adminState.editingDepartmentId,
+      editingYear: adminState.editingYear
+    });
 
     // ВАЖНО: Проверяем, что данные загружены
     if (!employeeIds || employeeIds.length === 0) {
@@ -54,6 +63,8 @@ export function useKeyboardShortcuts() {
       data.push(rowData);
     }
 
+    console.log('📋 copySelected: данные скопированы', { rows: data.length, cols: data[0]?.length });
+
     navigator.clipboard.writeText(JSON.stringify(data)).then(() => {
       setCopiedData(true);
       const rows = data.length;
@@ -65,16 +76,26 @@ export function useKeyboardShortcuts() {
       }
     }).catch(err => {
       setStatus('Ошибка копирования');
-      console.error(err);
+      console.error('copySelected: ошибка', err);
     });
   }, []); // Пустые зависимости - функция всегда получает актуальные данные через getState()
 
   // === ВСТАВКА (Ctrl+V) ===
   const pasteSelected = useCallback(() => {
+    console.log('📋 pasteSelected: начало');
     const { getAllSelections, setStatus } = useSelectionStore.getState();
     const adminState = useAdminStore.getState();
-    const { saveUndoState, batchUpdateDraftCells, employeeIds } = adminState;
+    const { saveUndoState, batchUpdateDraftCells, employeeIds, draftSchedule } = adminState;
     const { slotToDate } = useDateAdminStore.getState();
+
+    console.log('📋 pasteSelected: состояние', {
+      employeeIdsLength: employeeIds?.length,
+      draftScheduleKeys: Object.keys(draftSchedule).length,
+      isAdminMode: adminState.isAdminMode,
+      editingDepartmentId: adminState.editingDepartmentId,
+      editingYear: adminState.editingYear,
+      hasUnsavedChanges: adminState.hasUnsavedChanges
+    });
 
     // ВАЖНО: Проверяем, что данные загружены
     if (!employeeIds || employeeIds.length === 0) {
@@ -86,20 +107,27 @@ export function useKeyboardShortcuts() {
     const allSelections = getAllSelections();
     if (allSelections.length === 0) {
       setStatus('Выберите ячейки для вставки');
+      console.log('📋 pasteSelected: нет выделения');
       return;
     }
 
+    console.log('📋 pasteSelected: выделений:', allSelections.length);
+
     navigator.clipboard.readText().then(text => {
+      console.log('📋 pasteSelected: прочитан буфер обмена');
       let data;
       try {
         data = JSON.parse(text);
         if (!Array.isArray(data)) throw new Error();
-      } catch {
+        console.log('📋 pasteSelected: данные распарсены', { rows: data.length, cols: data[0]?.length });
+      } catch (err) {
         setStatus('Неверный формат данных');
+        console.error('📋 pasteSelected: ошибка парсинга', err);
         return;
       }
 
       // Сохраняем для undo
+      console.log('📋 pasteSelected: сохраняем undo state');
       saveUndoState();
 
       const updates = {};
@@ -193,11 +221,22 @@ export function useKeyboardShortcuts() {
         }
       }
 
+      console.log('📋 pasteSelected: вызываем batchUpdateDraftCells', {
+        updatesCount: Object.keys(updates).length,
+        sampleUpdates: Object.entries(updates).slice(0, 3)
+      });
+
       batchUpdateDraftCells(updates);
+
+      console.log('📋 pasteSelected: завершено', {
+        rows: data.length,
+        cols: data[0]?.length || 0
+      });
+
       setStatus(`Вставлено ${data.length}x${data[0]?.length || 0}`);
     }).catch(err => {
       setStatus('Ошибка вставки');
-      console.error(err);
+      console.error('📋 pasteSelected: ошибка', err);
     });
   }, []);
 
