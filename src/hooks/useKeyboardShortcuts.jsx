@@ -15,7 +15,8 @@ export function useKeyboardShortcuts() {
     const { getAllSelections, setStatus, setCopiedData } = useSelectionStore.getState();
     const adminState = useAdminStore.getState();
     const { draftSchedule, employeeIds } = adminState;
-    const { slotToDate } = useDateAdminStore.getState();
+    const dateAdminState = useDateAdminStore.getState();
+    const { slotToDate, offsetSlotToDate } = dateAdminState;
 
     console.log('📋 copySelected: состояние', {
       employeeIdsLength: employeeIds?.length,
@@ -41,6 +42,18 @@ export function useKeyboardShortcuts() {
     // Копируем только первый регион
     const { startCell, endCell } = allSelections[0];
 
+    // Определяем правильный slotToDate в зависимости от tableId
+    const tableId = startCell.tableId || 'main';
+    const currentSlotToDate = tableId === 'offset' ? offsetSlotToDate : slotToDate;
+
+    console.log('📋 copySelected: выделение', {
+      startCell: { ...startCell },
+      endCell: { ...endCell },
+      tableId,
+      startSlot: startCell.slotIndex,
+      endSlot: endCell.slotIndex
+    });
+
     const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
     const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
 
@@ -48,6 +61,14 @@ export function useKeyboardShortcuts() {
     const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
     const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
     const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
+
+    console.log('📋 copySelected: диапазон', {
+      minSlot,
+      maxSlot,
+      minSlotDate: currentSlotToDate[minSlot],
+      maxSlotDate: currentSlotToDate[maxSlot],
+      usingTable: tableId
+    });
 
     const data = [];
     for (let empIdx = minEmpIdx; empIdx <= maxEmpIdx; empIdx++) {
@@ -86,7 +107,8 @@ export function useKeyboardShortcuts() {
     const { getAllSelections, setStatus } = useSelectionStore.getState();
     const adminState = useAdminStore.getState();
     const { saveUndoState, batchUpdateDraftCells, employeeIds, draftSchedule } = adminState;
-    const { slotToDate } = useDateAdminStore.getState();
+    const dateAdminState = useDateAdminStore.getState();
+    const { slotToDate, offsetSlotToDate } = dateAdminState;
 
     console.log('📋 pasteSelected: состояние', {
       employeeIdsLength: employeeIds?.length,
@@ -134,6 +156,18 @@ export function useKeyboardShortcuts() {
 
       // Вставляем в каждый выделенный регион
       for (const { startCell, endCell } of allSelections) {
+        // Определяем правильный slotToDate в зависимости от tableId
+        const tableId = startCell.tableId || 'main';
+        const currentSlotToDate = tableId === 'offset' ? offsetSlotToDate : slotToDate;
+
+        console.log('📋 pasteSelected: обработка региона', {
+          startCell: { ...startCell },
+          endCell: { ...endCell },
+          tableId,
+          startSlot: startCell.slotIndex,
+          endSlot: endCell.slotIndex
+        });
+
         const startEmpIdx = employeeIds.indexOf(startCell.employeeId);
         const endEmpIdx = employeeIds.indexOf(endCell.employeeId);
 
@@ -141,6 +175,14 @@ export function useKeyboardShortcuts() {
         const maxEmpIdx = Math.max(startEmpIdx, endEmpIdx);
         const minSlot = Math.min(startCell.slotIndex, endCell.slotIndex);
         const maxSlot = Math.max(startCell.slotIndex, endCell.slotIndex);
+
+        console.log('📋 pasteSelected: диапазон вставки', {
+          minSlot,
+          maxSlot,
+          minSlotDate: currentSlotToDate[minSlot],
+          maxSlotDate: currentSlotToDate[maxSlot],
+          usingTable: tableId
+        });
 
         const selectedRowsCount = maxEmpIdx - minEmpIdx + 1;
         const selectedColsCount = maxSlot - minSlot + 1;
@@ -158,7 +200,7 @@ export function useKeyboardShortcuts() {
                 const targetSlot = minSlot + cIndex;
                 if (targetEmpIdx < employeeIds.length) {
                   const empId = employeeIds[targetEmpIdx];
-                  const date = slotToDate[targetSlot];
+                  const date = currentSlotToDate[targetSlot];
                   if (empId && date) {
                     updates[`${empId}-${date}`] = value;
                   }
@@ -175,7 +217,7 @@ export function useKeyboardShortcuts() {
                 const targetSlot = minSlot + cIndex + i;
                 if (targetEmpIdx < employeeIds.length) {
                   const empId = employeeIds[targetEmpIdx];
-                  const date = slotToDate[targetSlot];
+                  const date = currentSlotToDate[targetSlot];
                   if (empId && date) {
                     updates[`${empId}-${date}`] = value;
                   }
@@ -194,7 +236,7 @@ export function useKeyboardShortcuts() {
                   const targetSlot = minSlot + cIndex + j;
                   if (targetEmpIdx < employeeIds.length) {
                     const empId = employeeIds[targetEmpIdx];
-                    const date = slotToDate[targetSlot];
+                    const date = currentSlotToDate[targetSlot];
                     if (empId && date) {
                       updates[`${empId}-${date}`] = value;
                     }
@@ -211,7 +253,7 @@ export function useKeyboardShortcuts() {
               const targetSlot = minSlot + cIndex;
               if (targetEmpIdx < employeeIds.length) {
                 const empId = employeeIds[targetEmpIdx];
-                const date = slotToDate[targetSlot];
+                const date = currentSlotToDate[targetSlot];
                 if (empId && date) {
                   updates[`${empId}-${date}`] = value;
                 }

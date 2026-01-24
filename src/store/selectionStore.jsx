@@ -10,8 +10,8 @@ export const useSelectionStore = create(
   (set, get) => ({
     // === STATE ===
     // Текущее активное выделение (которое редактируется)
-    startCell: null,       // { employeeId, slotIndex }
-    endCell: null,         // { employeeId, slotIndex }
+    startCell: null,       // { employeeId, slotIndex, tableId }
+    endCell: null,         // { employeeId, slotIndex, tableId }
     // Дополнительные выделения (Ctrl+click)
     selections: [],        // [{ startCell, endCell }, ...]
     isDragging: false,
@@ -31,8 +31,8 @@ export const useSelectionStore = create(
       if (activeTableId && activeTableId !== tableId) {
         set({
           selections: [],
-          startCell: { employeeId, slotIndex },
-          endCell: { employeeId, slotIndex },
+          startCell: { employeeId, slotIndex, tableId },
+          endCell: { employeeId, slotIndex, tableId },
           isDragging: true,
           activeTableId: tableId
         });
@@ -43,8 +43,8 @@ export const useSelectionStore = create(
         // Ctrl+click: сохраняем текущее выделение и начинаем новое
         set({
           selections: [...selections, { startCell, endCell }],
-          startCell: { employeeId, slotIndex },
-          endCell: { employeeId, slotIndex },
+          startCell: { employeeId, slotIndex, tableId },
+          endCell: { employeeId, slotIndex, tableId },
           isDragging: true,
           activeTableId: tableId
         });
@@ -52,8 +52,8 @@ export const useSelectionStore = create(
         // Обычный клик: сбрасываем все и начинаем новое
         set({
           selections: [],
-          startCell: { employeeId, slotIndex },
-          endCell: { employeeId, slotIndex },
+          startCell: { employeeId, slotIndex, tableId },
+          endCell: { employeeId, slotIndex, tableId },
           isDragging: true,
           activeTableId: tableId
         });
@@ -61,10 +61,10 @@ export const useSelectionStore = create(
     },
 
     updateSelection: (endEmployeeId, endSlotIndex) => {
-      const { isDragging } = get();
+      const { isDragging, activeTableId } = get();
       if (!isDragging) return;
 
-      set({ endCell: { employeeId: endEmployeeId, slotIndex: endSlotIndex } });
+      set({ endCell: { employeeId: endEmployeeId, slotIndex: endSlotIndex, tableId: activeTableId } });
     },
 
     endSelection: () => {
