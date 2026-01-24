@@ -22,8 +22,10 @@ export const useAdminStore = create(
         // === DRAFT STATE ===
         draftSchedule: {},             // Рабочая копия: { "empId-date": "status" }
         originalSchedule: {},          // Исходное состояние (для сравнения)
-        employeeIds: [],               // Список ID сотрудников
-        employeeById: {},              // Данные сотрудников: { id: { id, name, fullName, position } }
+        employeeIds: [],               // Список ID сотрудников (draft)
+        employeeById: {},              // Данные сотрудников (draft): { id: { id, name, fullName, position } }
+        originalEmployeeIds: [],       // Исходный список ID сотрудников (для сравнения)
+        originalEmployeeById: {},      // Исходные данные сотрудников (для сравнения)
         hasUnsavedChanges: false,
         undoStack: [],                 // Для Ctrl+Z
         lastDraftSaved: null,          // Timestamp последнего сохранения черновика
@@ -81,6 +83,8 @@ export const useAdminStore = create(
             originalSchedule: {},
             employeeIds: [],
             employeeById: {},
+            originalEmployeeIds: [],
+            originalEmployeeById: {},
             hasUnsavedChanges: false,
             undoStack: [],
             editingYear: null,
@@ -203,12 +207,49 @@ export const useAdminStore = create(
               const employeeIds = draftFullData ? draftFullData.employeeIds : productionData.employeeIds;
               const employeeById = draftFullData ? (draftFullData.employeeById || {}) : (productionData.employeeById || {});
 
+              // Проверяем изменения в сотрудниках (сравниваем draft-employees с production employees)
+              let hasEmployeeChanges = false;
+              if (draftFullData) {
+                // Есть draft-employees - сравниваем с production
+                const prodIds = productionData.employeeIds || [];
+                const draftIds = draftFullData.employeeIds || [];
+
+                if (prodIds.length !== draftIds.length) {
+                  hasEmployeeChanges = true;
+                } else {
+                  // Сравниваем содержимое
+                  for (let i = 0; i < prodIds.length; i++) {
+                    if (prodIds[i] !== draftIds[i]) {
+                      hasEmployeeChanges = true;
+                      break;
+                    }
+                  }
+
+                  // Сравниваем данные сотрудников
+                  if (!hasEmployeeChanges) {
+                    for (const id of prodIds) {
+                      const prodEmp = (productionData.employeeById || {})[id];
+                      const draftEmp = (draftFullData.employeeById || {})[id];
+                      if (JSON.stringify(prodEmp) !== JSON.stringify(draftEmp)) {
+                        hasEmployeeChanges = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // Общий флаг изменений: график ИЛИ сотрудники
+              const hasAnyChanges = hasRealChanges || hasEmployeeChanges;
+
               set({
                 draftSchedule: scheduleToEdit,
                 originalSchedule: { ...productionYearData },  // ✅ Всегда production!
                 employeeIds: employeeIds,
                 employeeById: employeeById,
-                hasUnsavedChanges: hasRealChanges, // Только если есть реальные изменения
+                originalEmployeeIds: [...productionData.employeeIds], // Сохраняем production для сравнения
+                originalEmployeeById: { ...(productionData.employeeById || {}) }, // Сохраняем production для сравнения
+                hasUnsavedChanges: hasAnyChanges, // График ИЛИ сотрудники
                 undoStack: [],
                 editingYear: year,
                 editingDepartmentId: departmentId
@@ -393,12 +434,20 @@ export const useAdminStore = create(
         updateEmployees: (newEmployeeIds, newEmployeeById) => {
           console.log(`📝 Обновление сотрудников: ${newEmployeeIds.length} человек`);
 
+          const { originalEmployeeIds, originalEmployeeById } = get();
+
+          // Проверяем, есть ли изменения по сравнению с original (production)
+          const hasChanges =
+            JSON.stringify(newEmployeeIds) !== JSON.stringify(originalEmployeeIds) ||
+            JSON.stringify(newEmployeeById) !== JSON.stringify(originalEmployeeById);
+
           set({
             employeeIds: newEmployeeIds,
-            employeeById: newEmployeeById
+            employeeById: newEmployeeById,
+            hasUnsavedChanges: hasChanges // Устанавливаем флаг если есть изменения
           });
 
-          console.log('✅ Список сотрудников обновлен в adminStore');
+          console.log(`✅ Список сотрудников обновлен в adminStore${hasChanges ? ' (есть несохраненные изменения)' : ''}`);
         },
 
         /**
@@ -441,45 +490,64 @@ export const useAdminStore = create(
          * Отправляет изменения на сервер и обновляет scheduleStore
          */
         publishDraft: async () => {
-          const { draftSchedule, originalSchedule, employeeIds, employeeById, editingDepartmentId, editingYear } = get();
+          const {
+            draftSchedule, originalSchedule,
+            employeeIds, employeeById,
+            originalEmployeeIds, originalEmployeeById,
+            editingDepartmentId, editingYear
+          } = get();
 
-          // Вычисляем только изменённые ячейки
-          const changes = {};
+          // Вычисляем изменения в графике
+          const scheduleChanges = {};
           Object.entries(draftSchedule).forEach(([key, value]) => {
             if (originalSchedule[key] !== value) {
-              changes[key] = value;
+              scheduleChanges[key] = value;
             }
           });
 
-          if (Object.keys(changes).length === 0) {
+          // Проверяем изменения в сотрудниках
+          const hasEmployeeChanges =
+            JSON.stringify(employeeIds) !== JSON.stringify(originalEmployeeIds) ||
+            JSON.stringify(employeeById) !== JSON.stringify(originalEmployeeById);
+
+          if (Object.keys(scheduleChanges).length === 0 && !hasEmployeeChanges) {
             console.log('ℹ️ Нет изменений для публикации');
             return 0;
           }
 
           try {
             const postStore = usePostWebStore.getState();
+            let changedCount = 0;
 
-            // 1. Публикуем расписание
-            await postStore.publishSchedule(editingDepartmentId, editingYear, changes);
+            // 1. Публикуем расписание (если есть изменения)
+            if (Object.keys(scheduleChanges).length > 0) {
+              await postStore.publishSchedule(editingDepartmentId, editingYear, scheduleChanges);
 
-            // 2. Публикуем сотрудников (копируем draft-employees → employees)
-            await postStore.publishEmployees(editingDepartmentId, {
-              employeeIds,
-              employeeById
-            });
+              // Применяем изменения в production (scheduleStore)
+              const scheduleStore = useScheduleStore.getState();
+              changedCount = scheduleStore.applyChanges(scheduleChanges);
+              console.log(`📅 Опубликовано ${changedCount} изменений в графике`);
+            }
 
-            // 3. Применяем изменения в production (scheduleStore)
-            const scheduleStore = useScheduleStore.getState();
-            const changedCount = scheduleStore.applyChanges(changes);
+            // 2. Публикуем сотрудников (если есть изменения)
+            if (hasEmployeeChanges) {
+              await postStore.publishEmployees(editingDepartmentId, {
+                employeeIds,
+                employeeById
+              });
+              console.log(`👥 Опубликованы изменения сотрудников`);
+            }
 
-            // 4. Обновляем originalSchedule (теперь draft = production)
+            // 3. Обновляем original (теперь draft = production)
             set({
               originalSchedule: { ...draftSchedule },
+              originalEmployeeIds: [...employeeIds],
+              originalEmployeeById: { ...employeeById },
               hasUnsavedChanges: false,
               undoStack: []
             });
 
-            console.log(`✅ Опубликовано ${changedCount} изменений`);
+            console.log(`✅ Публикация завершена`);
             return changedCount;
 
           } catch (error) {
@@ -490,9 +558,11 @@ export const useAdminStore = create(
 
         // Отменить все изменения — вернуть draft к original
         discardDraft: () => {
-          const { originalSchedule } = get();
+          const { originalSchedule, originalEmployeeIds, originalEmployeeById } = get();
           set({
             draftSchedule: { ...originalSchedule },
+            employeeIds: [...originalEmployeeIds],
+            employeeById: { ...originalEmployeeById },
             hasUnsavedChanges: false,
             undoStack: []
           });
@@ -505,6 +575,8 @@ export const useAdminStore = create(
             originalSchedule: {},
             employeeIds: [],
             employeeById: {},
+            originalEmployeeIds: [],
+            originalEmployeeById: {},
             hasUnsavedChanges: false,
             undoStack: [],
             yearVersions: [],
@@ -520,6 +592,8 @@ export const useAdminStore = create(
             originalSchedule: {},
             employeeIds: [],
             employeeById: {},
+            originalEmployeeIds: [],
+            originalEmployeeById: {},
             hasUnsavedChanges: false,
             undoStack: [],
             editingYear: null,
@@ -545,6 +619,8 @@ export const useAdminStore = create(
             originalSchedule: {},
             employeeIds: [],
             employeeById: {},
+            originalEmployeeIds: [],
+            originalEmployeeById: {},
             hasUnsavedChanges: false,
             undoStack: [],
             yearVersions: [],
