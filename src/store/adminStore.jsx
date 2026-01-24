@@ -143,15 +143,19 @@ export const useAdminStore = create(
               }
             });
 
-            // Пытаемся загрузить draft
+            // Пытаемся загрузить draft (график + сотрудники из draft-employees)
             console.log('📥 Загрузка draft версии...');
             let draftYearData = null;
+            let draftFullData = null; // Полные данные draft (включая employeeIds/employeeById)
             try {
               const draftData = await fetchStore.fetchSchedule(
                 departmentId,
                 year,
                 { mode: 'draft' }
               );
+
+              // Сохраняем полные данные draft
+              draftFullData = draftData;
 
               // Фильтруем только нужный год из draft
               const filteredDraft = {};
@@ -194,11 +198,16 @@ export const useAdminStore = create(
             }
 
             if (Object.keys(productionYearData).length > 0) {
+              // Определяем, откуда брать employeeIds и employeeById
+              // Если есть draft-employees, используем их; иначе берем из production
+              const employeeIds = draftFullData ? draftFullData.employeeIds : productionData.employeeIds;
+              const employeeById = draftFullData ? (draftFullData.employeeById || {}) : (productionData.employeeById || {});
+
               set({
                 draftSchedule: scheduleToEdit,
                 originalSchedule: { ...productionYearData },  // ✅ Всегда production!
-                employeeIds: productionData.employeeIds,
-                employeeById: productionData.employeeById || {},
+                employeeIds: employeeIds,
+                employeeById: employeeById,
                 hasUnsavedChanges: hasRealChanges, // Только если есть реальные изменения
                 undoStack: [],
                 editingYear: year,
@@ -397,7 +406,7 @@ export const useAdminStore = create(
          * Сохраняет черновик для работы между админами
          */
         saveDraftToStorage: async () => {
-          const { draftSchedule, editingDepartmentId, editingYear } = get();
+          const { draftSchedule, employeeIds, employeeById, editingDepartmentId, editingYear } = get();
 
           if (!editingDepartmentId || !editingYear) {
             console.error('Нет активного draft для сохранения');
@@ -405,10 +414,12 @@ export const useAdminStore = create(
           }
 
           try {
-            // Сохраняем через postWebStore (только draftSchedule)
+            // Сохраняем через postWebStore (график + сотрудники)
             const postStore = usePostWebStore.getState();
             await postStore.saveDraft(editingDepartmentId, editingYear, {
-              draftSchedule
+              draftSchedule,
+              employeeIds,
+              employeeById
             });
 
             // Обновляем timestamp последнего сохранения
@@ -430,7 +441,7 @@ export const useAdminStore = create(
          * Отправляет изменения на сервер и обновляет scheduleStore
          */
         publishDraft: async () => {
-          const { draftSchedule, originalSchedule, editingDepartmentId, editingYear } = get();
+          const { draftSchedule, originalSchedule, employeeIds, employeeById, editingDepartmentId, editingYear } = get();
 
           // Вычисляем только изменённые ячейки
           const changes = {};
@@ -446,15 +457,22 @@ export const useAdminStore = create(
           }
 
           try {
-            // Отправляем на сервер через postWebStore
             const postStore = usePostWebStore.getState();
+
+            // 1. Публикуем расписание
             await postStore.publishSchedule(editingDepartmentId, editingYear, changes);
 
-            // Применяем изменения в production (scheduleStore)
+            // 2. Публикуем сотрудников (копируем draft-employees → employees)
+            await postStore.publishEmployees(editingDepartmentId, {
+              employeeIds,
+              employeeById
+            });
+
+            // 3. Применяем изменения в production (scheduleStore)
             const scheduleStore = useScheduleStore.getState();
             const changedCount = scheduleStore.applyChanges(changes);
 
-            // Обновляем originalSchedule (теперь draft = production)
+            // 4. Обновляем originalSchedule (теперь draft = production)
             set({
               originalSchedule: { ...draftSchedule },
               hasUnsavedChanges: false,

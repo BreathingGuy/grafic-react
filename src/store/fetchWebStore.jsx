@@ -110,18 +110,30 @@ export const useFetchWebStore = create(
             scheduleMap = scheduleData.scheduleMap;
           }
 
-          // Сотрудники ВСЕГДА загружаются из employees-dept (как в production)
-          const employeesKey = STORAGE_KEYS.employees(departmentId);
-          const employeesStored = localStorage.getItem(employeesKey);
+          // Сотрудники в draft режиме загружаются из draft-employees (с fallback на employees)
+          const draftEmployeesKey = STORAGE_KEYS.draftEmployees(departmentId);
+          const draftEmployeesStored = localStorage.getItem(draftEmployeesKey);
 
-          if (!employeesStored) {
-            throw new Error(`Сотрудники отдела ${departmentId} не найдены`);
+          if (draftEmployeesStored) {
+            // Draft сотрудники найдены
+            const draftEmployeesData = JSON.parse(draftEmployeesStored);
+            employeeIds = draftEmployeesData.employeeIds;
+            employeeById = draftEmployeesData.employeeById;
+            console.log(`📋 Загружены сотрудники из draft-employees (${employeeIds.length} человек)`);
+          } else {
+            // Draft сотрудники не найдены - fallback на production
+            const employeesKey = STORAGE_KEYS.employees(departmentId);
+            const employeesStored = localStorage.getItem(employeesKey);
+
+            if (!employeesStored) {
+              throw new Error(`Сотрудники отдела ${departmentId} не найдены`);
+            }
+
+            const employeesData = JSON.parse(employeesStored);
+            employeeIds = employeesData.employeeIds;
+            employeeById = employeesData.employeeById;
+            console.log(`📋 Загружены сотрудники из employees (production fallback, ${employeeIds.length} человек)`);
           }
-
-          const employeesData = JSON.parse(employeesStored);
-          employeeIds = employeesData.employeeIds;
-          employeeById = employeesData.employeeById;
-          console.log(`📋 Загружены сотрудники из employees-dept (${employeeIds.length} человек)`);
         } else {
           // Production mode - загружаем schedule + employees раздельно
           const scheduleKey = STORAGE_KEYS.schedule(departmentId, year);

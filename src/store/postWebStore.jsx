@@ -161,22 +161,31 @@ export const usePostWebStore = create(
      * PUT /api/draft/{deptId}/{year}
      * @param {string} departmentId
      * @param {number} year
-     * @param {Object} draftData - { draftSchedule }
+     * @param {Object} draftData - { draftSchedule, employeeIds, employeeById }
      */
     saveDraft: async (departmentId, year, draftData) => {
       get().setSaving('draft', true);
       get().clearError('draft');
 
       try {
-        const key = STORAGE_KEYS.draft(departmentId, year);
-
-        // Сохраняем только draftSchedule, без employeeIds/employeeById
-        const payload = {
+        // Сохраняем draft расписание
+        const draftKey = STORAGE_KEYS.draft(departmentId, year);
+        const draftPayload = {
           draftSchedule: draftData.draftSchedule,
           lastSaved: new Date().toISOString()
         };
+        localStorage.setItem(draftKey, JSON.stringify(draftPayload));
 
-        localStorage.setItem(key, JSON.stringify(payload));
+        // Сохраняем draft сотрудников (если переданы)
+        if (draftData.employeeIds && draftData.employeeById) {
+          const employeesKey = STORAGE_KEYS.draftEmployees(departmentId);
+          const employeesPayload = {
+            employeeIds: draftData.employeeIds,
+            employeeById: draftData.employeeById
+          };
+          localStorage.setItem(employeesKey, JSON.stringify(employeesPayload));
+          console.log(`💾 Draft сотрудники сохранены: ${departmentId} (${draftData.employeeIds.length} человек)`);
+        }
 
         get().setSaving('draft', false);
 
@@ -197,8 +206,13 @@ export const usePostWebStore = create(
      */
     deleteDraft: async (departmentId, year) => {
       try {
-        const key = STORAGE_KEYS.draft(departmentId, year);
-        localStorage.removeItem(key);
+        // Удаляем draft расписания
+        const draftKey = STORAGE_KEYS.draft(departmentId, year);
+        localStorage.removeItem(draftKey);
+
+        // Удаляем draft сотрудников (если есть)
+        const draftEmployeesKey = STORAGE_KEYS.draftEmployees(departmentId);
+        localStorage.removeItem(draftEmployeesKey);
 
         console.log(`🗑️ Draft удален: ${departmentId}/${year}`);
         return { success: true };
@@ -256,6 +270,34 @@ export const usePostWebStore = create(
         get().setSaving('employees', false);
 
         console.log(`✅ Сотрудники обновлены: ${departmentId}`);
+        return { success: true };
+
+      } catch (error) {
+        console.error('updateEmployees error:', error);
+        get().setError('employees', error.message);
+        get().setSaving('employees', false);
+        throw error;
+      }
+    },
+
+    /**
+     * Опубликовать draft сотрудников → production
+     * POST /api/departments/{deptId}/employees/publish
+     */
+    publishEmployees: async (departmentId, employeesData) => {
+      get().setSaving('employees', true);
+      get().clearError('employees');
+
+      try {
+        console.log(`📤 Публикация сотрудников: ${departmentId}`);
+
+        // Копируем draft-employees → employees
+        const employeesKey = STORAGE_KEYS.employees(departmentId);
+        localStorage.setItem(employeesKey, JSON.stringify(employeesData));
+
+        get().setSaving('employees', false);
+
+        console.log(`✅ Сотрудники опубликованы: ${departmentId} (${employeesData.employeeIds.length} человек)`);
         return { success: true };
 
       } catch (error) {
@@ -371,7 +413,7 @@ export const usePostWebStore = create(
 
         console.log(`📝 Обновление настроек отдела: ${departmentId}`);
 
-        // 1. Обновить список сотрудников
+        // 1. Обновить список сотрудников в draft-employees (черновик)
         const employeeById = {};
         const employeeIds = [];
 
@@ -386,8 +428,10 @@ export const usePostWebStore = create(
           };
         });
 
-        const employeesKey = STORAGE_KEYS.employees(departmentId);
-        localStorage.setItem(employeesKey, JSON.stringify({ employeeIds, employeeById }));
+        // Сохраняем в draft-employees (черновик), а не в employees (production)
+        const draftEmployeesKey = STORAGE_KEYS.draftEmployees(departmentId);
+        localStorage.setItem(draftEmployeesKey, JSON.stringify({ employeeIds, employeeById }));
+        console.log(`💾 Сотрудники сохранены в draft-employees: ${departmentId} (${employeeIds.length} человек)`);
 
         // 2. Обновить конфигурацию отдела
         const configKey = `department-config-${departmentId}`;
@@ -412,11 +456,6 @@ export const usePostWebStore = create(
           departmentList.departments[deptIndex].name = departmentName;
           localStorage.setItem(departmentListKey, JSON.stringify(departmentList));
         }
-
-        // 4. Обновление сотрудников в draft не требуется
-        // Draft хранит только draftSchedule (график)
-        // Сотрудники берутся из employees-dept при загрузке (уже обновлены выше)
-        console.log('✅ Сотрудники обновлены в employees-dept, draft использует их автоматически');
 
         get().setSaving('department', false);
 

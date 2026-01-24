@@ -30,6 +30,9 @@ export const STORAGE_KEYS = {
   // Список сотрудников отдела
   employees: (deptId) => `employees-${deptId}`,
 
+  // Черновик списка сотрудников (для админа)
+  draftEmployees: (deptId) => `draft-employees-${deptId}`,
+
   // Доступные года для отдела
   availableYears: (deptId) => `available-years-${deptId}`,
 
