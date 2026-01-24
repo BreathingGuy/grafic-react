@@ -12,8 +12,16 @@ export function useKeyboardShortcuts() {
   // Копируется только первый (активный) регион выделения
   const copySelected = useCallback(() => {
     const { getAllSelections, setStatus, setCopiedData } = useSelectionStore.getState();
-    const { draftSchedule, employeeIds } = useAdminStore.getState();
+    const adminState = useAdminStore.getState();
+    const { draftSchedule, employeeIds } = adminState;
     const { slotToDate } = useDateAdminStore.getState();
+
+    // ВАЖНО: Проверяем, что данные загружены
+    if (!employeeIds || employeeIds.length === 0) {
+      setStatus('Данные не загружены');
+      console.warn('copySelected: employeeIds пустой', { employeeIds, adminState });
+      return;
+    }
 
     const allSelections = getAllSelections();
     if (allSelections.length === 0) {
@@ -59,13 +67,21 @@ export function useKeyboardShortcuts() {
       setStatus('Ошибка копирования');
       console.error(err);
     });
-  }, []);
+  }, []); // Пустые зависимости - функция всегда получает актуальные данные через getState()
 
   // === ВСТАВКА (Ctrl+V) ===
   const pasteSelected = useCallback(() => {
     const { getAllSelections, setStatus } = useSelectionStore.getState();
-    const { saveUndoState, batchUpdateDraftCells, employeeIds } = useAdminStore.getState();
+    const adminState = useAdminStore.getState();
+    const { saveUndoState, batchUpdateDraftCells, employeeIds } = adminState;
     const { slotToDate } = useDateAdminStore.getState();
+
+    // ВАЖНО: Проверяем, что данные загружены
+    if (!employeeIds || employeeIds.length === 0) {
+      setStatus('Данные не загружены');
+      console.warn('pasteSelected: employeeIds пустой', { employeeIds, adminState });
+      return;
+    }
 
     const allSelections = getAllSelections();
     if (allSelections.length === 0) {
@@ -201,16 +217,27 @@ export function useKeyboardShortcuts() {
   // === ГЛОБАЛЬНЫЙ ОБРАБОТЧИК ===
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Проверяем админ режим
+      const { isAdminMode } = useAdminStore.getState();
+
+      if (!isAdminMode) {
+        return; // Горячие клавиши работают только в админ режиме
+      }
+
       if (e.ctrlKey && e.key === 'c') {
+        console.log('🔑 Ctrl+C pressed');
         e.preventDefault();
         copySelected();
       } else if (e.ctrlKey && e.key === 'v') {
+        console.log('🔑 Ctrl+V pressed');
         e.preventDefault();
         pasteSelected();
       } else if (e.ctrlKey && e.key === 'z') {
+        console.log('🔑 Ctrl+Z pressed');
         e.preventDefault();
         undo();
       } else if (e.key === 'Escape') {
+        console.log('🔑 Escape pressed');
         useSelectionStore.getState().clearSelection();
         useSelectionStore.getState().setCopiedData(false);
       }
