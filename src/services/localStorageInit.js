@@ -65,12 +65,48 @@ const fetchJsonFile = async (deptId, year) => {
 };
 
 /**
+ * Нормализовать данные расписания из формата JSON в формат приложения
+ */
+const normalizeScheduleData = (rawData, year) => {
+  const employeeById = {};
+  const employeeIds = [];
+  const scheduleMap = {};
+
+  rawData.data.forEach(employee => {
+    const employeeId = String(employee.id);
+
+    employeeIds.push(employeeId);
+
+    employeeById[employeeId] = {
+      id: employeeId,
+      name: `${employee.fio.family} ${employee.fio.name1[0]}.${employee.fio.name2[0]}.`,
+      fullName: `${employee.fio.family} ${employee.fio.name1} ${employee.fio.name2}`,
+      position: employee.position || ''
+    };
+
+    Object.entries(employee.schedule).forEach(([dateKey, status]) => {
+      // dateKey приходит как "01-01", преобразуем в "2025-01-01"
+      const fullDate = `${year}-${dateKey}`;
+      const key = `${employeeId}-${fullDate}`;
+      scheduleMap[key] = status;
+    });
+  });
+
+  return { employeeById, employeeIds, scheduleMap };
+};
+
+/**
  * Сохранить данные расписания в localStorage
+ * Данные нормализуются в единый формат: { employeeIds, employeeById, scheduleMap }
  */
 const saveScheduleToStorage = (deptId, year, rawData) => {
   const key = STORAGE_KEYS.schedule(deptId, year);
-  localStorage.setItem(key, JSON.stringify(rawData));
-  console.log(`✅ Saved ${key}`);
+
+  // Нормализуем данные в единый формат
+  const normalizedData = normalizeScheduleData(rawData, year);
+
+  localStorage.setItem(key, JSON.stringify(normalizedData));
+  console.log(`✅ Saved ${key} (normalized: ${normalizedData.employeeIds.length} employees, ${Object.keys(normalizedData.scheduleMap).length} cells)`);
 };
 
 /**

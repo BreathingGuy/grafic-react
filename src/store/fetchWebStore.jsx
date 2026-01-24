@@ -108,30 +108,29 @@ export const useFetchWebStore = create(
 
         const data = JSON.parse(stored);
 
-        // Проверяем формат данных
+        // Все данные теперь в едином нормализованном формате
         let normalized;
+
         if (data.draftSchedule && data.employeeIds && data.employeeById) {
-          // Draft формат (уже нормализованный)
-          console.log(`📋 Данные уже в нормализованном формате (draft)`);
+          // Draft формат
+          console.log(`📋 Загружен draft (${data.employeeIds.length} сотрудников)`);
           normalized = {
             scheduleMap: data.draftSchedule,
             employeeIds: data.employeeIds,
             employeeById: data.employeeById
           };
         } else if (data.scheduleMap && data.employeeIds && data.employeeById) {
-          // Production формат (создается при createDepartment)
-          console.log(`📋 Данные в формате production (scheduleMap)`);
+          // Production формат (единый нормализованный формат)
+          console.log(`📋 Загружен production (${data.employeeIds.length} сотрудников, ${Object.keys(data.scheduleMap).length} ячеек)`);
           normalized = {
             scheduleMap: data.scheduleMap,
             employeeIds: data.employeeIds,
             employeeById: data.employeeById
           };
-        } else if (data.data && Array.isArray(data.data)) {
-          // JSON формат из файлов
-          console.log(`📋 Нормализация данных из JSON формата`);
-          normalized = get().normalizeScheduleData(data, year);
         } else {
-          throw new Error('Неизвестный формат данных');
+          // Неизвестный формат - возможно данные не инициализированы
+          console.error('⚠️ Данные в неизвестном формате:', data);
+          throw new Error(`Данные ${departmentId}/${year} в неправильном формате. Возможно требуется переинициализация localStorage.`);
         }
 
         get().setLoading(loadingKey, false);
@@ -143,37 +142,6 @@ export const useFetchWebStore = create(
         get().setLoading(loadingKey, false);
         throw error;
       }
-    },
-
-    /**
-     * Нормализация данных расписания с сервера
-     */
-    normalizeScheduleData: (rawData, year) => {
-      const employeeById = {};
-      const employeeIds = [];
-      const scheduleMap = {};
-
-      rawData.data.forEach(employee => {
-        const employeeId = String(employee.id);
-
-        employeeIds.push(employeeId);
-
-        employeeById[employeeId] = {
-          id: employeeId,
-          name: `${employee.fio.family} ${employee.fio.name1[0]}.${employee.fio.name2[0]}.`,
-          fullName: `${employee.fio.family} ${employee.fio.name1} ${employee.fio.name2}`,
-          position: employee.position || ''
-        };
-
-        Object.entries(employee.schedule).forEach(([dateKey, status]) => {
-          // dateKey приходит как "01-01", преобразуем в "2025-01-01"
-          const fullDate = `${year}-${dateKey}`;
-          const key = `${employeeId}-${fullDate}`;
-          scheduleMap[key] = status;
-        });
-      });
-
-      return { employeeById, employeeIds, scheduleMap };
     },
 
     // === DEPARTMENTS API ===
