@@ -62,7 +62,7 @@ export const usePostWebStore = create(
         // Имитация задержки сети
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Загружаем текущее расписание
+        // Загружаем текущее расписание (только scheduleMap)
         const key = STORAGE_KEYS.schedule(departmentId, year);
         const stored = localStorage.getItem(key);
 
@@ -72,27 +72,26 @@ export const usePostWebStore = create(
 
         const scheduleData = JSON.parse(stored);
 
-        // Применяем изменения к данным
-        scheduleData.data.forEach(employee => {
-          const employeeId = String(employee.id);
+        // Применяем изменения к scheduleMap
+        const updatedScheduleMap = { ...scheduleData.scheduleMap, ...changes };
 
-          Object.entries(changes).forEach(([cellKey, newStatus]) => {
-            // cellKey формат: "empId-YYYY-MM-DD"
-            if (cellKey.startsWith(`${employeeId}-`)) {
-              const dateKey = cellKey.split('-').slice(1).join('-'); // "YYYY-MM-DD"
-              const monthDay = dateKey.slice(5); // "MM-DD"
-              employee.schedule[monthDay] = newStatus;
-            }
-          });
-        });
+        // Сохраняем обновленное расписание (только scheduleMap)
+        localStorage.setItem(key, JSON.stringify({ scheduleMap: updatedScheduleMap }));
 
-        // Сохраняем обновленное расписание
-        localStorage.setItem(key, JSON.stringify(scheduleData));
-
-        // Создаем версию (snapshot)
+        // Создаем версию (snapshot) - для версий сохраняем полные данные
         const now = new Date();
         const versionId = `${year}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
-        get().createVersion(departmentId, year, versionId, scheduleData);
+
+        // Для версии загружаем также данные сотрудников
+        const employeesKey = STORAGE_KEYS.employees(departmentId);
+        const employeesStored = localStorage.getItem(employeesKey);
+        const employeesData = employeesStored ? JSON.parse(employeesStored) : { employeeIds: [], employeeById: {} };
+
+        get().createVersion(departmentId, year, versionId, {
+          scheduleMap: updatedScheduleMap,
+          employeeIds: employeesData.employeeIds,
+          employeeById: employeesData.employeeById
+        });
 
         get().setSaving('schedule', false);
 
@@ -112,7 +111,7 @@ export const usePostWebStore = create(
      * POST /api/schedule/{deptId}/{year}/create
      * @param {string} departmentId
      * @param {number} year
-     * @param {Object} scheduleData - полные данные расписания
+     * @param {Object} scheduleData - { scheduleMap, employeeIds, employeeById }
      */
     createScheduleYear: async (departmentId, year, scheduleData) => {
       get().setSaving('schedule', true);
@@ -128,8 +127,8 @@ export const usePostWebStore = create(
           throw new Error(`Год ${year} уже существует`);
         }
 
-        // Сохраняем новый год
-        localStorage.setItem(key, JSON.stringify(scheduleData));
+        // Сохраняем только scheduleMap (без employeeIds/employeeById)
+        localStorage.setItem(key, JSON.stringify({ scheduleMap: scheduleData.scheduleMap }));
 
         // Обновляем список доступных годов
         const yearsKey = STORAGE_KEYS.availableYears(departmentId);
@@ -338,14 +337,9 @@ export const usePostWebStore = create(
         const yearsKey = STORAGE_KEYS.availableYears(departmentId);
         localStorage.setItem(yearsKey, JSON.stringify([String(currentYear)]));
 
-        // Создать пустое расписание для текущего года
+        // Создать пустое расписание для текущего года (только scheduleMap)
         const scheduleKey = STORAGE_KEYS.schedule(departmentId, currentYear);
-        const emptySchedule = {
-          employeeIds,
-          employeeById,
-          scheduleMap: {} // Пустая карта расписания
-        };
-        localStorage.setItem(scheduleKey, JSON.stringify(emptySchedule));
+        localStorage.setItem(scheduleKey, JSON.stringify({ scheduleMap: {} }));
 
         console.log(`📅 Создан год ${currentYear} с пустым расписанием`);
 
@@ -418,35 +412,22 @@ export const usePostWebStore = create(
           localStorage.setItem(departmentListKey, JSON.stringify(departmentList));
         }
 
-        // 4. Обновить список сотрудников во всех существующих годах
+        // 4. Обновить список сотрудников в draft-расписаниях
+        // Production schedule содержит только scheduleMap, обновлять там нечего
+        // Сотрудники хранятся в employees-dept (уже обновлены выше)
         const yearsKey = STORAGE_KEYS.availableYears(departmentId);
         const yearsStored = localStorage.getItem(yearsKey);
         const years = yearsStored ? JSON.parse(yearsStored) : [];
 
         years.forEach(year => {
-          // Обновить production расписание
-          const scheduleKey = STORAGE_KEYS.schedule(departmentId, year);
-          const scheduleStored = localStorage.getItem(scheduleKey);
-
-          if (scheduleStored) {
-            const schedule = JSON.parse(scheduleStored);
-
-            // Обновляем employeeIds и employeeById
-            schedule.employeeIds = employeeIds;
-            schedule.employeeById = employeeById;
-
-            localStorage.setItem(scheduleKey, JSON.stringify(schedule));
-            console.log(`✅ Обновлены сотрудники для года ${year} (production)`);
-          }
-
-          // Обновить draft расписание (если есть)
+          // Обновить draft расписание (если есть) - draft хранит полные данные
           const draftKey = STORAGE_KEYS.draft(departmentId, year);
           const draftStored = localStorage.getItem(draftKey);
 
           if (draftStored) {
             const draft = JSON.parse(draftStored);
 
-            // Обновляем employeeIds и employeeById
+            // Обновляем employeeIds и employeeById в draft
             draft.employeeIds = employeeIds;
             draft.employeeById = employeeById;
 

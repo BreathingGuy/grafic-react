@@ -97,16 +97,16 @@ const normalizeScheduleData = (rawData, year) => {
 
 /**
  * Сохранить данные расписания в localStorage
- * Данные нормализуются в единый формат: { employeeIds, employeeById, scheduleMap }
+ * Сохраняется ТОЛЬКО график (scheduleMap), без данных о сотрудниках
  */
 const saveScheduleToStorage = (deptId, year, rawData) => {
   const key = STORAGE_KEYS.schedule(deptId, year);
 
-  // Нормализуем данные в единый формат
-  const normalizedData = normalizeScheduleData(rawData, year);
+  // Нормализуем данные и извлекаем только scheduleMap
+  const { scheduleMap } = normalizeScheduleData(rawData, year);
 
-  localStorage.setItem(key, JSON.stringify(normalizedData));
-  console.log(`✅ Saved ${key} (normalized: ${normalizedData.employeeIds.length} employees, ${Object.keys(normalizedData.scheduleMap).length} cells)`);
+  localStorage.setItem(key, JSON.stringify({ scheduleMap }));
+  console.log(`✅ Saved ${key} (${Object.keys(scheduleMap).length} cells)`);
 };
 
 /**

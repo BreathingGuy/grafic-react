@@ -82,56 +82,84 @@ export const useFetchWebStore = create(
         // Имитация задержки сети
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Выбираем правильный ключ в зависимости от режима
-        let key, stored;
+        let scheduleMap;
+        let employeeIds;
+        let employeeById;
 
         if (mode === 'draft') {
-          // Сначала пытаемся загрузить draft
-          key = STORAGE_KEYS.draft(departmentId, year);
-          stored = localStorage.getItem(key);
+          // Draft режим - загружаем draft (содержит все данные)
+          const draftKey = STORAGE_KEYS.draft(departmentId, year);
+          const draftStored = localStorage.getItem(draftKey);
 
-          // Если draft не найден - fallback на production
-          if (!stored) {
-            console.log(`📋 Draft не найден, загружаем production как fallback`);
-            key = STORAGE_KEYS.schedule(departmentId, year);
-            stored = localStorage.getItem(key);
+          if (draftStored) {
+            // Draft найден - используем его
+            const draftData = JSON.parse(draftStored);
+            scheduleMap = draftData.draftSchedule;
+            employeeIds = draftData.employeeIds;
+            employeeById = draftData.employeeById;
+            console.log(`📋 Загружен draft (${employeeIds.length} сотрудников)`);
+          } else {
+            // Draft не найден - fallback на production + employees
+            console.log(`📋 Draft не найден, загружаем production`);
+            const scheduleKey = STORAGE_KEYS.schedule(departmentId, year);
+            const scheduleStored = localStorage.getItem(scheduleKey);
+
+            if (!scheduleStored) {
+              throw new Error(`Расписание ${departmentId}/${year} не найдено`);
+            }
+
+            const scheduleData = JSON.parse(scheduleStored);
+            scheduleMap = scheduleData.scheduleMap;
+
+            // Загружаем сотрудников из employees-dept
+            const employeesKey = STORAGE_KEYS.employees(departmentId);
+            const employeesStored = localStorage.getItem(employeesKey);
+
+            if (!employeesStored) {
+              throw new Error(`Сотрудники отдела ${departmentId} не найдены`);
+            }
+
+            const employeesData = JSON.parse(employeesStored);
+            employeeIds = employeesData.employeeIds;
+            employeeById = employeesData.employeeById;
           }
         } else {
-          // Production mode - загружаем только production
-          key = STORAGE_KEYS.schedule(departmentId, year);
-          stored = localStorage.getItem(key);
+          // Production mode - загружаем schedule + employees раздельно
+          const scheduleKey = STORAGE_KEYS.schedule(departmentId, year);
+          const scheduleStored = localStorage.getItem(scheduleKey);
+
+          if (!scheduleStored) {
+            throw new Error(`Расписание ${departmentId}/${year} не найдено`);
+          }
+
+          const scheduleData = JSON.parse(scheduleStored);
+          scheduleMap = scheduleData.scheduleMap;
+
+          // Загружаем сотрудников из employees-dept
+          const employeesKey = STORAGE_KEYS.employees(departmentId);
+          const employeesStored = localStorage.getItem(employeesKey);
+
+          if (!employeesStored) {
+            throw new Error(`Сотрудники отдела ${departmentId} не найдены`);
+          }
+
+          const employeesData = JSON.parse(employeesStored);
+          employeeIds = employeesData.employeeIds;
+          employeeById = employeesData.employeeById;
+
+          console.log(`📋 Загружен production (${employeeIds.length} сотрудников, ${Object.keys(scheduleMap).length} ячеек)`);
         }
 
-        if (!stored) {
-          throw new Error(`Расписание ${departmentId}/${year} не найдено в localStorage`);
+        // Проверка формата
+        if (!scheduleMap || !employeeIds || !employeeById) {
+          throw new Error(`Данные ${departmentId}/${year} в неправильном формате. Требуется переинициализация localStorage.`);
         }
 
-        const data = JSON.parse(stored);
-
-        // Все данные теперь в едином нормализованном формате
-        let normalized;
-
-        if (data.draftSchedule && data.employeeIds && data.employeeById) {
-          // Draft формат
-          console.log(`📋 Загружен draft (${data.employeeIds.length} сотрудников)`);
-          normalized = {
-            scheduleMap: data.draftSchedule,
-            employeeIds: data.employeeIds,
-            employeeById: data.employeeById
-          };
-        } else if (data.scheduleMap && data.employeeIds && data.employeeById) {
-          // Production формат (единый нормализованный формат)
-          console.log(`📋 Загружен production (${data.employeeIds.length} сотрудников, ${Object.keys(data.scheduleMap).length} ячеек)`);
-          normalized = {
-            scheduleMap: data.scheduleMap,
-            employeeIds: data.employeeIds,
-            employeeById: data.employeeById
-          };
-        } else {
-          // Неизвестный формат - возможно данные не инициализированы
-          console.error('⚠️ Данные в неизвестном формате:', data);
-          throw new Error(`Данные ${departmentId}/${year} в неправильном формате. Возможно требуется переинициализация localStorage.`);
-        }
+        const normalized = {
+          scheduleMap,
+          employeeIds,
+          employeeById
+        };
 
         get().setLoading(loadingKey, false);
         return normalized;
