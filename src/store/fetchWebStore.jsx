@@ -87,7 +87,7 @@ export const useFetchWebStore = create(
         let employeeById;
 
         if (mode === 'draft') {
-          // Draft режим - загружаем draft (содержит все данные)
+          // Draft режим - загружаем draft (только scheduleMap)
           const draftKey = STORAGE_KEYS.draft(departmentId, year);
           const draftStored = localStorage.getItem(draftKey);
 
@@ -95,11 +95,9 @@ export const useFetchWebStore = create(
             // Draft найден - используем его
             const draftData = JSON.parse(draftStored);
             scheduleMap = draftData.draftSchedule;
-            employeeIds = draftData.employeeIds;
-            employeeById = draftData.employeeById;
-            console.log(`📋 Загружен draft (${employeeIds.length} сотрудников)`);
+            console.log(`📋 Загружен draft (${Object.keys(scheduleMap).length} ячеек)`);
           } else {
-            // Draft не найден - fallback на production + employees
+            // Draft не найден - fallback на production
             console.log(`📋 Draft не найден, загружаем production`);
             const scheduleKey = STORAGE_KEYS.schedule(departmentId, year);
             const scheduleStored = localStorage.getItem(scheduleKey);
@@ -110,19 +108,20 @@ export const useFetchWebStore = create(
 
             const scheduleData = JSON.parse(scheduleStored);
             scheduleMap = scheduleData.scheduleMap;
-
-            // Загружаем сотрудников из employees-dept
-            const employeesKey = STORAGE_KEYS.employees(departmentId);
-            const employeesStored = localStorage.getItem(employeesKey);
-
-            if (!employeesStored) {
-              throw new Error(`Сотрудники отдела ${departmentId} не найдены`);
-            }
-
-            const employeesData = JSON.parse(employeesStored);
-            employeeIds = employeesData.employeeIds;
-            employeeById = employeesData.employeeById;
           }
+
+          // Сотрудники ВСЕГДА загружаются из employees-dept (как в production)
+          const employeesKey = STORAGE_KEYS.employees(departmentId);
+          const employeesStored = localStorage.getItem(employeesKey);
+
+          if (!employeesStored) {
+            throw new Error(`Сотрудники отдела ${departmentId} не найдены`);
+          }
+
+          const employeesData = JSON.parse(employeesStored);
+          employeeIds = employeesData.employeeIds;
+          employeeById = employeesData.employeeById;
+          console.log(`📋 Загружены сотрудники из employees-dept (${employeeIds.length} человек)`);
         } else {
           // Production mode - загружаем schedule + employees раздельно
           const scheduleKey = STORAGE_KEYS.schedule(departmentId, year);

@@ -397,7 +397,7 @@ export const useAdminStore = create(
          * Сохраняет черновик для работы между админами
          */
         saveDraftToStorage: async () => {
-          const { draftSchedule, employeeIds, employeeById, editingDepartmentId, editingYear } = get();
+          const { draftSchedule, editingDepartmentId, editingYear } = get();
 
           if (!editingDepartmentId || !editingYear) {
             console.error('Нет активного draft для сохранения');
@@ -405,12 +405,10 @@ export const useAdminStore = create(
           }
 
           try {
-            // Сохраняем через postWebStore
+            // Сохраняем через postWebStore (только draftSchedule)
             const postStore = usePostWebStore.getState();
             await postStore.saveDraft(editingDepartmentId, editingYear, {
-              draftSchedule,
-              employeeIds,
-              employeeById
+              draftSchedule
             });
 
             // Обновляем timestamp последнего сохранения
@@ -668,52 +666,39 @@ export const useAdminStore = create(
               }
             }
 
-            // Создать структуру данных в формате JSON
+            // Создать нормализованную структуру данных { scheduleMap, employeeIds, employeeById }
+            const scheduleMap = {};
+
+            employeeIds.forEach(empId => {
+              // Генерируем пустые ячейки для всего года
+              const startDate = new Date(year, 0, 1);
+              const endDate = new Date(year, 11, 31);
+
+              const currentDate = new Date(startDate);
+              while (currentDate <= endDate) {
+                const dateStr = currentDate.toISOString().slice(0, 10);
+                const key = `${empId}-${dateStr}`;
+                scheduleMap[key] = '';  // Пустая ячейка
+                currentDate.setDate(currentDate.getDate() + 1);
+              }
+
+              // Добавляем Q1 следующего года для offset таблицы
+              const nextYearStart = new Date(year + 1, 0, 1);
+              const nextYearEnd = new Date(year + 1, 2, 31); // конец марта
+
+              const nextYearDate = new Date(nextYearStart);
+              while (nextYearDate <= nextYearEnd) {
+                const dateStr = nextYearDate.toISOString().slice(0, 10);
+                const key = `${empId}-${dateStr}`;
+                scheduleMap[key] = '';  // Пустая ячейка
+                nextYearDate.setDate(nextYearDate.getDate() + 1);
+              }
+            });
+
             const scheduleData = {
-              users_id: employeeIds.join(','),
-              data: employeeIds.map(empId => {
-                const employee = employeeById[empId];
-                const schedule = {};
-
-                // Генерируем пустые ячейки для всего года
-                const startDate = new Date(year, 0, 1);
-                const endDate = new Date(year, 11, 31);
-
-                const currentDate = new Date(startDate);
-                while (currentDate <= endDate) {
-                  const monthDay = String(currentDate.getMonth() + 1).padStart(2, '0') + '-' +
-                                   String(currentDate.getDate()).padStart(2, '0');
-                  schedule[monthDay] = '';  // Пустая ячейка
-                  currentDate.setDate(currentDate.getDate() + 1);
-                }
-
-                // Добавляем Q1 следующего года для offset таблицы
-                const nextYearStart = new Date(year + 1, 0, 1);
-                const nextYearEnd = new Date(year + 1, 2, 31); // конец марта
-
-                const nextYearDate = new Date(nextYearStart);
-                while (nextYearDate <= nextYearEnd) {
-                  const monthDay = String(nextYearDate.getMonth() + 1).padStart(2, '0') + '-' +
-                                   String(nextYearDate.getDate()).padStart(2, '0');
-                  schedule[monthDay] = '';  // Пустая ячейка
-                  nextYearDate.setDate(nextYearDate.getDate() + 1);
-                }
-
-                // Разбираем fullName обратно на части (если возможно)
-                const fullNameParts = employee.fullName.split(' ');
-                const fio = {
-                  family: fullNameParts[0] || '',
-                  name1: fullNameParts[1] || '',
-                  name2: fullNameParts[2] || ''
-                };
-
-                return {
-                  id: Number(empId),
-                  fio,
-                  position: employee.position || '',
-                  schedule
-                };
-              })
+              scheduleMap,
+              employeeIds,
+              employeeById
             };
 
             // Сохранить в localStorage через postWebStore

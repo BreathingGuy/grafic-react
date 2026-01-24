@@ -161,7 +161,7 @@ export const usePostWebStore = create(
      * PUT /api/draft/{deptId}/{year}
      * @param {string} departmentId
      * @param {number} year
-     * @param {Object} draftData - { draftSchedule, employeeIds, employeeById }
+     * @param {Object} draftData - { draftSchedule }
      */
     saveDraft: async (departmentId, year, draftData) => {
       get().setSaving('draft', true);
@@ -170,8 +170,9 @@ export const usePostWebStore = create(
       try {
         const key = STORAGE_KEYS.draft(departmentId, year);
 
+        // Сохраняем только draftSchedule, без employeeIds/employeeById
         const payload = {
-          ...draftData,
+          draftSchedule: draftData.draftSchedule,
           lastSaved: new Date().toISOString()
         };
 
@@ -412,29 +413,10 @@ export const usePostWebStore = create(
           localStorage.setItem(departmentListKey, JSON.stringify(departmentList));
         }
 
-        // 4. Обновить список сотрудников в draft-расписаниях
-        // Production schedule содержит только scheduleMap, обновлять там нечего
-        // Сотрудники хранятся в employees-dept (уже обновлены выше)
-        const yearsKey = STORAGE_KEYS.availableYears(departmentId);
-        const yearsStored = localStorage.getItem(yearsKey);
-        const years = yearsStored ? JSON.parse(yearsStored) : [];
-
-        years.forEach(year => {
-          // Обновить draft расписание (если есть) - draft хранит полные данные
-          const draftKey = STORAGE_KEYS.draft(departmentId, year);
-          const draftStored = localStorage.getItem(draftKey);
-
-          if (draftStored) {
-            const draft = JSON.parse(draftStored);
-
-            // Обновляем employeeIds и employeeById в draft
-            draft.employeeIds = employeeIds;
-            draft.employeeById = employeeById;
-
-            localStorage.setItem(draftKey, JSON.stringify(draft));
-            console.log(`✅ Обновлены сотрудники для года ${year} (draft)`);
-          }
-        });
+        // 4. Обновление сотрудников в draft не требуется
+        // Draft хранит только draftSchedule (график)
+        // Сотрудники берутся из employees-dept при загрузке (уже обновлены выше)
+        console.log('✅ Сотрудники обновлены в employees-dept, draft использует их автоматически');
 
         get().setSaving('department', false);
 
