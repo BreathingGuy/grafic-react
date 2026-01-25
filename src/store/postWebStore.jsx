@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
 import { STORAGE_KEYS } from '../services/localStorageInit';
 
 /**
@@ -16,8 +15,7 @@ import { STORAGE_KEYS } from '../services/localStorageInit';
  * - baseVersion    — версия прода, на основе которой создан черновик
  * - changedCells   — ячейки, изменённые в черновике
  */
-export const usePostWebStore = create(
-  devtools((set, get) => ({
+export const usePostWebStore = create((set, get) => ({
     // === STATE ===
     saving: {
       schedule: false,
@@ -344,7 +342,6 @@ export const usePostWebStore = create(
       return get().deleteDraftSchedule(departmentId, year);
     }
 
-  }), { name: 'PostWebStore' })
-);
+}));
 
 export default usePostWebStore;

@@ -1,9 +1,7 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
 import { useFetchWebStore } from './fetchWebStore';
 
-export const useScheduleStore = create(
-  devtools((set, get) => ({
+export const useScheduleStore = create((set, get) => ({
     // === STATE ===
     scheduleMap: {},               // { "emp-1-2025-01-15": "Д", ... }
 
@@ -243,5 +241,4 @@ export const useScheduleStore = create(
     // connectWebSocket, disconnectWebSocket, subscribeToUpdates, etc.
     // См. предыдущую версию для WebSocket логики
 
-  }), { name: 'ScheduleStore' })
-);
+}));

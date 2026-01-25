@@ -1,14 +1,13 @@
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
 import { useFetchWebStore } from './fetchWebStore';
 import { usePostWebStore } from './postWebStore';
 import { useScheduleStore } from './scheduleStore';
 import { useDateAdminStore } from './dateAdminStore';
 
 export const useAdminStore = create(
-  devtools(
-    persist(
-      (set, get) => ({
+  persist(
+    (set, get) => ({
         // === AUTHENTICATION ===
         isAuthenticated: false,
         user: null,                    // { userId, email, name, token }
@@ -758,9 +757,7 @@ export const useAdminStore = create(
           // НЕ сохраняем draft — он должен загружаться заново
         })
       }
-    ),
-    { name: 'AdminStore' }
-  )
+    )
 );
 
 export default useAdminStore;

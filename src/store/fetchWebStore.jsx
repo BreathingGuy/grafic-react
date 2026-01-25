@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
 import { STORAGE_KEYS } from '../services/localStorageInit';
 
 /**
@@ -10,8 +9,7 @@ import { STORAGE_KEYS } from '../services/localStorageInit';
  * - draft-schedule-{dept}-{year} → { scheduleMap, baseVersion, changedCells }
  * - employees-{dept}             → { employeeById, employeeIds }
  */
-export const useFetchWebStore = create(
-  devtools((set, get) => ({
+export const useFetchWebStore = create((set, get) => ({
     // === STATE ===
     loading: {
       schedule: false,
@@ -397,7 +395,6 @@ export const useFetchWebStore = create(
       }
     },
 
-  }), { name: 'FetchWebStore' })
-);
+}));
 
 export default useFetchWebStore;

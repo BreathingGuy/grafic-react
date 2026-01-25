@@ -1,14 +1,11 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
 
 /**
  * Фабрика для создания selection store
  * Используется для main и offset таблиц
  */
-export function createSelectionStore(name) {
-  return create(
-    devtools(
-      (set, get) => ({
+export function createSelectionStore() {
+  return create((set, get) => ({
         // === STATE ===
         startCell: null,       // { employeeId, slotIndex }
         endCell: null,         // { employeeId, slotIndex }
@@ -95,8 +92,5 @@ export function createSelectionStore(name) {
           const { startCell, endCell } = get();
           return startCell !== null && endCell !== null;
         }
-      }),
-      { name }
-    )
-  );
+  }));
 }
