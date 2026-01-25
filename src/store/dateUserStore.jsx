@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
 import {
   VISIBLE_SLOTS,
   createSlotMapping,
@@ -21,8 +20,7 @@ const DEFAULT_MAX_YEAR = CURRENT_YEAR + 10;
  * Поддерживает периоды: 7days, 1month, 3months, 1year
  * Навигация вперёд/назад с проверкой границ
  */
-export const useDateUserStore = create(
-  devtools((set, get) => ({
+export const useDateUserStore = create((set, get) => ({
     // === STATE ===
 
     // Границы навигации (динамические)
@@ -260,8 +258,7 @@ export const useDateUserStore = create(
       return get().currentYear;
     }
 
-  }), { name: 'DateUserStore' })
-);
+}));
 
 // Для обратной совместимости (временно)
 export const useDateStore = useDateUserStore;

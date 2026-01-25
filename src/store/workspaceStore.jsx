@@ -1,12 +1,10 @@
-import {create} from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { create } from 'zustand';
 
 import { useMetaStore } from './metaStore'
 import { useScheduleStore } from './scheduleStore'
 import { useDateUserStore } from './dateUserStore'
 
-export const useWorkspaceStore = create(
-  devtools((set, get) => ({
+export const useWorkspaceStore = create((set, get) => ({
     // === STATE ===
     currentDepartmentId: null,
 
@@ -60,7 +58,6 @@ export const useWorkspaceStore = create(
       useScheduleStore.getState().clearCache();
       useDateUserStore.getState().resetToCurrentYear();
     }
-  }), { name: 'WorkspaceStore' })
-);
+}));
 
 export default useWorkspaceStore
