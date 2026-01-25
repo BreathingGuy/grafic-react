@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, memo } from 'react';
 import { useSelectionStore } from '../../store/selectionStore';
 import { useAdminStore } from '../../store/adminStore';
 import { useDateAdminStore } from '../../store/dateAdminStore';
@@ -8,6 +8,7 @@ import styles from './Table.module.css';
  * SelectionOverlay - Оверлей для визуализации выделения + CellEditor
  *
  * Поддерживает множественное выделение через Ctrl+click.
+ * Обернут в memo для предотвращения лишних ре-рендеров.
  */
 
 const statusOptions = [
@@ -67,7 +68,7 @@ function computeRegionStyle(startCell, endCell, employeeIds, tableRef) {
  * @param {string} tableId - идентификатор таблицы ('main' | 'offset')
  * @param {Object} slotToDate - маппинг слотов к датам (для offset таблицы передаётся offsetSlotToDate)
  */
-function SelectionOverlay({ tableRef, tableId = 'main', slotToDate: slotToDateProp }) {
+const SelectionOverlay = memo(({ tableRef, tableId = 'main', slotToDate: slotToDateProp }) => {
   const [regionStyles, setRegionStyles] = useState([]);
   const [editorPosition, setEditorPosition] = useState(null);
   const [hoveredValue, setHoveredValue] = useState(null);
@@ -256,6 +257,8 @@ function SelectionOverlay({ tableRef, tableId = 'main', slotToDate: slotToDatePr
       )}
     </>
   );
-}
+});
+
+SelectionOverlay.displayName = 'SelectionOverlay';
 
 export default SelectionOverlay;

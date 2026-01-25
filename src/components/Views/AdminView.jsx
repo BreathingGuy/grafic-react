@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { DepartmentSelector } from '../Selectors/DepartmentSelector';
 import AdminConsole from '../Table/AdminConsole';
+import AdminInitializer from '../Table/AdminInitializer';
 import CreateDepartmentModal from '../CreateDepartment/CreateDepartmentModal';
 import { useAdminStore } from '../../store/adminStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
@@ -11,6 +12,10 @@ import { useFetchWebStore } from '../../store/fetchWebStore';
 /**
  * AdminView - Режим редактирования расписания
  * Изолированный компонент для админского интерфейса
+ *
+ * Использует два компонента:
+ * - AdminInitializer: логика, подписки, keyboard shortcuts (без UI)
+ * - AdminConsole: UI компонент (обернут в memo)
  */
 export default function AdminView() {
   const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
@@ -206,7 +211,10 @@ export default function AdminView() {
       </div>
 
       {currentDepartmentId ? (
-        <AdminConsole />
+        <>
+          <AdminInitializer />
+          <AdminConsole />
+        </>
       ) : (
         <div className="empty-state">
           <p>Выберите отдел для редактирования расписания</p>
