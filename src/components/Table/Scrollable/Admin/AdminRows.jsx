@@ -3,17 +3,18 @@ import { useAdminStore } from '../../../../store/adminStore';
 
 import AdminEmployeeRow from '../../Rows/AdminEmployeeRow';
 
-const AdminRows = memo(({tableId = 'main'}) => {
+const AdminRows = memo(({ tableId = 'main', useSelectionStore }) => {
     const employeeIds = useAdminStore(state => state.employeeIds);
 
     return (
         <tbody>
             {employeeIds.map((empId, empIdx) => (
                 <AdminEmployeeRow
-                key={empId}
-                empId={empId}
-                empIdx={empIdx}
-                tableId={tableId}
+                  key={empId}
+                  empId={empId}
+                  empIdx={empIdx}
+                  tableId={tableId}
+                  useSelectionStore={useSelectionStore}
                 />
             ))}
         </tbody>

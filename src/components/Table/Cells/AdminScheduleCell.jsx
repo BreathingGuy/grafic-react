@@ -1,7 +1,7 @@
 import { memo, useState, useCallback } from 'react';
 import { useAdminStore } from '../../../store/adminStore';
 import { useDateAdminStore } from '../../../store/dateAdminStore';
-import { useSelectionStore } from '../../../store/selectionStore';
+import { useClipboardStore } from '../../../store/selection';
 import CellEditor from './CellEditor';
 
 /**
@@ -11,8 +11,9 @@ import CellEditor from './CellEditor';
  * Для единичной ячейки редактор открывается по двойному клику.
  *
  * @param {string} tableId - 'main' | 'offset' для выбора slotToDate из store
+ * @param {Function} useSelectionStore - хук selection store (useMainSelectionStore или useOffsetSelectionStore)
  */
-const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main' }) => {
+const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main', useSelectionStore }) => {
   // Берём дату напрямую из store в зависимости от tableId
   // Это гарантирует ререндер при смене года
   const date = useDateAdminStore(state =>
@@ -32,19 +33,22 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
   const handleMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
     e.preventDefault();
-    useSelectionStore.getState().startSelection(employeeId, slotIndex, e.ctrlKey || e.metaKey, tableId);
-  }, [employeeId, slotIndex, tableId]);
+    // Устанавливаем активную таблицу в clipboardStore
+    useClipboardStore.getState().setActiveTable(tableId);
+    // Начинаем выделение в переданном сторе
+    useSelectionStore.getState().startSelection(employeeId, slotIndex, e.ctrlKey || e.metaKey);
+  }, [employeeId, slotIndex, tableId, useSelectionStore]);
 
   const handleMouseOver = useCallback(() => {
     if (!useSelectionStore.getState().isDragging) return;
     useSelectionStore.getState().updateSelection(employeeId, slotIndex);
-  }, [employeeId, slotIndex]);
+  }, [employeeId, slotIndex, useSelectionStore]);
 
   const handleMouseUp = useCallback(() => {
     if (useSelectionStore.getState().isDragging) {
       useSelectionStore.getState().endSelection();
     }
-  }, []);
+  }, [useSelectionStore]);
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);
@@ -81,7 +85,13 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
       )}
     </td>
   );
-}, (prev, next) => prev.employeeId === next.employeeId && prev.slotIndex === next.slotIndex && prev.empIdx === next.empIdx && prev.tableId === next.tableId);
+}, (prev, next) =>
+  prev.employeeId === next.employeeId &&
+  prev.slotIndex === next.slotIndex &&
+  prev.empIdx === next.empIdx &&
+  prev.tableId === next.tableId &&
+  prev.useSelectionStore === next.useSelectionStore
+);
 
 AdminScheduleCell.displayName = 'AdminScheduleCell';
 

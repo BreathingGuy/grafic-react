@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react';
 import { useAdminStore } from '../../../store/adminStore';
-import { useSelectionStore } from '../../../store/selectionStore';
+import { useClipboardStore } from '../../../store/selection';
 
 /**
  * AdminHeader - Заголовок и кнопки управления админ-консоли
@@ -13,7 +13,6 @@ const AdminHeader = memo(() => {
   const publishDraft = useAdminStore(s => s.publishDraft);
   const saveDraftToStorage = useAdminStore(s => s.saveDraftToStorage);
   const discardDraft = useAdminStore(s => s.discardDraft);
-  const clearSelection = useSelectionStore(s => s.clearSelection);
 
   const handlePublish = useCallback(async () => {
     if (window.confirm('Опубликовать изменения?')) {
@@ -25,9 +24,9 @@ const AdminHeader = memo(() => {
   const handleDiscard = useCallback(() => {
     if (window.confirm('Отменить все изменения?')) {
       discardDraft();
-      clearSelection();
+      useClipboardStore.getState().clearAllSelections();
     }
-  }, [discardDraft, clearSelection]);
+  }, [discardDraft]);
 
   const handleSaveDraft = useCallback(async () => {
     try {

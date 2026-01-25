@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useAdminStore } from '../../store/adminStore';
-import { useSelectionStore } from '../../store/selectionStore';
+import { useClipboardStore } from '../../store/selection';
 import { useDateAdminStore } from '../../store/dateAdminStore';
 import { useDateUserStore } from '../../store/dateUserStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
@@ -37,7 +37,7 @@ function AdminConsole() {
 
     return () => {
       useAdminStore.getState().clearDraft();
-      useSelectionStore.getState().clearSelection();
+      useClipboardStore.getState().clearAllSelections();
     };
   }, [userCurrentYear]);
 

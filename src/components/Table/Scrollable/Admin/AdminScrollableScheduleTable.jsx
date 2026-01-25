@@ -1,6 +1,6 @@
 import { useRef } from 'react';
-import { useAdminStore } from '../../../../store/adminStore';
 import { useDateAdminStore } from '../../../../store/dateAdminStore';
+import { useMainSelectionStore, useOffsetSelectionStore } from '../../../../store/selection';
 
 import AdminDatingComps from './AdminDatingComps';
 import AdminRows from './AdminRows'
@@ -28,18 +28,26 @@ const AdminScrollableScheduleTable = () => {
           <div style={{ position: 'relative' }}>
             <table ref={mainTableRef} className={styles.scrollable_column}>
               <AdminDatingComps tableId="main" />
-              <AdminRows tableId="main"/>
+              <AdminRows tableId="main" useSelectionStore={useMainSelectionStore} />
             </table>
-            <SelectionOverlay tableRef={mainTableRef} tableId="main" slotToDate={slotToDate} />
+            <SelectionOverlay
+              tableRef={mainTableRef}
+              slotToDate={slotToDate}
+              useSelectionStore={useMainSelectionStore}
+            />
           </div>
 
           {/* Offset таблица (апрель-март) */}
           <div style={{ position: 'relative', marginTop: '40px' }}>
             <table ref={offsetTableRef} className={styles.scrollable_column}>
               <AdminDatingComps tableId="offset" />
-              <AdminRows tableId="offset"/>
+              <AdminRows tableId="offset" useSelectionStore={useOffsetSelectionStore} />
             </table>
-            <SelectionOverlay tableRef={offsetTableRef} tableId="offset" slotToDate={offsetSlotToDate} />
+            <SelectionOverlay
+              tableRef={offsetTableRef}
+              slotToDate={offsetSlotToDate}
+              useSelectionStore={useOffsetSelectionStore}
+            />
           </div>
         </div>
     )

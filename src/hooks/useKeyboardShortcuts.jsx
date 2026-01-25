@@ -1,21 +1,41 @@
 import { useEffect, useCallback } from 'react';
-import { useSelectionStore } from '../store/selectionStore';
+import { useMainSelectionStore, useOffsetSelectionStore, useClipboardStore } from '../store/selection';
 import { useAdminStore } from '../store/adminStore';
 import { useDateAdminStore } from '../store/dateAdminStore';
 
 /**
  * useKeyboardShortcuts - Хук для Ctrl+C, Ctrl+V, Ctrl+Z, Escape
  * Поддерживает множественное выделение (Ctrl+click)
+ * Работает с двумя таблицами (main и offset)
  */
 export function useKeyboardShortcuts() {
+  // Получить активный selection store и slotToDate
+  const getActiveContext = useCallback(() => {
+    const { activeTableId } = useClipboardStore.getState();
+    const { slotToDate, offsetSlotToDate } = useDateAdminStore.getState();
+
+    if (activeTableId === 'offset') {
+      return {
+        selectionStore: useOffsetSelectionStore,
+        slotToDate: offsetSlotToDate,
+        tableId: 'offset'
+      };
+    }
+    return {
+      selectionStore: useMainSelectionStore,
+      slotToDate: slotToDate,
+      tableId: 'main'
+    };
+  }, []);
+
   // === КОПИРОВАНИЕ (Ctrl+C) ===
   // Копируется только первый (активный) регион выделения
   const copySelected = useCallback(() => {
-    const { getAllSelections, setStatus, setCopiedData } = useSelectionStore.getState();
+    const { setStatus, setCopiedData } = useClipboardStore.getState();
     const { draftSchedule, employeeIds } = useAdminStore.getState();
-    const { slotToDate } = useDateAdminStore.getState();
+    const { selectionStore, slotToDate } = getActiveContext();
 
-    const allSelections = getAllSelections();
+    const allSelections = selectionStore.getState().getAllSelections();
     if (allSelections.length === 0) {
       setStatus('Выберите ячейки для копирования');
       return;
@@ -59,15 +79,15 @@ export function useKeyboardShortcuts() {
       setStatus('Ошибка копирования');
       console.error(err);
     });
-  }, []);
+  }, [getActiveContext]);
 
   // === ВСТАВКА (Ctrl+V) ===
   const pasteSelected = useCallback(() => {
-    const { getAllSelections, setStatus } = useSelectionStore.getState();
+    const { setStatus } = useClipboardStore.getState();
     const { saveUndoState, batchUpdateDraftCells, employeeIds } = useAdminStore.getState();
-    const { slotToDate } = useDateAdminStore.getState();
+    const { selectionStore, slotToDate } = getActiveContext();
 
-    const allSelections = getAllSelections();
+    const allSelections = selectionStore.getState().getAllSelections();
     if (allSelections.length === 0) {
       setStatus('Выберите ячейки для вставки');
       return;
@@ -183,11 +203,11 @@ export function useKeyboardShortcuts() {
       setStatus('Ошибка вставки');
       console.error(err);
     });
-  }, []);
+  }, [getActiveContext]);
 
   // === ОТМЕНА (Ctrl+Z) ===
   const undo = useCallback(() => {
-    const { setStatus } = useSelectionStore.getState();
+    const { setStatus } = useClipboardStore.getState();
     const { undo: adminUndo } = useAdminStore.getState();
 
     const success = adminUndo();
@@ -211,8 +231,8 @@ export function useKeyboardShortcuts() {
         e.preventDefault();
         undo();
       } else if (e.key === 'Escape') {
-        useSelectionStore.getState().clearSelection();
-        useSelectionStore.getState().setCopiedData(false);
+        useClipboardStore.getState().clearAllSelections();
+        useClipboardStore.getState().setCopiedData(false);
       }
     };
 
