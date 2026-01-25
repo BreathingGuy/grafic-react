@@ -11,8 +11,8 @@ import { STORAGE_KEYS } from '../services/localStorageInit';
  * - employees-{dept}             → { employeeById, employeeIds }
  * - draft-employees-{dept}       → { employeeById, employeeIds }
  *
- * Версионирование:
- * - version        — timestamp последней публикации прода
+ * Версионирование (инкрементное):
+ * - version        — номер версии прода (1, 2, 3, ...)
  * - baseVersion    — версия прода, на основе которой создан черновик
  * - changedCells   — ячейки, изменённые в черновике
  */
@@ -79,14 +79,15 @@ export const usePostWebStore = create(
         const prodData = JSON.parse(stored);
         // Поддержка старого формата (просто scheduleMap) и нового ({ scheduleMap, version })
         const scheduleMap = prodData.scheduleMap || prodData;
+        const currentVersion = prodData.version || 0;
 
         // Применяем изменения
         Object.entries(changes).forEach(([cellKey, newStatus]) => {
           scheduleMap[cellKey] = newStatus;
         });
 
-        // Создаём новую версию
-        const newVersion = Date.now();
+        // Новая версия = текущая + 1
+        const newVersion = currentVersion + 1;
 
         // Сохраняем обновленное расписание с версией
         const newProdData = {
@@ -134,8 +135,8 @@ export const usePostWebStore = create(
           throw new Error(`Год ${year} уже существует`);
         }
 
-        // Создаём версию для нового года
-        const version = Date.now();
+        // Начальная версия для нового года
+        const version = 1;
 
         // Сохраняем новый год с версией
         const data = {

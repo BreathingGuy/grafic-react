@@ -123,7 +123,7 @@ const saveScheduleToStorage = (deptId, year, scheduleMap) => {
   const key = STORAGE_KEYS.schedule(deptId, year);
   const data = {
     scheduleMap,
-    version: Date.now()  // timestamp публикации
+    version: 1  // начальная версия
   };
   localStorage.setItem(key, JSON.stringify(data));
   console.log(`✅ Saved ${key} (${Object.keys(scheduleMap).length} cells, v${data.version})`);
