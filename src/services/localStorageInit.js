@@ -4,15 +4,19 @@
  * При первом запуске приложения копирует данные из /public/*.json
  * в localStorage для имитации backend API.
  *
- * Данные хранятся в НОРМАЛИЗОВАННОМ виде:
- * - schedule-{dept}-{year}       → scheduleMap { "empId-YYYY-MM-DD": "status" }
- * - draft-schedule-{dept}-{year} → scheduleMap черновика
+ * Данные хранятся в НОРМАЛИЗОВАННОМ виде с версионированием:
+ * - schedule-{dept}-{year}       → { scheduleMap, version }
+ * - draft-schedule-{dept}-{year} → { scheduleMap, baseVersion, changedCells }
  * - employees-{dept}             → { employeeById, employeeIds }
  * - draft-employees-{dept}       → { employeeById, employeeIds } черновика
+ *
+ * Версионирование позволяет определить:
+ * - baseVersion === version → черновик синхронизирован с продом
+ * - baseVersion !== version → черновик устарел, нужна полная публикация
  */
 
 const INIT_FLAG_KEY = 'grafic-app-initialized';
-const STORAGE_VERSION = '2.0'; // Версия увеличена из-за нового формата
+const STORAGE_VERSION = '3.0'; // Версия увеличена: добавлено версионирование расписаний
 
 /**
  * Конфигурация данных для загрузки
@@ -113,11 +117,16 @@ const normalizeRawData = (rawData, year) => {
 
 /**
  * Сохранить нормализованное расписание в localStorage
+ * Включает version для отслеживания изменений
  */
 const saveScheduleToStorage = (deptId, year, scheduleMap) => {
   const key = STORAGE_KEYS.schedule(deptId, year);
-  localStorage.setItem(key, JSON.stringify(scheduleMap));
-  console.log(`✅ Saved ${key} (${Object.keys(scheduleMap).length} cells)`);
+  const data = {
+    scheduleMap,
+    version: Date.now()  // timestamp публикации
+  };
+  localStorage.setItem(key, JSON.stringify(data));
+  console.log(`✅ Saved ${key} (${Object.keys(scheduleMap).length} cells, v${data.version})`);
 };
 
 /**

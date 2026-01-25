@@ -5,11 +5,16 @@ import { STORAGE_KEYS } from '../services/localStorageInit';
 /**
  * postWebStore — запись данных в localStorage (имитация POST/PUT/DELETE)
  *
- * Все данные хранятся в НОРМАЛИЗОВАННОМ виде:
- * - schedule-{dept}-{year}       → scheduleMap
- * - draft-schedule-{dept}-{year} → scheduleMap черновика
+ * Все данные хранятся в НОРМАЛИЗОВАННОМ виде с версионированием:
+ * - schedule-{dept}-{year}       → { scheduleMap, version }
+ * - draft-schedule-{dept}-{year} → { scheduleMap, baseVersion, changedCells }
  * - employees-{dept}             → { employeeById, employeeIds }
  * - draft-employees-{dept}       → { employeeById, employeeIds }
+ *
+ * Версионирование:
+ * - version        — timestamp последней публикации прода
+ * - baseVersion    — версия прода, на основе которой создан черновик
+ * - changedCells   — ячейки, изменённые в черновике
  */
 export const usePostWebStore = create(
   devtools((set, get) => ({
@@ -51,7 +56,7 @@ export const usePostWebStore = create(
      * @param {string} departmentId
      * @param {number} year
      * @param {Object} changes - { "empId-date": "status", ... }
-     * @returns {Object} результат сохранения
+     * @returns {Object} результат сохранения с newVersion
      */
     publishSchedule: async (departmentId, year, changes) => {
       get().setSaving('schedule', true);
@@ -63,7 +68,7 @@ export const usePostWebStore = create(
         // Имитация задержки сети
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Загружаем текущее расписание (уже нормализованное)
+        // Загружаем текущее расписание
         const key = STORAGE_KEYS.schedule(departmentId, year);
         const stored = localStorage.getItem(key);
 
@@ -71,25 +76,34 @@ export const usePostWebStore = create(
           throw new Error(`Расписание ${departmentId}/${year} не найдено`);
         }
 
-        const scheduleMap = JSON.parse(stored);
+        const prodData = JSON.parse(stored);
+        // Поддержка старого формата (просто scheduleMap) и нового ({ scheduleMap, version })
+        const scheduleMap = prodData.scheduleMap || prodData;
 
         // Применяем изменения
         Object.entries(changes).forEach(([cellKey, newStatus]) => {
           scheduleMap[cellKey] = newStatus;
         });
 
-        // Сохраняем обновленное расписание
-        localStorage.setItem(key, JSON.stringify(scheduleMap));
+        // Создаём новую версию
+        const newVersion = Date.now();
 
-        // Создаем версию (snapshot)
+        // Сохраняем обновленное расписание с версией
+        const newProdData = {
+          scheduleMap,
+          version: newVersion
+        };
+        localStorage.setItem(key, JSON.stringify(newProdData));
+
+        // Создаем snapshot версии
         const now = new Date();
         const versionId = `${year}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
         get().createVersion(departmentId, year, versionId, scheduleMap);
 
         get().setSaving('schedule', false);
 
-        console.log(`✅ Опубликовано ${Object.keys(changes).length} изменений`);
-        return { success: true, changedCount: Object.keys(changes).length };
+        console.log(`✅ Опубликовано ${Object.keys(changes).length} изменений, version: ${newVersion}`);
+        return { success: true, changedCount: Object.keys(changes).length, newVersion };
 
       } catch (error) {
         console.error('publishSchedule error:', error);
@@ -104,6 +118,7 @@ export const usePostWebStore = create(
      * @param {string} departmentId
      * @param {number} year
      * @param {Object} scheduleMap - нормализованное расписание
+     * @returns {Object} { success, year, version }
      */
     createScheduleYear: async (departmentId, year, scheduleMap) => {
       get().setSaving('schedule', true);
@@ -119,8 +134,15 @@ export const usePostWebStore = create(
           throw new Error(`Год ${year} уже существует`);
         }
 
-        // Сохраняем новый год (уже нормализованный scheduleMap)
-        localStorage.setItem(key, JSON.stringify(scheduleMap));
+        // Создаём версию для нового года
+        const version = Date.now();
+
+        // Сохраняем новый год с версией
+        const data = {
+          scheduleMap,
+          version
+        };
+        localStorage.setItem(key, JSON.stringify(data));
 
         // Обновляем список доступных годов
         const yearsKey = STORAGE_KEYS.availableYears(departmentId);
@@ -135,8 +157,8 @@ export const usePostWebStore = create(
 
         get().setSaving('schedule', false);
 
-        console.log(`✅ Год ${year} создан`);
-        return { success: true, year };
+        console.log(`✅ Год ${year} создан, version: ${version}`);
+        return { success: true, year, version };
 
       } catch (error) {
         console.error('createScheduleYear error:', error);
@@ -152,19 +174,26 @@ export const usePostWebStore = create(
      * Сохранить draft расписания в localStorage
      * @param {string} departmentId
      * @param {number} year
-     * @param {Object} scheduleMap - нормализованный scheduleMap
+     * @param {Object} draftData - { scheduleMap, baseVersion, changedCells }
      */
-    saveDraftSchedule: async (departmentId, year, scheduleMap) => {
+    saveDraftSchedule: async (departmentId, year, draftData) => {
       get().setSaving('draft', true);
       get().clearError('draft');
 
       try {
         const key = STORAGE_KEYS.draftSchedule(departmentId, year);
-        localStorage.setItem(key, JSON.stringify(scheduleMap));
+
+        // Поддержка обоих форматов: объект с версиями или просто scheduleMap
+        const dataToSave = draftData.scheduleMap
+          ? draftData
+          : { scheduleMap: draftData, baseVersion: null, changedCells: {} };
+
+        localStorage.setItem(key, JSON.stringify(dataToSave));
 
         get().setSaving('draft', false);
 
-        console.log(`💾 Draft schedule сохранен: ${departmentId}/${year}`);
+        const changedCount = Object.keys(dataToSave.changedCells || {}).length;
+        console.log(`💾 Draft schedule сохранен: ${departmentId}/${year}, baseVersion: ${dataToSave.baseVersion}, changed: ${changedCount}`);
         return { success: true };
 
       } catch (error) {
