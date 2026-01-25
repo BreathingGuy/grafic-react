@@ -5,9 +5,9 @@ import { STORAGE_KEYS } from '../services/localStorageInit';
 /**
  * fetchWebStore — чтение данных из localStorage (имитация GET запросов)
  *
- * Все данные хранятся в НОРМАЛИЗОВАННОМ виде:
- * - schedule-{dept}-{year}       → scheduleMap
- * - draft-schedule-{dept}-{year} → scheduleMap черновика
+ * Все данные хранятся в НОРМАЛИЗОВАННОМ виде с версионированием:
+ * - schedule-{dept}-{year}       → { scheduleMap, version }
+ * - draft-schedule-{dept}-{year} → { scheduleMap, baseVersion, changedCells }
  * - employees-{dept}             → { employeeById, employeeIds }
  */
 export const useFetchWebStore = create(
@@ -61,7 +61,7 @@ export const useFetchWebStore = create(
      * @param {number} year - год
      * @param {Object} options - опции
      * @param {string} options.mode - 'production' (по умолчанию) или 'draft'
-     * @returns {{ scheduleMap }}
+     * @returns {{ scheduleMap, version?, baseVersion?, changedCells? }}
      */
     fetchSchedule: async (departmentId, year, options = {}) => {
       const { mode = 'production' } = options;
@@ -85,6 +85,7 @@ export const useFetchWebStore = create(
         await new Promise(resolve => setTimeout(resolve, 100));
 
         let stored;
+        let isDraftFallback = false;
 
         if (mode === 'draft') {
           // Сначала пытаемся загрузить draft
@@ -96,6 +97,7 @@ export const useFetchWebStore = create(
             console.log(`📋 Draft не найден, загружаем production как fallback`);
             const prodKey = STORAGE_KEYS.schedule(departmentId, year);
             stored = localStorage.getItem(prodKey);
+            isDraftFallback = true;
           }
         } else {
           // Production mode - загружаем только production
@@ -107,17 +109,61 @@ export const useFetchWebStore = create(
           throw new Error(`Расписание ${departmentId}/${year} не найдено в localStorage`);
         }
 
-        // Данные уже нормализованы - просто парсим
-        const scheduleMap = JSON.parse(stored);
+        const data = JSON.parse(stored);
 
         get().setLoading(loadingKey, false);
-        return { scheduleMap };
+
+        // Поддержка старого формата (просто scheduleMap) и нового ({ scheduleMap, version })
+        if (data.scheduleMap) {
+          // Новый формат с версионированием
+          if (mode === 'draft' && !isDraftFallback) {
+            // Возвращаем draft данные
+            return {
+              scheduleMap: data.scheduleMap,
+              baseVersion: data.baseVersion || null,
+              changedCells: data.changedCells || {}
+            };
+          } else {
+            // Возвращаем production данные
+            return {
+              scheduleMap: data.scheduleMap,
+              version: data.version || null
+            };
+          }
+        } else {
+          // Старый формат - просто scheduleMap
+          return { scheduleMap: data, version: null };
+        }
 
       } catch (error) {
         console.error(`fetchSchedule [${mode}] error:`, error);
         get().setError(loadingKey, error.message);
         get().setLoading(loadingKey, false);
         throw error;
+      }
+    },
+
+    /**
+     * Получить версию production расписания (без загрузки всех данных)
+     * @param {string} departmentId
+     * @param {number} year
+     * @returns {{ version: number | null }}
+     */
+    fetchScheduleVersion: async (departmentId, year) => {
+      try {
+        const key = STORAGE_KEYS.schedule(departmentId, year);
+        const stored = localStorage.getItem(key);
+
+        if (!stored) {
+          return { version: null };
+        }
+
+        const data = JSON.parse(stored);
+        return { version: data.version || null };
+
+      } catch (error) {
+        console.error('fetchScheduleVersion error:', error);
+        return { version: null };
       }
     },
 

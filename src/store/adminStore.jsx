@@ -21,12 +21,17 @@ export const useAdminStore = create(
 
         // === DRAFT STATE ===
         draftSchedule: {},             // Рабочая копия: { "empId-date": "status" }
-        originalSchedule: {},          // Исходное состояние (для сравнения)
+        originalSchedule: {},          // Исходное состояние (для сравнения при undo)
         employeeIds: [],               // Список ID сотрудников
         employeeById: {},              // Данные сотрудников: { id: { id, name, fullName, position } }
         hasUnsavedChanges: false,
         undoStack: [],                 // Для Ctrl+Z
         lastDraftSaved: null,          // Timestamp последнего сохранения черновика
+
+        // === VERSIONING ===
+        baseVersion: null,             // Версия прода, на основе которой создан черновик
+        changedCells: {},              // Изменённые ячейки: { "empId-date": "status" }
+        prodVersion: null,             // Текущая версия production (для сравнения)
 
         // Текущий редактируемый год и отдел
         editingYear: null,
@@ -89,7 +94,11 @@ export const useAdminStore = create(
             yearVersions: [],
             selectedVersion: null,
             loadingYears: false,
-            loadingVersions: false
+            loadingVersions: false,
+            // Versioning
+            baseVersion: null,
+            changedCells: {},
+            prodVersion: null
           });
         },
 
@@ -126,13 +135,15 @@ export const useAdminStore = create(
           try {
             const fetchStore = useFetchWebStore.getState();
 
-            // Загружаем расписание и сотрудников параллельно
-            const [scheduleData, employeesData] = await Promise.all([
+            // Загружаем draft, production версию и сотрудников параллельно
+            const [draftData, prodVersionData, employeesData] = await Promise.all([
               fetchStore.fetchSchedule(departmentId, year, { mode: 'draft' }),
+              fetchStore.fetchScheduleVersion(departmentId, year),
               fetchStore.fetchDepartmentEmployees(departmentId, { mode: 'draft' })
             ]);
 
-            const { scheduleMap } = scheduleData;
+            const { scheduleMap, baseVersion: savedBaseVersion, changedCells: savedChangedCells } = draftData;
+            const { version: currentProdVersion } = prodVersionData;
             const { employeeById, employeeIds } = employeesData;
 
             // Фильтруем только нужный год
@@ -145,6 +156,12 @@ export const useAdminStore = create(
             });
 
             if (Object.keys(yearData).length > 0) {
+              // Определяем версионирование:
+              // - Если есть сохранённый baseVersion - используем его
+              // - Если нет (fallback на production) - baseVersion = prodVersion (черновик синхронизирован)
+              const baseVersion = savedBaseVersion !== undefined ? savedBaseVersion : currentProdVersion;
+              const changedCells = savedChangedCells || {};
+
               // Год существует — копируем
               set({
                 draftSchedule: { ...yearData },
@@ -154,9 +171,15 @@ export const useAdminStore = create(
                 hasUnsavedChanges: false,
                 undoStack: [],
                 editingYear: year,
-                editingDepartmentId: departmentId
+                editingDepartmentId: departmentId,
+                // Versioning
+                baseVersion,
+                changedCells,
+                prodVersion: currentProdVersion
               });
-              console.log(`✅ Draft инициализирован: ${Object.keys(yearData).length} ячеек`);
+
+              const isSynced = baseVersion === currentProdVersion;
+              console.log(`✅ Draft инициализирован: ${Object.keys(yearData).length} ячеек, baseVersion: ${baseVersion}, prodVersion: ${currentProdVersion}, synced: ${isSynced}, changedCells: ${Object.keys(changedCells).length}`);
 
               // Warming: делаем реальное изменение значения и откатываем
               // Это заставляет React полностью инициализировать reconciliation
@@ -207,7 +230,7 @@ export const useAdminStore = create(
         },
 
         // Создать пустой год
-        createEmptyYear: (year, employeeIds, employeeById, departmentId) => {
+        createEmptyYear: (year, employeeIds, employeeById, departmentId, prodVersion = null) => {
           const emptyDraft = {};
 
           // Генерируем все даты года
@@ -248,10 +271,14 @@ export const useAdminStore = create(
             hasUnsavedChanges: false,
             undoStack: [],
             editingYear: year,
-            editingDepartmentId: departmentId
+            editingDepartmentId: departmentId,
+            // Versioning: новый год начинается синхронизированным
+            baseVersion: prodVersion,
+            changedCells: {},
+            prodVersion: prodVersion
           });
 
-          console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками (включая Q1 ${year + 1})`);
+          console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками (включая Q1 ${year + 1}), version: ${prodVersion}`);
 
           // Warming: делаем реальное изменение значения и откатываем
           requestAnimationFrame(() => {
@@ -279,6 +306,11 @@ export const useAdminStore = create(
               ...state.draftSchedule,
               [key]: status
             },
+            // Добавляем в changedCells
+            changedCells: {
+              ...state.changedCells,
+              [key]: status
+            },
             hasUnsavedChanges: true
           }));
         },
@@ -290,15 +322,23 @@ export const useAdminStore = create(
               ...state.draftSchedule,
               ...updates
             },
+            // Добавляем все обновления в changedCells
+            changedCells: {
+              ...state.changedCells,
+              ...updates
+            },
             hasUnsavedChanges: true
           }));
         },
 
         // Сохранить состояние для undo
         saveUndoState: () => {
-          const { draftSchedule, undoStack } = get();
+          const { draftSchedule, changedCells, undoStack } = get();
           set({
-            undoStack: [...undoStack, { ...draftSchedule }]
+            undoStack: [...undoStack, {
+              draftSchedule: { ...draftSchedule },
+              changedCells: { ...changedCells }
+            }]
           });
         },
 
@@ -309,9 +349,10 @@ export const useAdminStore = create(
 
           const previousState = undoStack[undoStack.length - 1];
           set({
-            draftSchedule: previousState,
+            draftSchedule: previousState.draftSchedule,
+            changedCells: previousState.changedCells,
             undoStack: undoStack.slice(0, -1),
-            hasUnsavedChanges: true
+            hasUnsavedChanges: Object.keys(previousState.changedCells).length > 0
           });
 
           return true;
@@ -327,10 +368,10 @@ export const useAdminStore = create(
 
         /**
          * Сохранить draft в localStorage (без публикации в production)
-         * Сохраняет черновик для работы между админами
+         * Сохраняет черновик с версионированием
          */
         saveDraftToStorage: async () => {
-          const { draftSchedule, editingDepartmentId, editingYear } = get();
+          const { draftSchedule, baseVersion, changedCells, editingDepartmentId, editingYear } = get();
 
           if (!editingDepartmentId || !editingYear) {
             console.error('Нет активного draft для сохранения');
@@ -338,16 +379,22 @@ export const useAdminStore = create(
           }
 
           try {
-            // Сохраняем через postWebStore (только scheduleMap)
+            // Сохраняем через postWebStore с версионированием
             const postStore = usePostWebStore.getState();
-            await postStore.saveDraftSchedule(editingDepartmentId, editingYear, draftSchedule);
-
-            // Обновляем timestamp последнего сохранения
-            set({
-              lastDraftSaved: new Date().toISOString()
+            await postStore.saveDraftSchedule(editingDepartmentId, editingYear, {
+              scheduleMap: draftSchedule,
+              baseVersion,
+              changedCells
             });
 
-            console.log(`💾 Черновик сохранен: ${editingDepartmentId}/${editingYear}`);
+            // Обновляем timestamp последнего сохранения
+            // hasUnsavedChanges остаётся true если есть changedCells
+            set({
+              lastDraftSaved: new Date().toISOString(),
+              hasUnsavedChanges: false
+            });
+
+            console.log(`💾 Черновик сохранен: ${editingDepartmentId}/${editingYear}, changedCells: ${Object.keys(changedCells).length}`);
             return true;
 
           } catch (error) {
@@ -358,20 +405,39 @@ export const useAdminStore = create(
 
         /**
          * Опубликовать draft → production
-         * Отправляет изменения на сервер и обновляет scheduleStore
+         *
+         * Логика версионирования:
+         * - Если baseVersion === prodVersion → публикуем только changedCells (оптимизация)
+         * - Если baseVersion !== prodVersion → публикуем весь draftSchedule (черновик устарел)
          */
         publishDraft: async () => {
-          const { draftSchedule, originalSchedule, editingDepartmentId, editingYear } = get();
+          const {
+            draftSchedule,
+            baseVersion,
+            changedCells,
+            prodVersion,
+            editingDepartmentId,
+            editingYear
+          } = get();
 
-          // Вычисляем только изменённые ячейки
-          const changes = {};
-          Object.entries(draftSchedule).forEach(([key, value]) => {
-            if (originalSchedule[key] !== value) {
-              changes[key] = value;
-            }
-          });
+          // Определяем что публиковать
+          const isSynced = baseVersion === prodVersion;
+          let changesToPublish;
 
-          if (Object.keys(changes).length === 0) {
+          if (isSynced) {
+            // Черновик синхронизирован — публикуем только changedCells
+            changesToPublish = { ...changedCells };
+            console.log(`📤 Публикация: черновик синхронизирован, отправляем ${Object.keys(changesToPublish).length} изменённых ячеек`);
+          } else {
+            // Черновик устарел — публикуем весь draft
+            // Вычисляем разницу между draft и prod
+            // Но поскольку у нас нет prod данных здесь, отправляем весь draftSchedule
+            // postWebStore.publishSchedule применит изменения поверх текущего прода
+            changesToPublish = { ...draftSchedule };
+            console.log(`📤 Публикация: черновик устарел (base: ${baseVersion}, prod: ${prodVersion}), отправляем весь draft (${Object.keys(changesToPublish).length} ячеек)`);
+          }
+
+          if (Object.keys(changesToPublish).length === 0) {
             console.log('ℹ️ Нет изменений для публикации');
             return 0;
           }
@@ -379,20 +445,25 @@ export const useAdminStore = create(
           try {
             // Отправляем на сервер через postWebStore
             const postStore = usePostWebStore.getState();
-            await postStore.publishSchedule(editingDepartmentId, editingYear, changes);
+            const result = await postStore.publishSchedule(editingDepartmentId, editingYear, changesToPublish);
+            const { newVersion, changedCount } = result;
 
             // Применяем изменения в production (scheduleStore)
             const scheduleStore = useScheduleStore.getState();
-            const changedCount = scheduleStore.applyChanges(changes);
+            scheduleStore.applyChanges(changesToPublish);
 
-            // Обновляем originalSchedule (теперь draft = production)
+            // Обновляем state: теперь draft синхронизирован с новой версией прода
             set({
               originalSchedule: { ...draftSchedule },
               hasUnsavedChanges: false,
-              undoStack: []
+              undoStack: [],
+              // Versioning: черновик теперь синхронизирован
+              baseVersion: newVersion,
+              changedCells: {},
+              prodVersion: newVersion
             });
 
-            console.log(`✅ Опубликовано ${changedCount} изменений`);
+            console.log(`✅ Опубликовано ${changedCount} изменений, новая версия: ${newVersion}`);
             return changedCount;
 
           } catch (error) {
@@ -401,13 +472,31 @@ export const useAdminStore = create(
           }
         },
 
+        /**
+         * Проверить, можно ли опубликовать
+         * @returns {boolean}
+         */
+        canPublish: () => {
+          const { baseVersion, changedCells, prodVersion, hasUnsavedChanges } = get();
+
+          // Можно публиковать если:
+          // 1. Есть изменённые ячейки (changedCells не пуст)
+          // 2. ИЛИ черновик не синхронизирован с продом (baseVersion !== prodVersion)
+          // 3. ИЛИ есть несохранённые изменения
+          const hasChangedCells = Object.keys(changedCells).length > 0;
+          const isDraftOutdated = baseVersion !== prodVersion;
+
+          return hasChangedCells || isDraftOutdated || hasUnsavedChanges;
+        },
+
         // Отменить все изменения — вернуть draft к original
         discardDraft: () => {
           const { originalSchedule } = get();
           set({
             draftSchedule: { ...originalSchedule },
             hasUnsavedChanges: false,
-            undoStack: []
+            undoStack: [],
+            changedCells: {}  // Сбрасываем изменённые ячейки
           });
         },
 
@@ -425,7 +514,11 @@ export const useAdminStore = create(
             editingDepartmentId: null,
             availableYears: [],
             yearVersions: [],
-            selectedVersion: null
+            selectedVersion: null,
+            // Versioning
+            baseVersion: null,
+            changedCells: {},
+            prodVersion: null
           });
         },
 
