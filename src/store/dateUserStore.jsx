@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import {
-  DATE_INDEX,
-  START_YEAR,
-  END_YEAR,
   VISIBLE_SLOTS,
   createSlotMapping,
   calculateMonthGroups,
@@ -24,8 +21,8 @@ export const useDateUserStore = create(
     // === STATE ===
 
     // Границы навигации
-    minYear: START_YEAR,
-    maxYear: END_YEAR,
+    minYear: new Date().getFullYear() - 1,
+    maxYear: new Date().getFullYear() + 1,
 
     // Текущее состояние навигации
     currentYear: new Date().getFullYear(),
