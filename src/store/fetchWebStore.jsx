@@ -5,8 +5,10 @@ import { STORAGE_KEYS } from '../services/localStorageInit';
 /**
  * fetchWebStore — чтение данных из localStorage (имитация GET запросов)
  *
- * Все stores используют этот store для получения данных.
- * Данные хранятся в localStorage вместо JSON файлов.
+ * Все данные хранятся в НОРМАЛИЗОВАННОМ виде:
+ * - schedule-{dept}-{year}       → scheduleMap
+ * - draft-schedule-{dept}-{year} → scheduleMap черновика
+ * - employees-{dept}             → { employeeById, employeeIds }
  */
 export const useFetchWebStore = create(
   devtools((set, get) => ({
@@ -59,7 +61,7 @@ export const useFetchWebStore = create(
      * @param {number} year - год
      * @param {Object} options - опции
      * @param {string} options.mode - 'production' (по умолчанию) или 'draft'
-     * @returns {{ employeeById, employeeIds, scheduleMap }}
+     * @returns {{ scheduleMap }}
      */
     fetchSchedule: async (departmentId, year, options = {}) => {
       const { mode = 'production' } = options;
@@ -82,23 +84,22 @@ export const useFetchWebStore = create(
         // Имитация задержки сети
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Выбираем правильный ключ в зависимости от режима
-        let key, stored;
+        let stored;
 
         if (mode === 'draft') {
           // Сначала пытаемся загрузить draft
-          key = STORAGE_KEYS.draft(departmentId, year);
-          stored = localStorage.getItem(key);
+          const draftKey = STORAGE_KEYS.draftSchedule(departmentId, year);
+          stored = localStorage.getItem(draftKey);
 
           // Если draft не найден - fallback на production
           if (!stored) {
             console.log(`📋 Draft не найден, загружаем production как fallback`);
-            key = STORAGE_KEYS.schedule(departmentId, year);
-            stored = localStorage.getItem(key);
+            const prodKey = STORAGE_KEYS.schedule(departmentId, year);
+            stored = localStorage.getItem(prodKey);
           }
         } else {
           // Production mode - загружаем только production
-          key = STORAGE_KEYS.schedule(departmentId, year);
+          const key = STORAGE_KEYS.schedule(departmentId, year);
           stored = localStorage.getItem(key);
         }
 
@@ -106,28 +107,11 @@ export const useFetchWebStore = create(
           throw new Error(`Расписание ${departmentId}/${year} не найдено в localStorage`);
         }
 
-        const data = JSON.parse(stored);
-
-        // Проверяем формат данных
-        let normalized;
-        if (data.draftSchedule && data.employeeIds && data.employeeById) {
-          // Draft формат (уже нормализованный)
-          console.log(`📋 Данные уже в нормализованном формате (draft)`);
-          normalized = {
-            scheduleMap: data.draftSchedule,
-            employeeIds: data.employeeIds,
-            employeeById: data.employeeById
-          };
-        } else if (data.data && Array.isArray(data.data)) {
-          // JSON формат из файлов
-          console.log(`📋 Нормализация данных из JSON формата`);
-          normalized = get().normalizeScheduleData(data, year);
-        } else {
-          throw new Error('Неизвестный формат данных');
-        }
+        // Данные уже нормализованы - просто парсим
+        const scheduleMap = JSON.parse(stored);
 
         get().setLoading(loadingKey, false);
-        return normalized;
+        return { scheduleMap };
 
       } catch (error) {
         console.error(`fetchSchedule [${mode}] error:`, error);
@@ -135,37 +119,6 @@ export const useFetchWebStore = create(
         get().setLoading(loadingKey, false);
         throw error;
       }
-    },
-
-    /**
-     * Нормализация данных расписания с сервера
-     */
-    normalizeScheduleData: (rawData, year) => {
-      const employeeById = {};
-      const employeeIds = [];
-      const scheduleMap = {};
-
-      rawData.data.forEach(employee => {
-        const employeeId = String(employee.id);
-
-        employeeIds.push(employeeId);
-
-        employeeById[employeeId] = {
-          id: employeeId,
-          name: `${employee.fio.family} ${employee.fio.name1[0]}.${employee.fio.name2[0]}.`,
-          fullName: `${employee.fio.family} ${employee.fio.name1} ${employee.fio.name2}`,
-          position: employee.position || ''
-        };
-
-        Object.entries(employee.schedule).forEach(([dateKey, status]) => {
-          // dateKey приходит как "01-01", преобразуем в "2025-01-01"
-          const fullDate = `${year}-${dateKey}`;
-          const key = `${employeeId}-${fullDate}`;
-          scheduleMap[key] = status;
-        });
-      });
-
-      return { employeeById, employeeIds, scheduleMap };
     },
 
     // === DEPARTMENTS API ===
@@ -228,24 +181,39 @@ export const useFetchWebStore = create(
       }
     },
 
-    // === ADMIN API ===
+    // === EMPLOYEES API ===
 
     /**
-     * Загрузить список сотрудников отдела (без привязки к году)
-     * GET /api/departments/{id}/employees
+     * Загрузить список сотрудников отдела
      * @param {string} departmentId
+     * @param {Object} options - { mode: 'production' | 'draft' }
      * @returns {{ employeeById, employeeIds }}
      */
-    fetchDepartmentEmployees: async (departmentId) => {
+    fetchDepartmentEmployees: async (departmentId, options = {}) => {
+      const { mode = 'production' } = options;
+
       get().setLoading('departmentConfig', true);
       get().clearError('departmentConfig');
 
       try {
-        console.log(`📥 fetchDepartmentEmployees: ${departmentId}`);
+        console.log(`📥 fetchDepartmentEmployees [${mode}]: ${departmentId}`);
 
-        // Загружаем из localStorage
-        const key = STORAGE_KEYS.employees(departmentId);
-        const stored = localStorage.getItem(key);
+        let stored;
+
+        if (mode === 'draft') {
+          // Сначала пытаемся загрузить draft сотрудников
+          const draftKey = STORAGE_KEYS.draftEmployees(departmentId);
+          stored = localStorage.getItem(draftKey);
+
+          // Если draft не найден - fallback на production
+          if (!stored) {
+            const prodKey = STORAGE_KEYS.employees(departmentId);
+            stored = localStorage.getItem(prodKey);
+          }
+        } else {
+          const key = STORAGE_KEYS.employees(departmentId);
+          stored = localStorage.getItem(key);
+        }
 
         if (!stored) {
           throw new Error(`Сотрудники отдела ${departmentId} не найдены в localStorage`);
@@ -266,7 +234,6 @@ export const useFetchWebStore = create(
 
     /**
      * Получить список доступных годов для отдела
-     * GET /api/departments/{id}/years
      * @param {string} departmentId
      * @returns {{ departmentId, name, years: string[] }}
      */
@@ -301,7 +268,6 @@ export const useFetchWebStore = create(
 
     /**
      * Получить список версий года для отдела
-     * GET /api/departments/{id}/{year}/versions
      * @param {string} departmentId
      * @param {number|string} year
      * @returns {{ departmentId, name, year, versions: string[] }}
@@ -341,11 +307,10 @@ export const useFetchWebStore = create(
 
     /**
      * Получить расписание конкретной версии
-     * GET /api/departments/{id}/schedule?year={year}&version={version}&include=employees,schedule,buffers
      * @param {string} departmentId
      * @param {number|string} year
      * @param {string} version
-     * @returns {{ year, version, departmentId, employeeById, employeeIds, scheduleMap }}
+     * @returns {{ year, version, departmentId, scheduleMap }}
      */
     fetchVersionSchedule: async (departmentId, year, version) => {
       get().setLoading('versionSchedule', true);
@@ -369,15 +334,13 @@ export const useFetchWebStore = create(
           throw new Error(`Версия ${version} не найдена`);
         }
 
-        // Нормализуем данные версии
-        const normalized = get().normalizeScheduleData(versionData.data, year);
-
+        // Версии хранятся в нормализованном формате
         get().setLoading('versionSchedule', false);
         return {
           year: Number(year),
           version,
           departmentId,
-          ...normalized
+          scheduleMap: versionData.scheduleMap
         };
 
       } catch (error) {

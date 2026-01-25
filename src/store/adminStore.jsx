@@ -125,12 +125,15 @@ export const useAdminStore = create(
 
           try {
             const fetchStore = useFetchWebStore.getState();
-            // Загружаем как draft (в будущем может быть отдельный endpoint)
-            const { employeeIds, employeeById, scheduleMap } = await fetchStore.fetchSchedule(
-              departmentId,
-              year,
-              { mode: 'draft' }
-            );
+
+            // Загружаем расписание и сотрудников параллельно
+            const [scheduleData, employeesData] = await Promise.all([
+              fetchStore.fetchSchedule(departmentId, year, { mode: 'draft' }),
+              fetchStore.fetchDepartmentEmployees(departmentId, { mode: 'draft' })
+            ]);
+
+            const { scheduleMap } = scheduleData;
+            const { employeeById, employeeIds } = employeesData;
 
             // Фильтруем только нужный год
             const yearPrefix = `${year}-`;
@@ -327,7 +330,7 @@ export const useAdminStore = create(
          * Сохраняет черновик для работы между админами
          */
         saveDraftToStorage: async () => {
-          const { draftSchedule, employeeIds, employeeById, editingDepartmentId, editingYear } = get();
+          const { draftSchedule, editingDepartmentId, editingYear } = get();
 
           if (!editingDepartmentId || !editingYear) {
             console.error('Нет активного draft для сохранения');
@@ -335,13 +338,9 @@ export const useAdminStore = create(
           }
 
           try {
-            // Сохраняем через postWebStore
+            // Сохраняем через postWebStore (только scheduleMap)
             const postStore = usePostWebStore.getState();
-            await postStore.saveDraft(editingDepartmentId, editingYear, {
-              draftSchedule,
-              employeeIds,
-              employeeById
-            });
+            await postStore.saveDraftSchedule(editingDepartmentId, editingYear, draftSchedule);
 
             // Обновляем timestamp последнего сохранения
             set({
@@ -507,7 +506,7 @@ export const useAdminStore = create(
          * @param {number} year - год для создания
          */
         createNewYear: async (year) => {
-          let { editingDepartmentId, employeeIds, employeeById } = get();
+          let { editingDepartmentId, employeeIds } = get();
 
           if (!editingDepartmentId) {
             console.error('Не выбран отдел');
@@ -527,7 +526,6 @@ export const useAdminStore = create(
                 const fetchStore = useFetchWebStore.getState();
                 const employees = await fetchStore.fetchDepartmentEmployees(editingDepartmentId);
                 employeeIds = employees.employeeIds;
-                employeeById = employees.employeeById;
                 console.log(`✅ Загружено ${employeeIds.length} сотрудников`);
               } catch (error) {
                 console.error('Не удалось загрузить список сотрудников:', error);
@@ -536,57 +534,38 @@ export const useAdminStore = create(
               }
             }
 
-            // Создать структуру данных в формате JSON
-            const scheduleData = {
-              users_id: employeeIds.join(','),
-              data: employeeIds.map(empId => {
-                const employee = employeeById[empId];
-                const schedule = {};
+            // Создаём нормализованный scheduleMap для всего года + Q1 следующего
+            const scheduleMap = {};
 
-                // Генерируем пустые ячейки для всего года
-                const startDate = new Date(year, 0, 1);
-                const endDate = new Date(year, 11, 31);
+            // Генерируем пустые ячейки для всего года
+            const startDate = new Date(year, 0, 1);
+            const endDate = new Date(year, 11, 31);
 
-                const currentDate = new Date(startDate);
-                while (currentDate <= endDate) {
-                  const monthDay = String(currentDate.getMonth() + 1).padStart(2, '0') + '-' +
-                                   String(currentDate.getDate()).padStart(2, '0');
-                  schedule[monthDay] = '';  // Пустая ячейка
-                  currentDate.setDate(currentDate.getDate() + 1);
-                }
+            const currentDate = new Date(startDate);
+            while (currentDate <= endDate) {
+              const dateStr = currentDate.toISOString().slice(0, 10);
+              employeeIds.forEach(empId => {
+                scheduleMap[`${empId}-${dateStr}`] = '';
+              });
+              currentDate.setDate(currentDate.getDate() + 1);
+            }
 
-                // Добавляем Q1 следующего года для offset таблицы
-                const nextYearStart = new Date(year + 1, 0, 1);
-                const nextYearEnd = new Date(year + 1, 2, 31); // конец марта
+            // Добавляем Q1 следующего года для offset таблицы
+            const nextYearStart = new Date(year + 1, 0, 1);
+            const nextYearEnd = new Date(year + 1, 2, 31); // конец марта
 
-                const nextYearDate = new Date(nextYearStart);
-                while (nextYearDate <= nextYearEnd) {
-                  const monthDay = String(nextYearDate.getMonth() + 1).padStart(2, '0') + '-' +
-                                   String(nextYearDate.getDate()).padStart(2, '0');
-                  schedule[monthDay] = '';  // Пустая ячейка
-                  nextYearDate.setDate(nextYearDate.getDate() + 1);
-                }
-
-                // Разбираем fullName обратно на части (если возможно)
-                const fullNameParts = employee.fullName.split(' ');
-                const fio = {
-                  family: fullNameParts[0] || '',
-                  name1: fullNameParts[1] || '',
-                  name2: fullNameParts[2] || ''
-                };
-
-                return {
-                  id: Number(empId),
-                  fio,
-                  position: employee.position || '',
-                  schedule
-                };
-              })
-            };
+            const nextYearDate = new Date(nextYearStart);
+            while (nextYearDate <= nextYearEnd) {
+              const dateStr = nextYearDate.toISOString().slice(0, 10);
+              employeeIds.forEach(empId => {
+                scheduleMap[`${empId}-${dateStr}`] = '';
+              });
+              nextYearDate.setDate(nextYearDate.getDate() + 1);
+            }
 
             // Сохранить в localStorage через postWebStore
             const postStore = usePostWebStore.getState();
-            await postStore.createScheduleYear(editingDepartmentId, year, scheduleData);
+            await postStore.createScheduleYear(editingDepartmentId, year, scheduleMap);
 
             // Обновить список доступных годов
             const { availableYears } = get();
@@ -602,7 +581,7 @@ export const useAdminStore = create(
             // Инициализировать draft из сохранённого расписания
             await get().initializeDraft(editingDepartmentId, Number(year));
 
-            console.log(`✅ Новый год ${year} создан в localStorage с ${employeeIds.length} сотрудниками`);
+            console.log(`✅ Новый год ${year} создан с ${Object.keys(scheduleMap).length} ячейками`);
 
           } catch (error) {
             console.error('createNewYear error:', error);
@@ -619,7 +598,7 @@ export const useAdminStore = create(
          * @param {string} version
          */
         loadVersion: async (version) => {
-          const { editingDepartmentId, editingYear } = get();
+          const { editingDepartmentId, editingYear, employeeIds, employeeById } = get();
           if (!editingDepartmentId || !editingYear) return;
 
           try {
@@ -631,11 +610,12 @@ export const useAdminStore = create(
             );
 
             // Загружаем версию как draft (только для просмотра)
+            // Используем текущих сотрудников, версия содержит только scheduleMap
             set({
               draftSchedule: { ...data.scheduleMap },
               originalSchedule: { ...data.scheduleMap },
-              employeeIds: data.employeeIds,
-              employeeById: data.employeeById,
+              employeeIds: employeeIds,  // сохраняем текущих
+              employeeById: employeeById, // сохраняем текущих
               selectedVersion: version,
               hasUnsavedChanges: false,
               undoStack: []

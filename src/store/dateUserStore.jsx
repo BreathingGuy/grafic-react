@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import {
-  DATE_INDEX,
-  START_YEAR,
-  END_YEAR,
   VISIBLE_SLOTS,
   createSlotMapping,
   calculateMonthGroups,
@@ -12,6 +9,11 @@ import {
   getMonthDates,
   getWeekDates
 } from '../utils/dateIndex';
+
+// Динамические границы навигации (относительно текущего года)
+const CURRENT_YEAR = new Date().getFullYear();
+const DEFAULT_MIN_YEAR = CURRENT_YEAR - 10;
+const DEFAULT_MAX_YEAR = CURRENT_YEAR + 10;
 
 /**
  * dateUserStore — управление датами для User View
@@ -23,9 +25,9 @@ export const useDateUserStore = create(
   devtools((set, get) => ({
     // === STATE ===
 
-    // Границы навигации
-    minYear: START_YEAR,
-    maxYear: END_YEAR,
+    // Границы навигации (динамические)
+    minYear: DEFAULT_MIN_YEAR,
+    maxYear: DEFAULT_MAX_YEAR,
 
     // Текущее состояние навигации
     currentYear: new Date().getFullYear(),

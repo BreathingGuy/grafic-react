@@ -3,10 +3,16 @@
  *
  * При первом запуске приложения копирует данные из /public/*.json
  * в localStorage для имитации backend API.
+ *
+ * Данные хранятся в НОРМАЛИЗОВАННОМ виде:
+ * - schedule-{dept}-{year}       → scheduleMap { "empId-YYYY-MM-DD": "status" }
+ * - draft-schedule-{dept}-{year} → scheduleMap черновика
+ * - employees-{dept}             → { employeeById, employeeIds }
+ * - draft-employees-{dept}       → { employeeById, employeeIds } черновика
  */
 
 const INIT_FLAG_KEY = 'grafic-app-initialized';
-const STORAGE_VERSION = '1.0';
+const STORAGE_VERSION = '2.0'; // Версия увеличена из-за нового формата
 
 /**
  * Конфигурация данных для загрузки
@@ -21,20 +27,27 @@ const DATA_FILES = [
  * Ключи для хранения в localStorage
  */
 export const STORAGE_KEYS = {
-  // Данные расписаний
+  // Расписание (scheduleMap)
   schedule: (deptId, year) => `schedule-${deptId}-${year}`,
 
-  // Черновики (drafts)
-  draft: (deptId, year) => `draft-${deptId}-${year}`,
+  // Черновик расписания (scheduleMap)
+  draftSchedule: (deptId, year) => `draft-schedule-${deptId}-${year}`,
 
-  // Список сотрудников отдела
+  // Список сотрудников отдела { employeeById, employeeIds }
   employees: (deptId) => `employees-${deptId}`,
+
+  // Черновик сотрудников { employeeById, employeeIds }
+  draftEmployees: (deptId) => `draft-employees-${deptId}`,
 
   // Доступные года для отдела
   availableYears: (deptId) => `available-years-${deptId}`,
 
   // Версии года (для истории)
-  versions: (deptId, year) => `versions-${deptId}-${year}`
+  versions: (deptId, year) => `versions-${deptId}-${year}`,
+
+  // Устаревший ключ (для миграции)
+  // @deprecated используйте draftSchedule
+  draft: (deptId, year) => `draft-${deptId}-${year}`
 };
 
 /**
@@ -65,26 +78,19 @@ const fetchJsonFile = async (deptId, year) => {
 };
 
 /**
- * Сохранить данные расписания в localStorage
+ * Нормализовать данные из JSON формата
+ * @param {Object} rawData - сырые данные из JSON { data: [...] }
+ * @param {number} year - год для формирования дат
+ * @returns {{ scheduleMap, employeeById, employeeIds }}
  */
-const saveScheduleToStorage = (deptId, year, rawData) => {
-  const key = STORAGE_KEYS.schedule(deptId, year);
-  localStorage.setItem(key, JSON.stringify(rawData));
-  console.log(`✅ Saved ${key}`);
-};
-
-/**
- * Сохранить список сотрудников отдела
- */
-const saveEmployeesToStorage = (deptId, rawData) => {
-  const key = STORAGE_KEYS.employees(deptId);
-
-  // Извлекаем только информацию о сотрудниках
+const normalizeRawData = (rawData, year) => {
   const employeeById = {};
   const employeeIds = [];
+  const scheduleMap = {};
 
   rawData.data.forEach(employee => {
     const employeeId = String(employee.id);
+
     employeeIds.push(employeeId);
 
     employeeById[employeeId] = {
@@ -93,8 +99,32 @@ const saveEmployeesToStorage = (deptId, rawData) => {
       fullName: `${employee.fio.family} ${employee.fio.name1} ${employee.fio.name2}`,
       position: employee.position || ''
     };
+
+    Object.entries(employee.schedule).forEach(([dateKey, status]) => {
+      // dateKey приходит как "01-01", преобразуем в "2025-01-01"
+      const fullDate = `${year}-${dateKey}`;
+      const key = `${employeeId}-${fullDate}`;
+      scheduleMap[key] = status;
+    });
   });
 
+  return { scheduleMap, employeeById, employeeIds };
+};
+
+/**
+ * Сохранить нормализованное расписание в localStorage
+ */
+const saveScheduleToStorage = (deptId, year, scheduleMap) => {
+  const key = STORAGE_KEYS.schedule(deptId, year);
+  localStorage.setItem(key, JSON.stringify(scheduleMap));
+  console.log(`✅ Saved ${key} (${Object.keys(scheduleMap).length} cells)`);
+};
+
+/**
+ * Сохранить список сотрудников отдела
+ */
+const saveEmployeesToStorage = (deptId, employeeById, employeeIds) => {
+  const key = STORAGE_KEYS.employees(deptId);
   localStorage.setItem(key, JSON.stringify({ employeeById, employeeIds }));
   console.log(`✅ Saved employees for ${deptId}: ${employeeIds.length} employees`);
 };
@@ -119,23 +149,29 @@ const updateAvailableYears = (deptId, year) => {
  * Инициализировать localStorage данными из JSON файлов
  */
 export const initializeLocalStorage = async () => {
-  console.log('📦 Инициализация localStorage...');
+  console.log('📦 Инициализация localStorage (v2 - normalized)...');
 
   let successCount = 0;
   let failCount = 0;
+
+  // Отслеживаем какие отделы уже инициализированы (для сотрудников)
+  const initializedDepts = new Set();
 
   // Загружаем все файлы
   for (const { dept, year } of DATA_FILES) {
     const rawData = await fetchJsonFile(dept, year);
 
     if (rawData) {
-      // Сохраняем расписание
-      saveScheduleToStorage(dept, year, rawData);
+      // Нормализуем данные сразу
+      const { scheduleMap, employeeById, employeeIds } = normalizeRawData(rawData, year);
+
+      // Сохраняем нормализованное расписание
+      saveScheduleToStorage(dept, year, scheduleMap);
 
       // Сохраняем список сотрудников (только один раз на отдел)
-      const employeesKey = STORAGE_KEYS.employees(dept);
-      if (!localStorage.getItem(employeesKey)) {
-        saveEmployeesToStorage(dept, rawData);
+      if (!initializedDepts.has(dept)) {
+        saveEmployeesToStorage(dept, employeeById, employeeIds);
+        initializedDepts.add(dept);
       }
 
       // Обновляем список доступных годов
@@ -163,8 +199,10 @@ export const clearAppStorage = () => {
 
   keys.forEach(key => {
     if (key.startsWith('schedule-') ||
-        key.startsWith('draft-') ||
+        key.startsWith('draft-schedule-') ||
+        key.startsWith('draft-') ||  // старый формат
         key.startsWith('employees-') ||
+        key.startsWith('draft-employees-') ||
         key.startsWith('available-years-') ||
         key.startsWith('versions-') ||
         key === INIT_FLAG_KEY) {
@@ -183,8 +221,10 @@ export const getStorageInfo = () => {
   const keys = Object.keys(localStorage);
   const appKeys = keys.filter(k =>
     k.startsWith('schedule-') ||
+    k.startsWith('draft-schedule-') ||
     k.startsWith('draft-') ||
     k.startsWith('employees-') ||
+    k.startsWith('draft-employees-') ||
     k.startsWith('available-years-') ||
     k.startsWith('versions-')
   );
@@ -199,8 +239,9 @@ export const getStorageInfo = () => {
     initialized: isInitialized(),
     totalKeys: appKeys.length,
     sizeKB: (totalSize / 1024).toFixed(2),
-    schedules: appKeys.filter(k => k.startsWith('schedule-')).length,
-    drafts: appKeys.filter(k => k.startsWith('draft-')).length,
-    employees: appKeys.filter(k => k.startsWith('employees-')).length
+    schedules: appKeys.filter(k => k.startsWith('schedule-') && !k.startsWith('draft-schedule-')).length,
+    draftSchedules: appKeys.filter(k => k.startsWith('draft-schedule-')).length,
+    employees: appKeys.filter(k => k.startsWith('employees-') && !k.startsWith('draft-employees-')).length,
+    draftEmployees: appKeys.filter(k => k.startsWith('draft-employees-')).length
   };
 };

@@ -5,9 +5,11 @@ import { STORAGE_KEYS } from '../services/localStorageInit';
 /**
  * postWebStore — запись данных в localStorage (имитация POST/PUT/DELETE)
  *
- * Все методы записи вынесены сюда для четкого разделения:
- * - fetchWebStore: GET запросы (чтение)
- * - postWebStore: POST/PUT/DELETE запросы (запись)
+ * Все данные хранятся в НОРМАЛИЗОВАННОМ виде:
+ * - schedule-{dept}-{year}       → scheduleMap
+ * - draft-schedule-{dept}-{year} → scheduleMap черновика
+ * - employees-{dept}             → { employeeById, employeeIds }
+ * - draft-employees-{dept}       → { employeeById, employeeIds }
  */
 export const usePostWebStore = create(
   devtools((set, get) => ({
@@ -45,8 +47,7 @@ export const usePostWebStore = create(
     // === SCHEDULE API ===
 
     /**
-     * Сохранить изменения расписания (опубликовать draft → production)
-     * POST /api/schedule/{deptId}/{year}
+     * Опубликовать изменения (применить draft → production)
      * @param {string} departmentId
      * @param {number} year
      * @param {Object} changes - { "empId-date": "status", ... }
@@ -62,7 +63,7 @@ export const usePostWebStore = create(
         // Имитация задержки сети
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Загружаем текущее расписание
+        // Загружаем текущее расписание (уже нормализованное)
         const key = STORAGE_KEYS.schedule(departmentId, year);
         const stored = localStorage.getItem(key);
 
@@ -70,29 +71,20 @@ export const usePostWebStore = create(
           throw new Error(`Расписание ${departmentId}/${year} не найдено`);
         }
 
-        const scheduleData = JSON.parse(stored);
+        const scheduleMap = JSON.parse(stored);
 
-        // Применяем изменения к данным
-        scheduleData.data.forEach(employee => {
-          const employeeId = String(employee.id);
-
-          Object.entries(changes).forEach(([cellKey, newStatus]) => {
-            // cellKey формат: "empId-YYYY-MM-DD"
-            if (cellKey.startsWith(`${employeeId}-`)) {
-              const dateKey = cellKey.split('-').slice(1).join('-'); // "YYYY-MM-DD"
-              const monthDay = dateKey.slice(5); // "MM-DD"
-              employee.schedule[monthDay] = newStatus;
-            }
-          });
+        // Применяем изменения
+        Object.entries(changes).forEach(([cellKey, newStatus]) => {
+          scheduleMap[cellKey] = newStatus;
         });
 
         // Сохраняем обновленное расписание
-        localStorage.setItem(key, JSON.stringify(scheduleData));
+        localStorage.setItem(key, JSON.stringify(scheduleMap));
 
         // Создаем версию (snapshot)
         const now = new Date();
         const versionId = `${year}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}`;
-        get().createVersion(departmentId, year, versionId, scheduleData);
+        get().createVersion(departmentId, year, versionId, scheduleMap);
 
         get().setSaving('schedule', false);
 
@@ -109,12 +101,11 @@ export const usePostWebStore = create(
 
     /**
      * Создать новый год в базе
-     * POST /api/schedule/{deptId}/{year}/create
      * @param {string} departmentId
      * @param {number} year
-     * @param {Object} scheduleData - полные данные расписания
+     * @param {Object} scheduleMap - нормализованное расписание
      */
-    createScheduleYear: async (departmentId, year, scheduleData) => {
+    createScheduleYear: async (departmentId, year, scheduleMap) => {
       get().setSaving('schedule', true);
       get().clearError('schedule');
 
@@ -128,8 +119,8 @@ export const usePostWebStore = create(
           throw new Error(`Год ${year} уже существует`);
         }
 
-        // Сохраняем новый год
-        localStorage.setItem(key, JSON.stringify(scheduleData));
+        // Сохраняем новый год (уже нормализованный scheduleMap)
+        localStorage.setItem(key, JSON.stringify(scheduleMap));
 
         // Обновляем список доступных годов
         const yearsKey = STORAGE_KEYS.availableYears(departmentId);
@@ -158,33 +149,26 @@ export const usePostWebStore = create(
     // === DRAFT API ===
 
     /**
-     * Сохранить draft в localStorage
-     * PUT /api/draft/{deptId}/{year}
+     * Сохранить draft расписания в localStorage
      * @param {string} departmentId
      * @param {number} year
-     * @param {Object} draftData - { draftSchedule, employeeIds, employeeById }
+     * @param {Object} scheduleMap - нормализованный scheduleMap
      */
-    saveDraft: async (departmentId, year, draftData) => {
+    saveDraftSchedule: async (departmentId, year, scheduleMap) => {
       get().setSaving('draft', true);
       get().clearError('draft');
 
       try {
-        const key = STORAGE_KEYS.draft(departmentId, year);
-
-        const payload = {
-          ...draftData,
-          lastSaved: new Date().toISOString()
-        };
-
-        localStorage.setItem(key, JSON.stringify(payload));
+        const key = STORAGE_KEYS.draftSchedule(departmentId, year);
+        localStorage.setItem(key, JSON.stringify(scheduleMap));
 
         get().setSaving('draft', false);
 
-        console.log(`💾 Draft сохранен: ${departmentId}/${year}`);
+        console.log(`💾 Draft schedule сохранен: ${departmentId}/${year}`);
         return { success: true };
 
       } catch (error) {
-        console.error('saveDraft error:', error);
+        console.error('saveDraftSchedule error:', error);
         get().setError('draft', error.message);
         get().setSaving('draft', false);
         throw error;
@@ -192,19 +176,61 @@ export const usePostWebStore = create(
     },
 
     /**
-     * Удалить draft
-     * DELETE /api/draft/{deptId}/{year}
+     * Сохранить draft сотрудников
+     * @param {string} departmentId
+     * @param {Object} employeesData - { employeeById, employeeIds }
      */
-    deleteDraft: async (departmentId, year) => {
-      try {
-        const key = STORAGE_KEYS.draft(departmentId, year);
-        localStorage.removeItem(key);
+    saveDraftEmployees: async (departmentId, employeesData) => {
+      get().setSaving('draft', true);
+      get().clearError('draft');
 
-        console.log(`🗑️ Draft удален: ${departmentId}/${year}`);
+      try {
+        const key = STORAGE_KEYS.draftEmployees(departmentId);
+        localStorage.setItem(key, JSON.stringify(employeesData));
+
+        get().setSaving('draft', false);
+
+        console.log(`💾 Draft employees сохранен: ${departmentId}`);
         return { success: true };
 
       } catch (error) {
-        console.error('deleteDraft error:', error);
+        console.error('saveDraftEmployees error:', error);
+        get().setError('draft', error.message);
+        get().setSaving('draft', false);
+        throw error;
+      }
+    },
+
+    /**
+     * Удалить draft расписания
+     */
+    deleteDraftSchedule: async (departmentId, year) => {
+      try {
+        const key = STORAGE_KEYS.draftSchedule(departmentId, year);
+        localStorage.removeItem(key);
+
+        console.log(`🗑️ Draft schedule удален: ${departmentId}/${year}`);
+        return { success: true };
+
+      } catch (error) {
+        console.error('deleteDraftSchedule error:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Удалить draft сотрудников
+     */
+    deleteDraftEmployees: async (departmentId) => {
+      try {
+        const key = STORAGE_KEYS.draftEmployees(departmentId);
+        localStorage.removeItem(key);
+
+        console.log(`🗑️ Draft employees удален: ${departmentId}`);
+        return { success: true };
+
+      } catch (error) {
+        console.error('deleteDraftEmployees error:', error);
         throw error;
       }
     },
@@ -213,18 +239,21 @@ export const usePostWebStore = create(
 
     /**
      * Создать версию (snapshot) расписания
-     * POST /api/versions/{deptId}/{year}
+     * @param {string} departmentId
+     * @param {number} year
+     * @param {string} versionId
+     * @param {Object} scheduleMap - нормализованный scheduleMap
      */
-    createVersion: async (departmentId, year, versionId, scheduleData) => {
+    createVersion: async (departmentId, year, versionId, scheduleMap) => {
       try {
         const key = STORAGE_KEYS.versions(departmentId, year);
         const stored = localStorage.getItem(key);
         const versions = stored ? JSON.parse(stored) : {};
 
-        // Сохраняем версию
+        // Сохраняем версию в нормализованном формате
         versions[versionId] = {
           id: versionId,
-          data: scheduleData,
+          scheduleMap,
           createdAt: new Date().toISOString()
         };
 
@@ -242,8 +271,9 @@ export const usePostWebStore = create(
     // === EMPLOYEES API ===
 
     /**
-     * Обновить список сотрудников отдела
-     * PUT /api/departments/{deptId}/employees
+     * Обновить список сотрудников отдела (production)
+     * @param {string} departmentId
+     * @param {Object} employeesData - { employeeById, employeeIds }
      */
     updateEmployees: async (departmentId, employeesData) => {
       get().setSaving('employees', true);
@@ -264,6 +294,24 @@ export const usePostWebStore = create(
         get().setSaving('employees', false);
         throw error;
       }
+    },
+
+    // === LEGACY (для совместимости) ===
+
+    /**
+     * @deprecated Используйте saveDraftSchedule
+     */
+    saveDraft: async (departmentId, year, draftData) => {
+      console.warn('⚠️ saveDraft is deprecated, use saveDraftSchedule instead');
+      return get().saveDraftSchedule(departmentId, year, draftData.draftSchedule || draftData);
+    },
+
+    /**
+     * @deprecated Используйте deleteDraftSchedule
+     */
+    deleteDraft: async (departmentId, year) => {
+      console.warn('⚠️ deleteDraft is deprecated, use deleteDraftSchedule instead');
+      return get().deleteDraftSchedule(departmentId, year);
     }
 
   }), { name: 'PostWebStore' })
