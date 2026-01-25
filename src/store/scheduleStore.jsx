@@ -71,7 +71,15 @@ export const useScheduleStore = create(
 
       try {
         const fetchStore = useFetchWebStore.getState();
-        const { employeeById, employeeIds, scheduleMap } = await fetchStore.fetchSchedule(departmentId, year);
+
+        // Загружаем расписание и сотрудников параллельно
+        const [scheduleData, employeesData] = await Promise.all([
+          fetchStore.fetchSchedule(departmentId, year),
+          fetchStore.fetchDepartmentEmployees(departmentId)
+        ]);
+
+        const { scheduleMap } = scheduleData;
+        const { employeeById, employeeIds } = employeesData;
 
         // Переиспользуем существующие объекты сотрудников
         const currentEmployeeById = get().employeeById;

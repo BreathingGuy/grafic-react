@@ -10,6 +10,11 @@ import {
   getWeekDates
 } from '../utils/dateIndex';
 
+// Динамические границы навигации (относительно текущего года)
+const CURRENT_YEAR = new Date().getFullYear();
+const DEFAULT_MIN_YEAR = CURRENT_YEAR - 10;
+const DEFAULT_MAX_YEAR = CURRENT_YEAR + 10;
+
 /**
  * dateUserStore — управление датами для User View
  *
