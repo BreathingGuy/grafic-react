@@ -36,7 +36,7 @@ export default function AdminView() {
       </div>
 
       {currentDepartmentId ? (
-        <AdminConsole />
+        <AdminConsole currentDepartmentId={currentDepartmentId} />
       ) : (
         <div className="empty-state">
           <p>Выберите отдел для редактирования расписания</p>

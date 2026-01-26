@@ -3,7 +3,6 @@ import { useAdminStore } from '../../store/adminStore';
 import { useClipboardStore } from '../../store/selection';
 import { useDateAdminStore } from '../../store/dateAdminStore';
 import { useDateUserStore } from '../../store/dateUserStore';
-import { useWorkspaceStore } from '../../store/workspaceStore';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 import AdminHeader from './AdminStaticComponents/AdminHeader';
@@ -17,20 +16,17 @@ import styles from './Table.module.css';
 /**
  * AdminConsole - Контейнер для редактирования графика
  *
+ * @param {string} currentDepartmentId - ID отдела (передаётся из AdminView)
+ *
  * Минимум подписок — только для инициализации.
- * Все UI-данные вынесены в подкомпоненты:
- * - AdminHeader: кнопки управления (hasUnsavedChanges)
- * - AdminStatusBar: статус выделения (startCell, endCell, statusMessage)
- * - AdminScrollableScheduleTable: таблицы (employeeIds, slotToDate, draftSchedule)
  */
-function AdminConsole() {
+function AdminConsole({ currentDepartmentId }) {
   // Keyboard shortcuts
   useKeyboardShortcuts();
 
   // Только для инициализации
   const currentYear = useDateAdminStore(s => s.currentYear);
   const userCurrentYear = useDateUserStore(s => s.currentYear);
-  const currentDepartmentId = useWorkspaceStore(s => s.currentDepartmentId);
 
   useEffect(() => {
     useDateAdminStore.getState().initializeYear(userCurrentYear);

@@ -1,15 +1,23 @@
-import {useMetaStore} from '../../store/metaStore'
-import {useWorkspaceStore} from '../../store/workspaceStore'
+import { memo } from 'react';
+import { useMetaStore } from '../../store/metaStore';
+import { useWorkspaceStore } from '../../store/workspaceStore';
 
-export const DepartmentSelector = () => {
-  const departmentsList = useMetaStore(state => state.departmentsList);  
+/**
+ * DepartmentSelector - Выбор отдела
+ * Мемоизирован для предотвращения лишних ререндеров от родителя
+ */
+export const DepartmentSelector = memo(() => {
+  const departmentsList = useMetaStore(state => state.departmentsList);
   const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
-  const setDepartment = useWorkspaceStore(state => state.setDepartment);
+
+  const handleChange = (e) => {
+    useWorkspaceStore.getState().setDepartment(e.target.value);
+  };
 
   return (
-    <select 
-      value={currentDepartmentId || ''} 
-      onChange={(e) => setDepartment(e.target.value)}
+    <select
+      value={currentDepartmentId || ''}
+      onChange={handleChange}
     >
       <option value="">Выберите отдел</option>
       {departmentsList.map(dept => (
@@ -17,4 +25,6 @@ export const DepartmentSelector = () => {
       ))}
     </select>
   );
-};
+});
+
+DepartmentSelector.displayName = 'DepartmentSelector';
