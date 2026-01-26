@@ -49,12 +49,9 @@ export const useWorkspaceStore = create((set, get) => ({
 
       if (prevDepartmentId === departmentId) return;
 
-      // Очистки как при смене года
+      // Очистки как при смене года (без сброса isAdminMode)
       useClipboardStore.getState().clearAllSelections();
-      useAdminStore.getState().clearDraft();
-
-      // Сбросить версии (как в switchYear)
-      useAdminStore.setState({ selectedVersion: null, yearVersions: [] });
+      useAdminStore.getState().clearDraftData();
 
       set({ currentDepartmentId: departmentId });
 

@@ -522,6 +522,27 @@ export const useAdminStore = create(
           });
         },
 
+        // Очистить данные draft (без сброса isAdminMode — для смены отдела)
+        clearDraftData: () => {
+          set({
+            draftSchedule: {},
+            originalSchedule: {},
+            employeeIds: [],
+            employeeById: {},
+            hasUnsavedChanges: false,
+            undoStack: [],
+            editingYear: null,
+            editingDepartmentId: null,
+            availableYears: [],
+            yearVersions: [],
+            selectedVersion: null,
+            // Versioning
+            baseVersion: null,
+            changedCells: {},
+            prodVersion: null
+          });
+        },
+
         // === YEARS & VERSIONS ACTIONS ===
 
         /**
