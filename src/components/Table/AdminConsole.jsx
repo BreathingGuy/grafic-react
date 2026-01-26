@@ -1,8 +1,3 @@
-import { useEffect } from 'react';
-import { useAdminStore } from '../../store/adminStore';
-import { useClipboardStore } from '../../store/selection';
-import { useDateAdminStore } from '../../store/dateAdminStore';
-import { useDateUserStore } from '../../store/dateUserStore';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 import AdminHeader from './AdminStaticComponents/AdminHeader';
@@ -16,37 +11,12 @@ import styles from './Table.module.css';
 /**
  * AdminConsole - Контейнер для редактирования графика
  *
- * @param {string} currentDepartmentId - ID отдела (передаётся из AdminView)
- *
- * Минимум подписок — только для инициализации.
+ * Чистый рендер — вся логика инициализации вынесена в AdminInitializer,
+ * чтобы useEffect'ы не вызывали ре-рендер дочерних компонентов.
  */
-function AdminConsole({ currentDepartmentId }) {
+function AdminConsole() {
   // Keyboard shortcuts
   useKeyboardShortcuts();
-
-  // Только для инициализации
-  const currentYear = useDateAdminStore(s => s.currentYear);
-  const userCurrentYear = useDateUserStore(s => s.currentYear);
-
-  useEffect(() => {
-    useDateAdminStore.getState().initializeYear(userCurrentYear);
-
-    return () => {
-      useAdminStore.getState().clearDraft();
-      useClipboardStore.getState().clearAllSelections();
-    };
-  }, [userCurrentYear]);
-
-  // Инициализация draft при смене отдела/года
-  useEffect(() => {
-    if (currentDepartmentId && currentYear) {
-      console.log(`🔄 AdminConsole: инициализация draft для ${currentDepartmentId}/${currentYear}`);
-      // Очищаем выделения при смене отдела/года, чтобы избежать
-      // ссылок на старые employeeId в SelectionOverlay
-      useClipboardStore.getState().clearAllSelections();
-      useAdminStore.getState().initializeDraft(currentDepartmentId, currentYear);
-    }
-  }, [currentDepartmentId, currentYear]);
 
   return (
     <div style={{ padding: '20px' }}>
