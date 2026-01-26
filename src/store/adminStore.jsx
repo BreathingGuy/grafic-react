@@ -596,10 +596,9 @@ export const useAdminStore = create(
 
         /**
          * Переключить год
-         * Только очистка и смена года — загрузку делает AdminInitializer
          * @param {number|string} year
          */
-        switchYear: (year) => {
+        switchYear: async (year) => {
           const { editingDepartmentId } = get();
           if (!editingDepartmentId) return;
 
@@ -609,9 +608,12 @@ export const useAdminStore = create(
           // Очищаем выделения
           useClipboardStore.getState().clearAllSelections();
 
-          // Обновить dateAdminStore — триггерит AdminInitializer.useEffect
-          // который вызовет initializeDraft
+          // Обновить dateAdminStore
           useDateAdminStore.getState().initializeYear(Number(year));
+
+          // Загрузить draft — синхронно здесь, чтобы всё было в одном batch
+          // (AdminInitializer не реагирует на currentYear)
+          await get().initializeDraft(editingDepartmentId, Number(year));
         },
 
         /**
