@@ -1,4 +1,4 @@
-import { DepartmentSelector } from '../Selectors/DepartmentSelector';
+import { AdminDepartmentSelector } from '../Selectors/AdminDepartmentSelector';
 import AdminConsole from '../Table/AdminConsole';
 import { useAdminStore } from '../../store/adminStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
@@ -17,7 +17,7 @@ export default function AdminView() {
   return (
     <>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
-        <DepartmentSelector />
+        <AdminDepartmentSelector />
 
         <button
           onClick={handleExitAdminMode}
