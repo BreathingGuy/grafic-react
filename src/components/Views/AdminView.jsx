@@ -1,5 +1,6 @@
 import { AdminDepartmentSelector } from '../Selectors/AdminDepartmentSelector';
 import AdminConsole from '../Table/AdminConsole';
+import AdminInitializer from '../Table/AdminInitializer';
 import { useAdminStore } from '../../store/adminStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 
@@ -36,7 +37,10 @@ export default function AdminView() {
       </div>
 
       {currentDepartmentId ? (
-        <AdminConsole currentDepartmentId={currentDepartmentId} />
+        <>
+          <AdminInitializer currentDepartmentId={currentDepartmentId} />
+          <AdminConsole />
+        </>
       ) : (
         <div className="empty-state">
           <p>Выберите отдел для редактирования расписания</p>
