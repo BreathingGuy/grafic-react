@@ -41,6 +41,9 @@ function AdminConsole({ currentDepartmentId }) {
   useEffect(() => {
     if (currentDepartmentId && currentYear) {
       console.log(`🔄 AdminConsole: инициализация draft для ${currentDepartmentId}/${currentYear}`);
+      // Очищаем выделения при смене отдела/года, чтобы избежать
+      // ссылок на старые employeeId в SelectionOverlay
+      useClipboardStore.getState().clearAllSelections();
       useAdminStore.getState().initializeDraft(currentDepartmentId, currentYear);
     }
   }, [currentDepartmentId, currentYear]);

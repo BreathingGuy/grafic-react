@@ -4,6 +4,7 @@ import { useFetchWebStore } from './fetchWebStore';
 import { usePostWebStore } from './postWebStore';
 import { useScheduleStore } from './scheduleStore';
 import { useDateAdminStore } from './dateAdminStore';
+import { useClipboardStore } from './selection';
 
 export const useAdminStore = create(
   persist(
@@ -582,6 +583,9 @@ export const useAdminStore = create(
 
           // Сбросить выбранную версию
           set({ selectedVersion: null, yearVersions: [] });
+
+          // Очищаем выделения при смене года (устаревшие employeeId/slotIndex)
+          useClipboardStore.getState().clearAllSelections();
 
           // Обновить dateAdminStore для нового года (важно сделать до загрузки данных)
           useDateAdminStore.getState().initializeYear(Number(year));
