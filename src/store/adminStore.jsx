@@ -595,27 +595,23 @@ export const useAdminStore = create(
         },
 
         /**
-         * Переключить год (загрузить draft для другого года)
+         * Переключить год
+         * Только очистка и смена года — загрузку делает AdminInitializer
          * @param {number|string} year
          */
-        switchYear: async (year) => {
+        switchYear: (year) => {
           const { editingDepartmentId } = get();
           if (!editingDepartmentId) return;
 
-          // Сбросить выбранную версию
+          // Сбросить версии (AdminYearSelector.useEffect загрузит новые)
           set({ selectedVersion: null, yearVersions: [] });
 
-          // Очищаем выделения при смене года (устаревшие employeeId/slotIndex)
+          // Очищаем выделения
           useClipboardStore.getState().clearAllSelections();
 
-          // Обновить dateAdminStore для нового года (важно сделать до загрузки данных)
+          // Обновить dateAdminStore — триггерит AdminInitializer.useEffect
+          // который вызовет initializeDraft
           useDateAdminStore.getState().initializeYear(Number(year));
-
-          // Загрузить draft для нового года
-          await get().initializeDraft(editingDepartmentId, Number(year));
-
-          // Загрузить версии для этого года
-          await get().loadYearVersions(editingDepartmentId, year);
         },
 
         /**
