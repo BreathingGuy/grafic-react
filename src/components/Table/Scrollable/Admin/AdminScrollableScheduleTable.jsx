@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, memo } from 'react';
 import { useDateAdminStore } from '../../../../store/dateAdminStore';
 import { useMainSelectionStore, useOffsetSelectionStore } from '../../../../store/selection';
 
@@ -15,7 +15,7 @@ import styles from '../../Table.module.css';
  * - main: основная таблица года (январь-декабрь)
  * - offset: таблица со сдвигом на 3 месяца (апрель-март) для квартального сравнения
  */
-const AdminScrollableScheduleTable = () => {
+const AdminScrollableScheduleTable = memo(() => {
     const mainTableRef = useRef(null);
     const offsetTableRef = useRef(null);
 
@@ -51,6 +51,8 @@ const AdminScrollableScheduleTable = () => {
           </div>
         </div>
     )
-}
+});
+
+AdminScrollableScheduleTable.displayName = 'AdminScrollableScheduleTable';
 
 export default AdminScrollableScheduleTable;
