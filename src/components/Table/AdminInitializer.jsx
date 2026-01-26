@@ -30,7 +30,7 @@ function AdminInitializer({ currentDepartmentId }) {
   useEffect(() => {
     if (currentDepartmentId && currentYear) {
       console.log(`🔄 AdminInitializer: инициализация draft для ${currentDepartmentId}/${currentYear}`);
-      useClipboardStore.getState().clearAllSelections();
+      // clearAllSelections уже вызывается в setAdminDepartment / switchYear
       useAdminStore.getState().initializeDraft(currentDepartmentId, currentYear);
     }
   }, [currentDepartmentId, currentYear]);
