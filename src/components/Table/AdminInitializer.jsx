@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useAdminStore } from '../../store/adminStore';
 import { useClipboardStore } from '../../store/selection';
 import { useDateAdminStore } from '../../store/dateAdminStore';
-import { useDateUserStore } from '../../store/dateUserStore';
 
 /**
  * AdminInitializer - Компонент для инициализации админ-режима
@@ -14,17 +13,16 @@ import { useDateUserStore } from '../../store/dateUserStore';
  */
 function AdminInitializer({ currentDepartmentId }) {
   const currentYear = useDateAdminStore(s => s.currentYear);
-  const userCurrentYear = useDateUserStore(s => s.currentYear);
 
   // Инициализация dateAdminStore при входе в админ-режим
   useEffect(() => {
-    useDateAdminStore.getState().initializeYear(userCurrentYear);
+    useDateAdminStore.getState().initializeYear(new Date().getFullYear());
 
     return () => {
       useAdminStore.getState().clearDraft();
       useClipboardStore.getState().clearAllSelections();
     };
-  }, [userCurrentYear]);
+  }, []);
 
   // Инициализация draft при смене отдела/года
   useEffect(() => {
