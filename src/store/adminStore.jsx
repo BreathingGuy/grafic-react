@@ -183,21 +183,21 @@ export const useAdminStore = create(
 
               // Warming: делаем реальное изменение значения и откатываем
               // Это заставляет React полностью инициализировать reconciliation
-              requestAnimationFrame(() => {
-                const keys = Object.keys(yearData);
-                if (keys.length > 0) {
-                  const firstKey = keys[0];
-                  const originalValue = yearData[firstKey];
-                  // Меняем на временное значение
-                  set(state => ({
-                    draftSchedule: { ...state.draftSchedule, [firstKey]: '__warming__' }
-                  }));
-                  set(state => ({
-                      draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
-                      hasUnsavedChanges: false // сбрасываем флаг изменений
-                    }));
-                }
-              });
+              // requestAnimationFrame(() => {
+              //   const keys = Object.keys(yearData);
+              //   if (keys.length > 0) {
+              //     const firstKey = keys[0];
+              //     const originalValue = yearData[firstKey];
+              //     // Меняем на временное значение
+              //     set(state => ({
+              //       draftSchedule: { ...state.draftSchedule, [firstKey]: '__warming__' }
+              //     }));
+              //     set(state => ({
+              //         draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
+              //         hasUnsavedChanges: false // сбрасываем флаг изменений
+              //       }));
+              //   }
+              // });
             } else {
               // Год не существует — создаём пустой
               console.log(`📝 Создание пустого draft для ${year}`);
@@ -281,20 +281,20 @@ export const useAdminStore = create(
           console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками (включая Q1 ${year + 1}), version: ${prodVersion}`);
 
           // Warming: делаем реальное изменение значения и откатываем
-          requestAnimationFrame(() => {
-            const keys = Object.keys(emptyDraft);
-            if (keys.length > 0) {
-              const firstKey = keys[0];
-              const originalValue = emptyDraft[firstKey];
-              set(state => ({
-                draftSchedule: { ...state.draftSchedule, [firstKey]: '__warming__' }
-              }));
-              set(state => ({
-                      draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
-                      hasUnsavedChanges: false // сбрасываем флаг изменений
-                    }));
-            }
-          });
+          // requestAnimationFrame(() => {
+          //   const keys = Object.keys(emptyDraft);
+          //   if (keys.length > 0) {
+          //     const firstKey = keys[0];
+          //     const originalValue = emptyDraft[firstKey];
+          //     set(state => ({
+          //       draftSchedule: { ...state.draftSchedule, [firstKey]: '__warming__' }
+          //     }));
+          //     set(state => ({
+          //             draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
+          //             hasUnsavedChanges: false // сбрасываем флаг изменений
+          //           }));
+          //   }
+          // });
         },
 
         // Обновить одну ячейку в draft
