@@ -550,6 +550,26 @@ export const useAdminStore = create(
           });
         },
 
+        // Очистить данные года (для смены года внутри отдела)
+        // Сохраняет: editingDepartmentId, availableYears
+        clearYearData: () => {
+          set({
+            draftSchedule: {},
+            originalSchedule: {},
+            employeeIds: [],
+            employeeById: {},
+            hasUnsavedChanges: false,
+            undoStack: [],
+            editingYear: null,
+            yearVersions: [],
+            selectedVersion: null,
+            // Versioning
+            baseVersion: null,
+            changedCells: {},
+            prodVersion: null
+          });
+        },
+
         // === YEARS & VERSIONS ACTIONS ===
 
         /**
@@ -609,17 +629,14 @@ export const useAdminStore = create(
           const { editingDepartmentId } = get();
           if (!editingDepartmentId) return;
 
-          // Сбросить версии (AdminYearSelector.useEffect загрузит новые)
-          set({ selectedVersion: null, yearVersions: [] });
-
-          // Очищаем выделения
+          // Очистки аналогичные смене отдела
           useClipboardStore.getState().clearAllSelections();
+          get().clearYearData();
 
           // Обновить dateAdminStore
           useDateAdminStore.getState().initializeYear(Number(year));
 
-          // Загрузить draft — синхронно здесь, чтобы всё было в одном batch
-          // (AdminInitializer не реагирует на currentYear)
+          // Загрузить draft
           await get().initializeDraft(editingDepartmentId, Number(year));
         },
 
