@@ -3,7 +3,8 @@ import { useDateAdminStore } from '../../../../store/dateAdminStore';
 import { useMainSelectionStore, useOffsetSelectionStore } from '../../../../store/selection';
 
 import AdminDatingComps from './AdminDatingComps';
-import AdminRows from './AdminRows'
+import MainAdminRows from './MainAdminRows';
+import OffsetAdminRows from './OffsetAdminRows';
 import SelectionOverlay from '../../SelectionOverlay';
 
 import styles from '../../Table.module.css';
@@ -14,6 +15,8 @@ import styles from '../../Table.module.css';
  * Содержит две таблицы:
  * - main: основная таблица года (январь-декабрь)
  * - offset: таблица со сдвигом на 3 месяца (апрель-март) для квартального сравнения
+ *
+ * Без props drilling - MainAdminRows и OffsetAdminRows используют свои selection stores напрямую
  */
 const AdminScrollableScheduleTable = memo(() => {
     const mainTableRef = useRef(null);
@@ -28,7 +31,7 @@ const AdminScrollableScheduleTable = memo(() => {
           <div style={{ position: 'relative' }}>
             <table ref={mainTableRef} className={styles.scrollable_column}>
               <AdminDatingComps tableId="main" />
-              <AdminRows tableId="main" useSelectionStore={useMainSelectionStore} />
+              <MainAdminRows />
             </table>
             <SelectionOverlay
               tableRef={mainTableRef}
@@ -41,7 +44,7 @@ const AdminScrollableScheduleTable = memo(() => {
           <div style={{ position: 'relative', marginTop: '40px' }}>
             <table ref={offsetTableRef} className={styles.scrollable_column}>
               <AdminDatingComps tableId="offset" />
-              <AdminRows tableId="offset" useSelectionStore={useOffsetSelectionStore} />
+              <OffsetAdminRows />
             </table>
             <SelectionOverlay
               tableRef={offsetTableRef}
