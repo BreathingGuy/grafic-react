@@ -1,12 +1,17 @@
 import { AdminDepartmentSelector } from '../Selectors/AdminDepartmentSelector';
 import AdminConsole from '../Table/AdminConsole';
-import AdminInitializer from '../Table/AdminInitializer';
 import { useAdminStore } from '../../store/adminStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 
 /**
  * AdminView - Режим редактирования расписания
- * Изолированный компонент для админского интерфейса
+ *
+ * Инициализация теперь происходит через единую точку входа:
+ * - setAdminMode(true) — при входе в админку
+ * - setAdminDepartment — при смене отдела
+ * - switchYear — при смене года
+ *
+ * Никаких useEffect — всё синхронно в actions.
  */
 export default function AdminView() {
   const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
@@ -37,10 +42,7 @@ export default function AdminView() {
       </div>
 
       {currentDepartmentId ? (
-        <>
-          <AdminInitializer currentDepartmentId={currentDepartmentId} />
-          <AdminConsole />
-        </>
+        <AdminConsole />
       ) : (
         <div className="empty-state">
           <p>Выберите отдел для редактирования расписания</p>
