@@ -3,7 +3,7 @@ import { useAdminStore } from '../../../../store/adminStore';
 
 import AdminEmployeeRow from '../../Rows/AdminEmployeeRow';
 
-const AdminRows = memo(({ tableId = 'main', useSelectionStore }) => {
+const AdminRows = memo(({ tableId, useSelectionStore }) => {
     const employeeIds = useAdminStore(state => state.employeeIds);
 
     return (

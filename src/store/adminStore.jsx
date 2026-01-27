@@ -180,24 +180,6 @@ export const useAdminStore = create(
 
               const isSynced = baseVersion === currentProdVersion;
               console.log(`✅ Draft инициализирован: ${Object.keys(yearData).length} ячеек, baseVersion: ${baseVersion}, prodVersion: ${currentProdVersion}, synced: ${isSynced}, changedCells: ${Object.keys(changedCells).length}`);
-
-              // Warming: делаем реальное изменение значения и откатываем
-              // Это заставляет React полностью инициализировать reconciliation
-              // requestAnimationFrame(() => {
-              //   const keys = Object.keys(yearData);
-              //   if (keys.length > 0) {
-              //     const firstKey = keys[0];
-              //     const originalValue = yearData[firstKey];
-              //     // Меняем на временное значение
-              //     set(state => ({
-              //       draftSchedule: { ...state.draftSchedule, [firstKey]: '__warming__' }
-              //     }));
-              //     set(state => ({
-              //         draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
-              //         hasUnsavedChanges: false // сбрасываем флаг изменений
-              //       }));
-              //   }
-              // });
             } else {
               // Год не существует — создаём пустой
               console.log(`📝 Создание пустого draft для ${year}`);
@@ -279,22 +261,6 @@ export const useAdminStore = create(
           });
 
           console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками (включая Q1 ${year + 1}), version: ${prodVersion}`);
-
-          // Warming: делаем реальное изменение значения и откатываем
-          // requestAnimationFrame(() => {
-          //   const keys = Object.keys(emptyDraft);
-          //   if (keys.length > 0) {
-          //     const firstKey = keys[0];
-          //     const originalValue = emptyDraft[firstKey];
-          //     set(state => ({
-          //       draftSchedule: { ...state.draftSchedule, [firstKey]: '__warming__' }
-          //     }));
-          //     set(state => ({
-          //             draftSchedule: { ...state.draftSchedule, [firstKey]: originalValue },
-          //             hasUnsavedChanges: false // сбрасываем флаг изменений
-          //           }));
-          //   }
-          // });
         },
 
         // Обновить одну ячейку в draft
@@ -461,13 +427,6 @@ export const useAdminStore = create(
               baseVersion: newVersion,
               changedCells: {},
               prodVersion: newVersion
-            });
-
-            // Синхронизируем draft в localStorage с новой версией
-            await postStore.saveDraftSchedule(editingDepartmentId, editingYear, {
-              scheduleMap: draftSchedule,
-              baseVersion: newVersion,
-              changedCells: {}
             });
 
             console.log(`✅ Опубликовано ${changedCount} изменений, новая версия: ${newVersion}`);
