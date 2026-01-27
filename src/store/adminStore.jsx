@@ -463,6 +463,13 @@ export const useAdminStore = create(
               prodVersion: newVersion
             });
 
+            // Синхронизируем draft в localStorage с новой версией
+            await postStore.saveDraftSchedule(editingDepartmentId, editingYear, {
+              scheduleMap: draftSchedule,
+              baseVersion: newVersion,
+              changedCells: {}
+            });
+
             console.log(`✅ Опубликовано ${changedCount} изменений, новая версия: ${newVersion}`);
             return changedCount;
 
