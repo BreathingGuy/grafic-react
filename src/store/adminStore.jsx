@@ -5,7 +5,6 @@ import { usePostWebStore } from './postWebStore';
 import { useScheduleStore } from './scheduleStore';
 import { useDateAdminStore } from './dateAdminStore';
 import { useClipboardStore } from './selection';
-import { useWorkspaceStore } from './workspaceStore';
 
 export const useAdminStore = create(
   persist(
@@ -51,19 +50,8 @@ export const useAdminStore = create(
           set(state => ({ isAdminMode: !state.isAdminMode }));
         },
 
-        setAdminMode: async (isAdmin) => {
-          if (isAdmin) {
-            set({ isAdminMode: true });
-            // Инициализируем если отдел уже выбран
-            const deptId = useWorkspaceStore.getState().currentDepartmentId;
-            if (deptId) {
-              await get().initializeAdminConsole(deptId, new Date().getFullYear());
-            }
-          } else {
-            // Cleanup при выходе из админки
-            get().clearDraft();
-            useClipboardStore.getState().clearAllSelections();
-          }
+        setAdminMode: (isAdmin) => {
+          set({ isAdminMode: isAdmin });
         },
 
         // === AUTH ACTIONS ===
@@ -123,29 +111,6 @@ export const useAdminStore = create(
         },
 
         // === DRAFT OPERATIONS ===
-
-        /**
-         * Единая точка входа для инициализации админ-консоли
-         * Вызывается из:
-         * - setAdminMode(true) — при входе в админку
-         * - setAdminDepartment — при смене отдела
-         * - switchYear — при смене года
-         */
-        initializeAdminConsole: async (departmentId, year) => {
-          if (!departmentId || !year) return;
-
-          console.log(`🔄 initializeAdminConsole: ${departmentId}/${year}`);
-
-          // 1. Очистки
-          set({ selectedVersion: null, yearVersions: [] });
-          useClipboardStore.getState().clearAllSelections();
-
-          // 2. Инициализация дат
-          useDateAdminStore.getState().initializeYear(year);
-
-          // 3. Загрузка данных
-          await get().initializeDraft(departmentId, year);
-        },
 
         /**
          * Инициализировать draft — загружает данные через fetchWebStore
@@ -637,7 +602,18 @@ export const useAdminStore = create(
           const { editingDepartmentId } = get();
           if (!editingDepartmentId) return;
 
-          await get().initializeAdminConsole(editingDepartmentId, Number(year));
+          // Сбросить версии (AdminYearSelector.useEffect загрузит новые)
+          set({ selectedVersion: null, yearVersions: [] });
+
+          // Очищаем выделения
+          useClipboardStore.getState().clearAllSelections();
+
+          // Обновить dateAdminStore
+          useDateAdminStore.getState().initializeYear(Number(year));
+
+          // Загрузить draft — синхронно здесь, чтобы всё было в одном batch
+          // (AdminInitializer не реагирует на currentYear)
+          await get().initializeDraft(editingDepartmentId, Number(year));
         },
 
         /**

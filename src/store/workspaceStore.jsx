@@ -3,8 +3,8 @@ import { create } from 'zustand';
 import { useMetaStore } from './metaStore'
 import { useScheduleStore } from './scheduleStore'
 import { useDateUserStore } from './dateUserStore'
-import { useDateAdminStore } from './dateAdminStore'
 import { useAdminStore } from './adminStore'
+import { useClipboardStore } from './selection'
 
 export const useWorkspaceStore = create((set, get) => ({
     // === STATE ===
@@ -42,17 +42,21 @@ export const useWorkspaceStore = create((set, get) => ({
       // scheduleStore.subscribeToUpdates(departmentId);
     },
 
-    // Выбрать отдел (для admin mode)
-    setAdminDepartment: async (departmentId) => {
+    // Выбрать отдел (для admin mode — только меняет ID, без загрузки user data)
+    // AdminConsole сам загрузит данные через initializeDraft
+    setAdminDepartment: (departmentId) => {
       const prevDepartmentId = get().currentDepartmentId;
 
       if (prevDepartmentId === departmentId) return;
 
+      // Очистки как при смене года (без сброса isAdminMode)
+      useClipboardStore.getState().clearAllSelections();
+      useAdminStore.getState().clearDraftData();
+
       set({ currentDepartmentId: departmentId });
 
-      // Единая точка входа — initializeAdminConsole
-      const currentYear = useDateAdminStore.getState().currentYear || new Date().getFullYear();
-      await useAdminStore.getState().initializeAdminConsole(departmentId, currentYear);
+      // AdminConsole.useEffect подхватит изменение currentDepartmentId
+      // и вызовет initializeDraft
     },
 
     // Навигация по годам — загружаем данные для нового года
