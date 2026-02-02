@@ -529,6 +529,41 @@ export const useAdminStore = create(
           });
         },
 
+        // === UNIFIED ENTRY POINT ===
+
+        /**
+         * Единая точка входа в админ-контекст
+         * Используется для: входа в консоль, смены года, смены отдела
+         *
+         * @param {string} departmentId - ID отдела
+         * @param {number} year - год
+         */
+        enterAdminContext: async (departmentId, year) => {
+          const currentDeptId = get().editingDepartmentId;
+          const currentYear = get().editingYear;
+
+          console.log(`🚀 enterAdminContext: ${departmentId}/${year} (was: ${currentDeptId}/${currentYear})`);
+
+          // 1. Очистка выделений (всегда)
+          useClipboardStore.getState().clearAllSelections();
+
+          // 2. Умная очистка данных
+          if (departmentId !== currentDeptId) {
+            // Смена отдела — полная очистка
+            get().clearDraftData();
+          } else if (year !== currentYear) {
+            // Смена года — частичная очистка
+            get().clearYearData();
+          }
+          // Если ничего не изменилось — пропускаем очистку (re-init)
+
+          // 3. Инициализация дат (всегда)
+          useDateAdminStore.getState().initializeYear(Number(year));
+
+          // 4. Загрузка draft (всегда)
+          await get().initializeDraft(departmentId, Number(year));
+        },
+
         // === YEARS & VERSIONS ACTIONS ===
 
         /**
@@ -588,15 +623,7 @@ export const useAdminStore = create(
           const { editingDepartmentId } = get();
           if (!editingDepartmentId) return;
 
-          // Очистки аналогичные смене отдела
-          useClipboardStore.getState().clearAllSelections();
-          get().clearYearData();
-
-          // Обновить dateAdminStore
-          useDateAdminStore.getState().initializeYear(Number(year));
-
-          // Загрузить draft
-          await get().initializeDraft(editingDepartmentId, Number(year));
+          await get().enterAdminContext(editingDepartmentId, Number(year));
         },
 
         /**
