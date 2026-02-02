@@ -540,27 +540,21 @@ export const useAdminStore = create(
          */
         enterAdminContext: async (departmentId, year) => {
           const currentDeptId = get().editingDepartmentId;
-          const currentYear = get().editingYear;
 
-          console.log(`🚀 enterAdminContext: ${departmentId}/${year} (was: ${currentDeptId}/${currentYear})`);
+          console.log(`🚀 enterAdminContext: ${departmentId}/${year} (was: ${currentDeptId}/${get().editingYear})`);
 
-          // 1. Очистка выделений (всегда)
+          // 1. Очистка выделений
           useClipboardStore.getState().clearAllSelections();
 
-          // 2. Умная очистка данных
+          // 2. При смене отдела — сбросить availableYears (initializeDraft его не трогает)
           if (departmentId !== currentDeptId) {
-            // Смена отдела — полная очистка
-            get().clearDraftData();
-          } else if (year !== currentYear) {
-            // Смена года — частичная очистка
-            get().clearYearData();
+            set({ availableYears: [] });
           }
-          // Если ничего не изменилось — пропускаем очистку (re-init)
 
-          // 3. Инициализация дат (всегда)
+          // 3. Инициализация дат
           useDateAdminStore.getState().initializeYear(Number(year));
 
-          // 4. Загрузка draft (всегда)
+          // 4. Загрузка draft — заменит все данные в одном set()
           await get().initializeDraft(departmentId, Number(year));
         },
 
