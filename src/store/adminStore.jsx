@@ -172,6 +172,9 @@ export const useAdminStore = create(
                 undoStack: [],
                 editingYear: year,
                 editingDepartmentId: departmentId,
+                // Сброс при смене года/отдела
+                yearVersions: [],
+                selectedVersion: null,
                 // Versioning
                 baseVersion,
                 changedCells,
@@ -272,6 +275,9 @@ export const useAdminStore = create(
             undoStack: [],
             editingYear: year,
             editingDepartmentId: departmentId,
+            // Сброс при создании нового года
+            yearVersions: [],
+            selectedVersion: null,
             // Versioning: новый год начинается синхронизированным
             baseVersion: prodVersion,
             changedCells: {},
