@@ -3,18 +3,13 @@ import { useDateAdminStore } from '../../../../store/dateAdminStore';
 import { useOffsetSelectionStore } from '../../../../store/selection';
 
 import AdminDatingComps from './AdminDatingComps';
-import OffsetAdminRows from './OffsetAdminRows';
+import AdminRows from './AdminRows';
 import SelectionOverlay from '../../SelectionOverlay';
 
 import styles from '../../Table.module.css';
 
 /**
- * OffsetAdminTable - Полностью изолированная offset таблица (апрель-март)
- *
- * Содержит собственные:
- * - ref для таблицы
- * - подписку на offsetSlotToDate
- * - SelectionOverlay
+ * OffsetAdminTable - Изолированная offset таблица (апрель-март)
  *
  * Изолирована от MainAdminTable — ре-рендер одной не влияет на другую
  */
@@ -26,7 +21,7 @@ const OffsetAdminTable = memo(() => {
     <div style={{ position: 'relative', marginTop: '40px' }}>
       <table ref={tableRef} className={styles.scrollable_column}>
         <AdminDatingComps tableId="offset" />
-        <OffsetAdminRows />
+        <AdminRows tableId="offset" useSelectionStore={useOffsetSelectionStore} />
       </table>
       <SelectionOverlay
         tableRef={tableRef}

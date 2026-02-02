@@ -3,18 +3,13 @@ import { useDateAdminStore } from '../../../../store/dateAdminStore';
 import { useMainSelectionStore } from '../../../../store/selection';
 
 import AdminDatingComps from './AdminDatingComps';
-import MainAdminRows from './MainAdminRows';
+import AdminRows from './AdminRows';
 import SelectionOverlay from '../../SelectionOverlay';
 
 import styles from '../../Table.module.css';
 
 /**
- * MainAdminTable - Полностью изолированная main таблица (январь-декабрь)
- *
- * Содержит собственные:
- * - ref для таблицы
- * - подписку на slotToDate
- * - SelectionOverlay
+ * MainAdminTable - Изолированная main таблица (январь-декабрь)
  *
  * Изолирована от OffsetAdminTable — ре-рендер одной не влияет на другую
  */
@@ -26,7 +21,7 @@ const MainAdminTable = memo(() => {
     <div style={{ position: 'relative' }}>
       <table ref={tableRef} className={styles.scrollable_column}>
         <AdminDatingComps tableId="main" />
-        <MainAdminRows />
+        <AdminRows tableId="main" useSelectionStore={useMainSelectionStore} />
       </table>
       <SelectionOverlay
         tableRef={tableRef}
