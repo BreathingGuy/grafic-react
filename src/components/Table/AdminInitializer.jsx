@@ -1,42 +1,33 @@
 import { useEffect } from 'react';
 import { useAdminStore } from '../../store/adminStore';
 import { useClipboardStore } from '../../store/selection';
-import { useDateAdminStore } from '../../store/dateAdminStore';
 
 /**
  * AdminInitializer - Компонент для инициализации админ-режима
  *
- * Вынесен отдельно от AdminConsole, чтобы useEffect'ы не вызывали
- * ре-рендер всех дочерних компонентов таблицы.
- *
  * Рендерит null — только управляет side effects.
  *
- * Разделение ответственности:
- * - switchYear — сам вызывает initializeDraft при смене года
- * - AdminInitializer — реагирует только на смену отдела
+ * Вся логика инициализации теперь в enterAdminContext:
+ * - Вход в консоль: вызывается здесь при mount
+ * - Смена года: switchYear вызывает enterAdminContext
+ * - Смена отдела: setAdminDepartment вызывает enterAdminContext
  */
 function AdminInitializer({ currentDepartmentId }) {
-  // Инициализация dateAdminStore при входе в админ-режим
   useEffect(() => {
-    useDateAdminStore.getState().initializeYear(new Date().getFullYear());
+    // Первичная инициализация при входе в админ-режим
+    if (currentDepartmentId) {
+      const currentYear = new Date().getFullYear();
+      console.log(`🚀 AdminInitializer: первичный вход ${currentDepartmentId}/${currentYear}`);
+      useAdminStore.getState().enterAdminContext(currentDepartmentId, currentYear);
+    }
 
+    // Cleanup при выходе из админ-режима
     return () => {
       useAdminStore.getState().clearDraft();
       useClipboardStore.getState().clearAllSelections();
     };
-  }, []);
-
-  // Инициализация draft при смене отдела
-  // (при смене года — switchYear сам вызывает initializeDraft)
-  useEffect(() => {
-    if (currentDepartmentId) {
-      const currentYear = useDateAdminStore.getState().currentYear;
-      if (currentYear) {
-        console.log(`🔄 AdminInitializer: инициализация draft для ${currentDepartmentId}/${currentYear}`);
-        useAdminStore.getState().initializeDraft(currentDepartmentId, currentYear);
-      }
-    }
-  }, [currentDepartmentId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Только mount/unmount — смена отдела обрабатывается в setAdminDepartment
 
   return null;
 }
