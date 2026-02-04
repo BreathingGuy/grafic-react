@@ -1,5 +1,4 @@
 import { memo } from "react";
-import { shallow } from 'zustand/shallow';
 import { useAdminStore } from '../../../store/adminStore';
 
 import AdminEmployeeNameCell from './AdminEmployeeNameCell';
@@ -11,8 +10,8 @@ import styles from '../Table.module.css';
  * Берёт данные из adminStore вместо scheduleStore
  */
 const AdminFixedEmployeeColumn = memo(() => {
-  // Используем shallow comparison для предотвращения лишних перерендеров
-  const employeeIds = useAdminStore(state => state.employeeIds, shallow);
+  // Object.is для сравнения ссылок — предотвращает ре-рендер при изменении других полей стора
+  const employeeIds = useAdminStore(state => state.employeeIds, Object.is);
 
   return (
     <table className={styles.fixed_column}>
