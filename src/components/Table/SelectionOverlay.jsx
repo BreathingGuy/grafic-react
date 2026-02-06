@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from 'react';
-import { shallow } from 'zustand/shallow';
 import { useAdminStore } from '../../store/adminStore';
 import { useDateAdminStore } from '../../store/dateAdminStore';
 import { useClipboardStore } from '../../store/selection';
@@ -83,8 +82,8 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
   // Clipboard из общего стора
   const hasCopiedData = useClipboardStore(s => s.hasCopiedData);
 
-  // Используем shallow comparison для предотвращения лишних перерендеров
-  const employeeIds = useAdminStore(s => s.employeeIds, shallow);
+  // Object.is для сравнения ссылок — предотвращает ре-рендер при изменении других полей стора
+  const employeeIds = useAdminStore(s => s.employeeIds, Object.is);
 
   // slotToDate может передаваться как проп (для offset таблицы) или браться из store
   const storeSlotToDate = useDateAdminStore(s => s.slotToDate);

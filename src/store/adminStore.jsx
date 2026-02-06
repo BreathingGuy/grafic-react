@@ -5,6 +5,7 @@ import { usePostWebStore } from './postWebStore';
 import { useScheduleStore } from './scheduleStore';
 import { useDateAdminStore } from './dateAdminStore';
 import { useClipboardStore } from './selection';
+import { useVersionsStore } from './versionsStore';
 
 export const useAdminStore = create(
   persist(
@@ -37,12 +38,10 @@ export const useAdminStore = create(
         editingYear: null,
         editingDepartmentId: null,
 
-        // === YEARS & VERSIONS ===
+        // === YEARS ===
         availableYears: [],            // Доступные года для отдела: ["2024", "2025", "2026"]
-        yearVersions: [],              // Версии выбранного года: ["2025.02.15", "2025.03.16", ...]
-        selectedVersion: null,         // Выбранная версия (null = текущий draft)
         loadingYears: false,
-        loadingVersions: false,
+        // yearVersions, selectedVersion, loadingVersions — вынесены в versionsStore
 
         // === UI ACTIONS ===
 
@@ -91,15 +90,14 @@ export const useAdminStore = create(
             editingYear: null,
             editingDepartmentId: null,
             availableYears: [],
-            yearVersions: [],
-            selectedVersion: null,
             loadingYears: false,
-            loadingVersions: false,
             // Versioning
             baseVersion: null,
             changedCells: {},
             prodVersion: null
           });
+          // Сброс версий в отдельном сторе
+          useVersionsStore.getState().resetVersions();
         },
 
         canEditDepartment: (departmentId) => {
@@ -172,14 +170,12 @@ export const useAdminStore = create(
                 undoStack: [],
                 editingYear: year,
                 editingDepartmentId: departmentId,
-                // Сброс при смене года/отдела
-                yearVersions: [],
-                selectedVersion: null,
                 // Versioning
                 baseVersion,
                 changedCells,
                 prodVersion: currentProdVersion
               });
+              // yearVersions сбрасываются в enterAdminContext
 
               const isSynced = baseVersion === currentProdVersion;
               console.log(`✅ Draft инициализирован: ${Object.keys(yearData).length} ячеек, baseVersion: ${baseVersion}, prodVersion: ${currentProdVersion}, synced: ${isSynced}, changedCells: ${Object.keys(changedCells).length}`);
@@ -257,14 +253,13 @@ export const useAdminStore = create(
             undoStack: [],
             editingYear: year,
             editingDepartmentId: departmentId,
-            // Сброс при создании нового года
-            yearVersions: [],
-            selectedVersion: null,
             // Versioning: новый год начинается синхронизированным
             baseVersion: prodVersion,
             changedCells: {},
             prodVersion: prodVersion
           });
+          // Сброс версий для нового года
+          useVersionsStore.getState().resetVersions();
 
           console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками (включая Q1 ${year + 1}), version: ${prodVersion}`);
         },
@@ -506,13 +501,12 @@ export const useAdminStore = create(
             editingYear: null,
             editingDepartmentId: null,
             availableYears: [],
-            yearVersions: [],
-            selectedVersion: null,
             // Versioning
             baseVersion: null,
             changedCells: {},
             prodVersion: null
           });
+          useVersionsStore.getState().resetVersions();
         },
 
         // Очистить данные года (для смены года внутри отдела)
@@ -526,13 +520,12 @@ export const useAdminStore = create(
             hasUnsavedChanges: false,
             undoStack: [],
             editingYear: null,
-            yearVersions: [],
-            selectedVersion: null,
             // Versioning
             baseVersion: null,
             changedCells: {},
             prodVersion: null
           });
+          useVersionsStore.getState().resetVersions();
         },
 
         // === UNIFIED ENTRY POINT ===
@@ -552,15 +545,18 @@ export const useAdminStore = create(
           // 1. Очистка выделений
           useClipboardStore.getState().clearAllSelections();
 
-          // 2. При смене отдела — сбросить availableYears (initializeDraft его не трогает)
+          // 2. Сброс версий (отдельный стор — не триггерит employeeIds)
+          useVersionsStore.getState().resetVersions();
+
+          // 3. При смене отдела — сбросить availableYears (initializeDraft его не трогает)
           if (departmentId !== currentDeptId) {
             set({ availableYears: [] });
           }
 
-          // 3. Инициализация дат
+          // 4. Инициализация дат
           useDateAdminStore.getState().initializeYear(Number(year));
 
-          // 4. Загрузка draft — заменит все данные в одном set()
+          // 5. Загрузка draft — заменит все данные в одном set()
           await get().initializeDraft(departmentId, Number(year));
         },
 
@@ -590,30 +586,7 @@ export const useAdminStore = create(
           }
         },
 
-        /**
-         * Загрузить версии для выбранного года
-         * @param {string} departmentId
-         * @param {number|string} year
-         */
-        loadYearVersions: async (departmentId, year) => {
-          set({ loadingVersions: true, yearVersions: [] });
-
-          try {
-            const fetchStore = useFetchWebStore.getState();
-            const data = await fetchStore.fetchYearVersions(departmentId, year);
-
-            set({
-              yearVersions: data.versions || [],
-              loadingVersions: false
-            });
-
-            return data.versions;
-          } catch (error) {
-            console.error('loadYearVersions error:', error);
-            set({ loadingVersions: false });
-            throw error;
-          }
-        },
+        // loadYearVersions вынесен в versionsStore
 
         /**
          * Переключить год
@@ -741,10 +714,11 @@ export const useAdminStore = create(
               originalSchedule: { ...data.scheduleMap },
               employeeIds: employeeIds,  // сохраняем текущих
               employeeById: employeeById, // сохраняем текущих
-              selectedVersion: version,
               hasUnsavedChanges: false,
               undoStack: []
             });
+            // selectedVersion в отдельном сторе
+            useVersionsStore.getState().setSelectedVersion(version);
 
             console.log(`✅ Загружена версия ${version}`);
           } catch (error) {
@@ -760,7 +734,7 @@ export const useAdminStore = create(
           const { editingDepartmentId, editingYear } = get();
           if (!editingDepartmentId || !editingYear) return;
 
-          set({ selectedVersion: null });
+          useVersionsStore.getState().setSelectedVersion(null);
           await get().initializeDraft(editingDepartmentId, editingYear);
         },
 

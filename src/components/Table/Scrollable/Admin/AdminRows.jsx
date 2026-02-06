@@ -1,5 +1,4 @@
 import { memo } from 'react';
-import { shallow } from 'zustand/shallow';
 import { useAdminStore } from '../../../../store/adminStore';
 import AdminEmployeeRow from '../../Rows/AdminEmployeeRow';
 
@@ -10,7 +9,9 @@ import AdminEmployeeRow from '../../Rows/AdminEmployeeRow';
  * @param {Function} useSelectionStore - хук selection store
  */
 const AdminRows = memo(({ tableId = 'main', useSelectionStore }) => {
-  const employeeIds = useAdminStore(state => state.employeeIds, shallow);
+  // Object.is для сравнения ссылок на массив — предотвращает ре-рендер
+  // когда другие поля стора меняются, но employeeIds остаётся тем же
+  const employeeIds = useAdminStore(state => state.employeeIds, Object.is);
 
   return (
     <tbody>

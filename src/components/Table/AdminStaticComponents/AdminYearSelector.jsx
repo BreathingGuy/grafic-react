@@ -1,5 +1,6 @@
 import { memo, useEffect } from 'react';
 import { useAdminStore } from '../../../store/adminStore';
+import { useVersionsStore } from '../../../store/versionsStore';
 
 /**
  * AdminYearSelector — выбор года и версии для админа
@@ -7,21 +8,24 @@ import { useAdminStore } from '../../../store/adminStore';
  * Позволяет переключаться между годами и просматривать версии
  */
 const AdminYearSelector = memo(() => {
+  // Из adminStore
   const editingYear = useAdminStore(s => s.editingYear);
   const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
   const availableYears = useAdminStore(s => s.availableYears);
-  const yearVersions = useAdminStore(s => s.yearVersions);
-  const selectedVersion = useAdminStore(s => s.selectedVersion);
   const loadingYears = useAdminStore(s => s.loadingYears);
-  const loadingVersions = useAdminStore(s => s.loadingVersions);
   const hasUnsavedChanges = useAdminStore(s => s.hasUnsavedChanges);
 
   const loadAvailableYears = useAdminStore(s => s.loadAvailableYears);
-  const loadYearVersions = useAdminStore(s => s.loadYearVersions);
   const switchYear = useAdminStore(s => s.switchYear);
   const loadVersion = useAdminStore(s => s.loadVersion);
   const exitVersionView = useAdminStore(s => s.exitVersionView);
   const createNewYear = useAdminStore(s => s.createNewYear);
+
+  // Из versionsStore (изолирован от employeeIds)
+  const yearVersions = useVersionsStore(s => s.yearVersions);
+  const selectedVersion = useVersionsStore(s => s.selectedVersion);
+  const loadingVersions = useVersionsStore(s => s.loadingVersions);
+  const loadYearVersions = useVersionsStore(s => s.loadYearVersions);
 
   // Загрузить список годов при инициализации
   useEffect(() => {
