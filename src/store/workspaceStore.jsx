@@ -1,18 +1,18 @@
-import {create} from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { create } from 'zustand';
 
 import { useMetaStore } from './metaStore'
 import { useScheduleStore } from './scheduleStore'
 import { useDateUserStore } from './dateUserStore'
+import { useDateAdminStore } from './dateAdminStore'
+import { useAdminStore } from './adminStore'
 
-export const useWorkspaceStore = create(
-  devtools((set, get) => ({
+export const useWorkspaceStore = create((set, get) => ({
     // === STATE ===
     currentDepartmentId: null,
 
     // === ACTIONS ===
 
-    // Выбрать отдел
+    // Выбрать отдел (для user mode — загружает user data)
     setDepartment: async (departmentId) => {
       const prevDepartmentId = get().currentDepartmentId;
 
@@ -42,6 +42,22 @@ export const useWorkspaceStore = create(
       // scheduleStore.subscribeToUpdates(departmentId);
     },
 
+    // Выбрать отдел (для admin mode)
+    // Использует единую точку входа enterAdminContext
+    setAdminDepartment: async (departmentId) => {
+      const prevDepartmentId = get().currentDepartmentId;
+
+      if (prevDepartmentId === departmentId) return;
+
+      set({ currentDepartmentId: departmentId });
+
+      // Используем текущий год из dateAdminStore или текущий календарный год
+      const currentYear = useDateAdminStore.getState().currentYear || new Date().getFullYear();
+
+      // Единая точка входа — очистка + инициализация
+      await useAdminStore.getState().enterAdminContext(departmentId, currentYear);
+    },
+
     // Навигация по годам — загружаем данные для нового года
     loadYearData: async (year) => {
       const departmentId = get().currentDepartmentId;
@@ -60,7 +76,6 @@ export const useWorkspaceStore = create(
       useScheduleStore.getState().clearCache();
       useDateUserStore.getState().resetToCurrentYear();
     }
-  }), { name: 'WorkspaceStore' })
-);
+}));
 
 export default useWorkspaceStore

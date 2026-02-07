@@ -1,27 +1,22 @@
 import { memo, useState, useCallback } from 'react';
 import { useAdminStore } from '../../../store/adminStore';
 import { useDateAdminStore } from '../../../store/dateAdminStore';
-import { useSelectionStore } from '../../../store/selectionStore';
+import { useClipboardStore } from '../../../store/selection';
 import CellEditor from './CellEditor';
 
 /**
- * AdminScheduleCell - Ячейка без подписки на selection
- *
- * Выделение отрисовывается через SelectionOverlay.
- * Для единичной ячейки редактор открывается по двойному клику.
+ * AdminScheduleCell - Ячейка расписания для админ-режима
  *
  * @param {string} tableId - 'main' | 'offset' для выбора slotToDate из store
+ * @param {Function} useSelectionStore - хук selection store
  */
-const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main' }) => {
-  // Берём дату напрямую из store в зависимости от tableId
-  // Это гарантирует ререндер при смене года
+const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main', useSelectionStore }) => {
   const date = useDateAdminStore(state =>
     tableId === 'offset'
       ? state.offsetSlotToDate[slotIndex]
       : state.slotToDate[slotIndex]
   );
 
-  // Читаем из adminStore.draftSchedule
   const status = useAdminStore(state => {
     if (!date) return '';
     return state.draftSchedule[`${employeeId}-${date}`] ?? '';
@@ -32,19 +27,20 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
   const handleMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
     e.preventDefault();
-    useSelectionStore.getState().startSelection(employeeId, slotIndex, e.ctrlKey || e.metaKey, tableId);
-  }, [employeeId, slotIndex, tableId]);
+    useClipboardStore.getState().setActiveTable(tableId);
+    useSelectionStore.getState().startSelection(employeeId, slotIndex, e.ctrlKey || e.metaKey);
+  }, [employeeId, slotIndex, tableId, useSelectionStore]);
 
   const handleMouseOver = useCallback(() => {
     if (!useSelectionStore.getState().isDragging) return;
     useSelectionStore.getState().updateSelection(employeeId, slotIndex);
-  }, [employeeId, slotIndex]);
+  }, [employeeId, slotIndex, useSelectionStore]);
 
   const handleMouseUp = useCallback(() => {
     if (useSelectionStore.getState().isDragging) {
       useSelectionStore.getState().endSelection();
     }
-  }, []);
+  }, [useSelectionStore]);
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);
@@ -81,7 +77,13 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
       )}
     </td>
   );
-}, (prev, next) => prev.employeeId === next.employeeId && prev.slotIndex === next.slotIndex && prev.empIdx === next.empIdx && prev.tableId === next.tableId);
+}, (prev, next) =>
+  prev.employeeId === next.employeeId &&
+  prev.slotIndex === next.slotIndex &&
+  prev.empIdx === next.empIdx &&
+  prev.tableId === next.tableId &&
+  prev.useSelectionStore === next.useSelectionStore
+);
 
 AdminScheduleCell.displayName = 'AdminScheduleCell';
 

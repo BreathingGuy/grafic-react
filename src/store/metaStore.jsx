@@ -1,9 +1,7 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
 import { useFetchWebStore } from './fetchWebStore';
 
-export const useMetaStore = create(
-  devtools((set, get) => ({
+export const useMetaStore = create((set, get) => ({
     // === STATE ===
     departmentsList: [],
     currentDepartmentConfig: null,
@@ -71,7 +69,6 @@ export const useMetaStore = create(
     // === WEBSOCKET (закомментирован) ===
     // updateDepartmentConfig: (config) => { ... }
 
-  }), { name: 'MetaStore' })
-);
+}));
 
 export default useMetaStore;

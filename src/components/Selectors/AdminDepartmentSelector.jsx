@@ -3,15 +3,18 @@ import { useMetaStore } from '../../store/metaStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 
 /**
- * DepartmentSelector - Выбор отдела
- * Мемоизирован для предотвращения лишних ререндеров от родителя
+ * AdminDepartmentSelector - Выбор отдела для админ-режима
+ *
+ * В отличие от DepartmentSelector:
+ * - Вызывает setAdminDepartment (не загружает user data)
+ * - AdminConsole сам загрузит данные через initializeDraft
  */
-export const DepartmentSelector = memo(() => {
+export const AdminDepartmentSelector = memo(() => {
   const departmentsList = useMetaStore(state => state.departmentsList);
   const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
 
   const handleChange = (e) => {
-    useWorkspaceStore.getState().setDepartment(e.target.value);
+    useWorkspaceStore.getState().setAdminDepartment(e.target.value);
   };
 
   return (
@@ -27,4 +30,4 @@ export const DepartmentSelector = memo(() => {
   );
 });
 
-DepartmentSelector.displayName = 'DepartmentSelector';
+AdminDepartmentSelector.displayName = 'AdminDepartmentSelector';

@@ -1,5 +1,6 @@
 import { memo, useEffect } from 'react';
 import { useAdminStore } from '../../../store/adminStore';
+import { useVersionsStore } from '../../../store/versionsStore';
 
 /**
  * AdminYearSelector — выбор года и версии для админа
@@ -7,20 +8,24 @@ import { useAdminStore } from '../../../store/adminStore';
  * Позволяет переключаться между годами и просматривать версии
  */
 const AdminYearSelector = memo(() => {
+  // Из adminStore
   const editingYear = useAdminStore(s => s.editingYear);
   const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
   const availableYears = useAdminStore(s => s.availableYears);
-  const yearVersions = useAdminStore(s => s.yearVersions);
-  const selectedVersion = useAdminStore(s => s.selectedVersion);
   const loadingYears = useAdminStore(s => s.loadingYears);
-  const loadingVersions = useAdminStore(s => s.loadingVersions);
   const hasUnsavedChanges = useAdminStore(s => s.hasUnsavedChanges);
 
   const loadAvailableYears = useAdminStore(s => s.loadAvailableYears);
-  const loadYearVersions = useAdminStore(s => s.loadYearVersions);
   const switchYear = useAdminStore(s => s.switchYear);
   const loadVersion = useAdminStore(s => s.loadVersion);
   const exitVersionView = useAdminStore(s => s.exitVersionView);
+  const createNewYear = useAdminStore(s => s.createNewYear);
+
+  // Из versionsStore (изолирован от employeeIds)
+  const yearVersions = useVersionsStore(s => s.yearVersions);
+  const selectedVersion = useVersionsStore(s => s.selectedVersion);
+  const loadingVersions = useVersionsStore(s => s.loadingVersions);
+  const loadYearVersions = useVersionsStore(s => s.loadYearVersions);
 
   // Загрузить список годов при инициализации
   useEffect(() => {
@@ -61,6 +66,27 @@ const AdminYearSelector = memo(() => {
     }
   };
 
+  const handleCreateNewYear = async () => {
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        'Есть несохранённые изменения. Продолжить без сохранения?'
+      );
+      if (!confirmed) return;
+    }
+
+    // Определяем следующий год (максимальный + 1)
+    const maxYear = Math.max(...availableYears.map(y => Number(y)));
+    const newYear = maxYear + 1;
+
+    const confirmed = window.confirm(
+      `Создать новый год ${newYear}?\n\nБудут созданы пустые ячейки для всех сотрудников (включая Q1 ${newYear + 1} для offset таблицы).`
+    );
+
+    if (!confirmed) return;
+
+    await createNewYear(newYear);
+  };
+
   return (
     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
       {/* Выбор года */}
@@ -86,6 +112,26 @@ const AdminYearSelector = memo(() => {
             ))
           )}
         </select>
+
+        {/* Кнопка создания нового года */}
+        <button
+          onClick={handleCreateNewYear}
+          disabled={loadingYears || !editingDepartmentId}
+          style={{
+            padding: '6px 12px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 500,
+            opacity: (loadingYears || !editingDepartmentId) ? 0.5 : 1
+          }}
+          title="Создать следующий год"
+        >
+          + Новый год
+        </button>
       </div>
 
       {/* Выбор версии */}

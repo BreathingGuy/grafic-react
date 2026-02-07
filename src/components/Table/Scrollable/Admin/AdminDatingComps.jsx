@@ -1,8 +1,10 @@
+import { memo } from 'react';
+
 import AdminMonthHeaders from './AdminMonthHeaders';
 import AdminDaySlots from './AdminDaySlots';
 
 
-const AdminDatingComps = ({tableId}) => {
+const AdminDatingComps = memo(({tableId}) => {
 
     return (
         <thead>
@@ -10,6 +12,6 @@ const AdminDatingComps = ({tableId}) => {
             <AdminDaySlots tableId={tableId}/>
         </thead>
     )
-}
+})
 
 export default AdminDatingComps;

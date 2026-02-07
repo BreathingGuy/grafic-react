@@ -1,23 +1,36 @@
 import { memo } from 'react';
 import { useAdminStore } from '../../../../store/adminStore';
-
 import AdminEmployeeRow from '../../Rows/AdminEmployeeRow';
 
-const AdminRows = memo(({tableId = 'main'}) => {
-    const employeeIds = useAdminStore(state => state.employeeIds);
+/**
+ * AdminRows - Строки таблицы расписания для админ-режима
+ *
+ * @param {string} tableId - 'main' | 'offset'
+ * @param {Function} useSelectionStore - хук selection store
+ */
+const AdminRows = memo(({ tableId = 'main', useSelectionStore }) => {
+  // Object.is для сравнения ссылок на массив — предотвращает ре-рендер
+  // когда другие поля стора меняются, но employeeIds остаётся тем же
+  const employeeIds = useAdminStore(state => state.employeeIds, Object.is);
 
-    return (
-        <tbody>
-            {employeeIds.map((empId, empIdx) => (
-                <AdminEmployeeRow
-                key={empId}
-                empId={empId}
-                empIdx={empIdx}
-                tableId={tableId}
-                />
-            ))}
-        </tbody>
-    )
-})
+  return (
+    <tbody>
+      {employeeIds.map((empId, empIdx) => (
+        <AdminEmployeeRow
+          key={empId}
+          empId={empId}
+          empIdx={empIdx}
+          tableId={tableId}
+          useSelectionStore={useSelectionStore}
+        />
+      ))}
+    </tbody>
+  );
+}, (prev, next) =>
+  prev.tableId === next.tableId &&
+  prev.useSelectionStore === next.useSelectionStore
+);
+
+AdminRows.displayName = 'AdminRows';
 
 export default AdminRows;

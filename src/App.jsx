@@ -1,67 +1,64 @@
 import { useEffect, useState } from 'react';
 
-import {useMetaStore} from './store/metaStore'
-import {useWorkspaceStore} from './store/workspaceStore'
-import {useDateStore} from './store/dateStore'
+import { useMetaStore } from './store/metaStore';
+import { useDateStore } from './store/dateStore';
+import { useAdminStore } from './store/adminStore';
+import { isInitialized, initializeLocalStorage } from './services/localStorageInit';
 
-import {DepartmentSelector} from './components/Selectors/DepartmentSelector'
-import {PeriodSelector} from './components/Selectors/PeriodSelector'
-import UserTable from './components/Table/UserTable'
-import AdminConsole from './components/Table/AdminConsole'
+import UserView from './components/Views/UserView';
+import AdminView from './components/Views/AdminView';
 
-
+/**
+ * Main - корневой компонент приложения
+ * Переключатель между режимами просмотра и редактирования
+ */
 function Main() {
-  const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
-  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
+  const isAdminMode = useAdminStore(state => state.isAdminMode);
 
   useEffect(() => {
-    console.log('🟢 App initialization started');
+    const initApp = async () => {
+      console.log('🟢 App initialization started');
 
-    // Инициализируем dateStore (вычислить начальный диапазон дат)
-    useDateStore.getState().initialize();
-    console.log('📅 DateStore initialized');
+      // Проверяем и инициализируем localStorage
+      if (!isInitialized()) {
+        console.log('📦 localStorage не инициализирован, загружаем данные...');
+        try {
+          await initializeLocalStorage();
+          console.log('✅ localStorage инициализирован');
+        } catch (error) {
+          console.error('❌ Ошибка инициализации localStorage:', error);
+        }
+      } else {
+        console.log('✅ localStorage уже инициализирован');
+      }
 
-    // Загружаем список отделов
-    useMetaStore.getState().loadDepartmentsList();
-    console.log('🏢 Departments list loading...');
+      setStorageReady(true);
 
+      // Инициализируем dateStore (вычислить начальный диапазон дат)
+      useDateStore.getState().initialize();
+      console.log('📅 DateStore initialized');
+
+      // Загружаем список отделов
+      useMetaStore.getState().loadDepartmentsList();
+      console.log('🏢 Departments list loading...');
+    };
+
+    initApp();
   }, []);
 
-  return (
-    <>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
-        <DepartmentSelector />
-        {!isAdminMode && <PeriodSelector />}
-
-        <button
-          onClick={() => setIsAdminMode(!isAdminMode)}
-          style={{
-            padding: '6px 16px',
-            backgroundColor: isAdminMode ? '#d32f2f' : '#1976d2',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: 500
-          }}
-        >
-          {isAdminMode ? 'Выйти из админки' : 'Режим админа'}
-        </button>
+  // Показываем загрузку пока инициализируется storage
+  if (!storageReady) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <h2>Загрузка данных...</h2>
+        <p>Инициализация localStorage...</p>
       </div>
+    );
+  }
 
-      {currentDepartmentId ? (
-        isAdminMode ? (
-          <AdminConsole />
-        ) : (
-          <UserTable period={'1year'} />
-        )
-      ) : (
-        <div className="empty-state">
-          <p>Выберите отдел для просмотра расписания</p>
-        </div>
-      )}
-    </>
-  );
+  // Простой переключатель между режимами
+  return isAdminMode ? <AdminView /> : <UserView />;
 }
 
 export default function App() {

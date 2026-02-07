@@ -10,7 +10,8 @@ import styles from '../Table.module.css';
  * Берёт данные из adminStore вместо scheduleStore
  */
 const AdminFixedEmployeeColumn = memo(() => {
-  const employeeIds = useAdminStore(state => state.employeeIds);
+  // Object.is для сравнения ссылок — предотвращает ре-рендер при изменении других полей стора
+  const employeeIds = useAdminStore(state => state.employeeIds, Object.is);
 
   return (
     <table className={styles.fixed_column}>

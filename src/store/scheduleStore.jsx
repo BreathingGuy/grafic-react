@@ -1,9 +1,7 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
 import { useFetchWebStore } from './fetchWebStore';
 
-export const useScheduleStore = create(
-  devtools((set, get) => ({
+export const useScheduleStore = create((set, get) => ({
     // === STATE ===
     scheduleMap: {},               // { "emp-1-2025-01-15": "Д", ... }
 
@@ -71,7 +69,15 @@ export const useScheduleStore = create(
 
       try {
         const fetchStore = useFetchWebStore.getState();
-        const { employeeById, employeeIds, scheduleMap } = await fetchStore.fetchSchedule(departmentId, year);
+
+        // Загружаем расписание и сотрудников параллельно
+        const [scheduleData, employeesData] = await Promise.all([
+          fetchStore.fetchSchedule(departmentId, year),
+          fetchStore.fetchDepartmentEmployees(departmentId)
+        ]);
+
+        const { scheduleMap } = scheduleData;
+        const { employeeById, employeeIds } = employeesData;
 
         // Переиспользуем существующие объекты сотрудников
         const currentEmployeeById = get().employeeById;
@@ -235,5 +241,4 @@ export const useScheduleStore = create(
     // connectWebSocket, disconnectWebSocket, subscribeToUpdates, etc.
     // См. предыдущую версию для WebSocket логики
 
-  }), { name: 'ScheduleStore' })
-);
+}));
