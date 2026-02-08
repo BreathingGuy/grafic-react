@@ -1,95 +1,24 @@
-import { memo, useCallback } from 'react';
-import { useAdminStore } from '../../../store/adminStore';
-import { useClipboardStore } from '../../../store/selection';
+import DiscardButton from './Buttons/DiscardButton';
+import SaveDraftButton from './Buttons/SaveDraftButton';
+import PublishButton from './Buttons/PublishButton';
+import LastSavedIndicator from './Buttons/LastSavedIndicator';
 
 /**
  * AdminHeader - Заголовок и кнопки управления админ-консоли
- *
- * Подписан только на hasUnsavedChanges и lastDraftSaved.
+ * Композиция из изолированных компонентов с минимальными подписками
  */
-const AdminHeader = memo(() => {
-  const hasUnsavedChanges = useAdminStore(s => s.hasUnsavedChanges);
-  const lastDraftSaved = useAdminStore(s => s.lastDraftSaved);
-  const publishDraft = useAdminStore(s => s.publishDraft);
-  const saveDraftToStorage = useAdminStore(s => s.saveDraftToStorage);
-  const discardDraft = useAdminStore(s => s.discardDraft);
-
-  const handlePublish = useCallback(async () => {
-    if (window.confirm('Опубликовать изменения?')) {
-      const count = await publishDraft();
-      alert(`Опубликовано ${count} изменений`);
-    }
-  }, [publishDraft]);
-
-  const handleDiscard = useCallback(() => {
-    if (window.confirm('Отменить все изменения?')) {
-      discardDraft();
-      useClipboardStore.getState().clearAllSelections();
-    }
-  }, [discardDraft]);
-
-  const handleSaveDraft = useCallback(async () => {
-    try {
-      await saveDraftToStorage();
-      alert('Черновик сохранен');
-    } catch (error) {
-      alert(`Ошибка сохранения: ${error.message}`);
-    }
-  }, [saveDraftToStorage]);
-
-  const formatLastSaved = (timestamp) => {
-    if (!timestamp) return null;
-    const date = new Date(timestamp);
-    return date.toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
+export default function AdminHeader() {
   return (
     <div style={{ marginBottom: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ margin: 0 }}>Редактирование графика</h2>
         <div>
-          <button onClick={handleDiscard} disabled={!hasUnsavedChanges}>
-            Отменить
-          </button>
-          <button
-            onClick={handleSaveDraft}
-            disabled={!hasUnsavedChanges}
-            style={{
-              marginLeft: '8px',
-              backgroundColor: hasUnsavedChanges ? '#2196F3' : undefined,
-              color: hasUnsavedChanges ? 'white' : undefined
-            }}
-          >
-            Сохранить черновик
-          </button>
-          <button
-            onClick={handlePublish}
-            disabled={!hasUnsavedChanges}
-            style={{
-              marginLeft: '8px',
-              backgroundColor: hasUnsavedChanges ? '#4caf50' : undefined,
-              color: hasUnsavedChanges ? 'white' : undefined
-            }}
-          >
-            Опубликовать
-          </button>
+          <DiscardButton />
+          <SaveDraftButton />
+          <PublishButton />
         </div>
       </div>
-      {lastDraftSaved && (
-        <div style={{ textAlign: 'right', fontSize: '12px', color: '#666', marginTop: '4px' }}>
-          Черновик сохранен: {formatLastSaved(lastDraftSaved)}
-        </div>
-      )}
+      <LastSavedIndicator />
     </div>
   );
-});
-
-AdminHeader.displayName = 'AdminHeader';
-
-export default AdminHeader;
+}

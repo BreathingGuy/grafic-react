@@ -78,9 +78,13 @@ src/
 │       │       ├── AdminDaySlots.jsx
 │       │       └── AdminDatingComps.jsx
 │       ├── AdminStaticComponents/  # Панель управления админки
-│       │   ├── AdminHeader.jsx     # Шапка с кнопками
+│       │   ├── AdminHeader.jsx     # Композиция: заголовок + кнопки
 │       │   ├── AdminYearSelector.jsx    # Композиция: год + версия
 │       │   ├── Buttons/                 # Изолированные кнопки/селекты
+│       │   │   ├── DiscardButton.jsx    # Отмена изменений
+│       │   │   ├── SaveDraftButton.jsx  # Сохранение черновика
+│       │   │   ├── PublishButton.jsx    # Публикация в production
+│       │   │   ├── LastSavedIndicator.jsx # Время последнего сохранения
 │       │   │   ├── YearSelect.jsx       # Выбор года
 │       │   │   ├── CreateYearButton.jsx # Создание нового года
 │       │   │   ├── VersionSelect.jsx    # Выбор версии
