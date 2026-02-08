@@ -79,7 +79,12 @@ src/
 │       │       └── AdminDatingComps.jsx
 │       ├── AdminStaticComponents/  # Панель управления админки
 │       │   ├── AdminHeader.jsx     # Шапка с кнопками
-│       │   ├── AdminYearSelector.jsx    # Селектор года + создание
+│       │   ├── AdminYearSelector.jsx    # Композиция: год + версия
+│       │   ├── Buttons/                 # Изолированные кнопки/селекты
+│       │   │   ├── YearSelect.jsx       # Выбор года
+│       │   │   ├── CreateYearButton.jsx # Создание нового года
+│       │   │   ├── VersionSelect.jsx    # Выбор версии
+│       │   │   └── VersionIndicator.jsx # Индикатор readonly-версии
 │       │   ├── AdminStatusCount.jsx     # Счётчик статусов
 │       │   ├── AdminStatusBar.jsx       # Панель статусов
 │       │   └── YearDataLoader.jsx       # Загрузчик данных года
