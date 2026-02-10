@@ -1,24 +1,15 @@
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { useAdminStore } from '../../../../store/adminStore';
 import { useVersionsStore } from '../../../../store/versionsStore';
 
 /**
  * VersionSelect — выпадающий список версий
- * Загружает версии при смене года, позволяет просматривать снапшоты
+ * Загрузка версий происходит в enterAdminContext, компонент только отображает
  */
 const VersionSelect = memo(() => {
-  const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
-  const editingYear = useAdminStore(s => s.editingYear);
-
   const yearVersions = useVersionsStore(s => s.yearVersions);
   const selectedVersion = useVersionsStore(s => s.selectedVersion);
   const loadingVersions = useVersionsStore(s => s.loadingVersions);
-
-  useEffect(() => {
-    if (editingDepartmentId && editingYear && yearVersions.length === 0) {
-      useVersionsStore.getState().loadYearVersions(editingDepartmentId, editingYear);
-    }
-  }, [editingDepartmentId, editingYear, yearVersions.length]);
 
   const handleVersionChange = async (e) => {
     const version = e.target.value;

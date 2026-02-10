@@ -1,22 +1,15 @@
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { useAdminStore } from '../../../../store/adminStore';
 
 /**
  * YearSelect — выпадающий список годов
- * Загружает список доступных годов при монтировании
+ * Загрузка годов происходит в enterAdminContext, компонент только отображает
  */
 const YearSelect = memo(() => {
   const editingYear = useAdminStore(s => s.editingYear);
-  const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
   const availableYears = useAdminStore(s => s.availableYears);
   const loadingYears = useAdminStore(s => s.loadingYears);
   const hasUnsavedChanges = useAdminStore(s => s.hasUnsavedChanges);
-
-  useEffect(() => {
-    if (editingDepartmentId && availableYears.length === 0) {
-      useAdminStore.getState().loadAvailableYears(editingDepartmentId);
-    }
-  }, [editingDepartmentId, availableYears.length]);
 
   const handleYearChange = async (e) => {
     const newYear = e.target.value;
