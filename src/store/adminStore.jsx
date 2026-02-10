@@ -4,7 +4,6 @@ import { useFetchWebStore } from './fetchWebStore';
 import { usePostWebStore } from './postWebStore';
 import { useScheduleStore } from './scheduleStore';
 import { useDateAdminStore } from './dateAdminStore';
-import { useClipboardStore } from './selection';
 import { useVersionsStore } from './versionsStore';
 
 export const useAdminStore = create(
@@ -543,10 +542,7 @@ export const useAdminStore = create(
 
           console.log(`🚀 enterAdminContext: ${departmentId}/${year} (was: ${currentDeptId}/${get().editingYear})`);
 
-          // 1. Очистка выделений
-          useClipboardStore.getState().clearAllSelections();
-
-          // 2. Сброс версий (отдельный стор — не триггерит employeeIds)
+          // 1. Сброс версий (отдельный стор — не триггерит employeeIds)
           useVersionsStore.getState().resetVersions();
 
           // 3. При смене отдела — загрузить годы и проверить что запрошенный год существует
