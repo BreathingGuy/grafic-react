@@ -539,6 +539,7 @@ export const useAdminStore = create(
          */
         enterAdminContext: async (departmentId, year) => {
           const currentDeptId = get().editingDepartmentId;
+          const isDepartmentChange = departmentId !== currentDeptId;
 
           console.log(`🚀 enterAdminContext: ${departmentId}/${year} (was: ${currentDeptId}/${get().editingYear})`);
 
@@ -548,16 +549,27 @@ export const useAdminStore = create(
           // 2. Сброс версий (отдельный стор — не триггерит employeeIds)
           useVersionsStore.getState().resetVersions();
 
-          // 3. При смене отдела — сбросить availableYears (initializeDraft его не трогает)
-          if (departmentId !== currentDeptId) {
-            set({ availableYears: [] });
+          // 3. При смене отдела — загрузить годы и проверить что запрошенный год существует
+          let targetYear = Number(year);
+          if (isDepartmentChange) {
+            set({ availableYears: [], editingDepartmentId: departmentId });
+
+            try {
+              const years = await get().loadAvailableYears(departmentId);
+              if (years && years.length > 0 && !years.includes(String(targetYear))) {
+                targetYear = Number(years[years.length - 1]);
+                console.log(`⚠️ Год ${year} не найден для ${departmentId}, fallback на ${targetYear}`);
+              }
+            } catch (error) {
+              console.error('Не удалось загрузить годы:', error);
+            }
           }
 
           // 4. Инициализация дат
-          useDateAdminStore.getState().initializeYear(Number(year));
+          useDateAdminStore.getState().initializeYear(targetYear);
 
           // 5. Загрузка draft — заменит все данные в одном set()
-          await get().initializeDraft(departmentId, Number(year));
+          await get().initializeDraft(departmentId, targetYear);
         },
 
         // === YEARS & VERSIONS ACTIONS ===
