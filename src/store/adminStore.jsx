@@ -548,23 +548,17 @@ export const useAdminStore = create(
           // 2. Сброс версий (отдельный стор — не триггерит employeeIds)
           useVersionsStore.getState().resetVersions();
 
-          // 3. При смене отдела — сбросить availableYears
-          const isDepartmentChange = departmentId !== currentDeptId;
-          if (isDepartmentChange) {
-            set({ availableYears: [] });
+          // 3. При смене отдела — сбросить availableYears и сразу обновить editingDepartmentId,
+          //    чтобы YearSelect загрузил года нового отдела (а не старого) при промежуточном рендере
+          if (departmentId !== currentDeptId) {
+            set({ availableYears: [], editingDepartmentId: departmentId });
           }
 
           // 4. Инициализация дат
           useDateAdminStore.getState().initializeYear(Number(year));
 
-          // 5. Загрузка draft и годов параллельно
-          //    loadAvailableYears вызывается здесь, а не в компоненте,
-          //    чтобы не зависеть от порядка рендеров и промежуточных состояний
-          const promises = [get().initializeDraft(departmentId, Number(year))];
-          if (isDepartmentChange) {
-            promises.push(get().loadAvailableYears(departmentId));
-          }
-          await Promise.all(promises);
+          // 5. Загрузка draft — заменит все данные в одном set()
+          await get().initializeDraft(departmentId, Number(year));
         },
 
         // === YEARS & VERSIONS ACTIONS ===
