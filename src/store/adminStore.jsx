@@ -548,9 +548,10 @@ export const useAdminStore = create(
           // 2. Сброс версий (отдельный стор — не триггерит employeeIds)
           useVersionsStore.getState().resetVersions();
 
-          // 3. При смене отдела — сбросить availableYears (initializeDraft его не трогает)
+          // 3. При смене отдела — сбросить availableYears и сразу обновить editingDepartmentId,
+          //    чтобы YearSelect загрузил года нового отдела (а не старого) при промежуточном рендере
           if (departmentId !== currentDeptId) {
-            set({ availableYears: [] });
+            set({ availableYears: [], editingDepartmentId: departmentId });
           }
 
           // 4. Инициализация дат
