@@ -561,13 +561,10 @@ export const useAdminStore = create(
             }
           }
 
-          // 4. Установить editingYear сразу, чтобы VersionSelect загрузил версии для нового года
-          set({ editingYear: targetYear });
-
-          // 5. Инициализация дат
+          // 4. Инициализация дат
           useDateAdminStore.getState().initializeYear(targetYear);
 
-          // 6. Загрузка draft — заменит все данные в одном set()
+          // 5. Загрузка draft — заменит все данные в одном set()
           await get().initializeDraft(departmentId, targetYear);
         },
 
