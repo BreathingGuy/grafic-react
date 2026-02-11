@@ -10,15 +10,15 @@ const VersionSelect = memo(() => {
   const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
   const editingYear = useAdminStore(s => s.editingYear);
 
-  const yearVersions = useVersionsStore(s => s.yearVersions);
   const selectedVersion = useVersionsStore(s => s.selectedVersion);
   const loadingVersions = useVersionsStore(s => s.loadingVersions);
+  const yearVersions = useVersionsStore(s => s.yearVersions);
 
   useEffect(() => {
-    if (editingDepartmentId && editingYear && yearVersions.length === 0) {
+    if (editingDepartmentId && editingYear) {
       useVersionsStore.getState().loadYearVersions(editingDepartmentId, editingYear);
     }
-  }, [editingDepartmentId, editingYear, yearVersions.length]);
+  }, [editingDepartmentId, editingYear]);
 
   const handleVersionChange = async (e) => {
     const version = e.target.value;
