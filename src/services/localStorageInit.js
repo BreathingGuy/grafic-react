@@ -49,6 +49,12 @@ export const STORAGE_KEYS = {
   // Версии года (для истории)
   versions: (deptId, year) => `versions-${deptId}-${year}`,
 
+  // Конфигурация отдела (statusConfig, name)
+  departmentConfig: (deptId) => `department-config-${deptId}`,
+
+  // Список отделов
+  departmentList: () => `department-list`,
+
   // Устаревший ключ (для миграции)
   // @deprecated используйте draftSchedule
   draft: (deptId, year) => `draft-${deptId}-${year}`
@@ -214,6 +220,8 @@ export const clearAppStorage = () => {
         key.startsWith('draft-employees-') ||
         key.startsWith('available-years-') ||
         key.startsWith('versions-') ||
+        key.startsWith('department-config-') ||
+        key === 'department-list' ||
         key === INIT_FLAG_KEY) {
       localStorage.removeItem(key);
       cleared++;

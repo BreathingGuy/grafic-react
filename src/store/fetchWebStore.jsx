@@ -169,6 +169,7 @@ export const useFetchWebStore = create((set, get) => ({
 
     /**
      * Загрузить список отделов
+     * Проверяет localStorage (редактированные данные), затем JSON-файл
      * @returns {{ departments: Array }}
      */
     fetchDepartmentsList: async () => {
@@ -176,6 +177,16 @@ export const useFetchWebStore = create((set, get) => ({
       get().clearError('departmentsList');
 
       try {
+        // Сначала проверяем localStorage
+        const lsKey = STORAGE_KEYS.departmentList();
+        const stored = localStorage.getItem(lsKey);
+        if (stored) {
+          const data = JSON.parse(stored);
+          get().setLoading('departmentsList', false);
+          return data;
+        }
+
+        // Fallback на JSON-файл
         const response = await fetch('../../public/department-list.json');
 
         if (!response.ok) {
@@ -197,6 +208,7 @@ export const useFetchWebStore = create((set, get) => ({
 
     /**
      * Загрузить конфигурацию отдела
+     * Проверяет localStorage (редактированные данные), затем JSON-файл
      * @returns {Object} конфиг отдела
      */
     fetchDepartmentConfig: async (departmentId) => {
@@ -204,6 +216,16 @@ export const useFetchWebStore = create((set, get) => ({
       get().clearError('departmentConfig');
 
       try {
+        // Сначала проверяем localStorage (если конфиг был отредактирован)
+        const lsKey = STORAGE_KEYS.departmentConfig(departmentId);
+        const stored = localStorage.getItem(lsKey);
+        if (stored) {
+          const data = JSON.parse(stored);
+          get().setLoading('departmentConfig', false);
+          return data;
+        }
+
+        // Fallback на JSON-файл
         const response = await fetch(
           `../../public/departments-config-${departmentId}.json`
         );
