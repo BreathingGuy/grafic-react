@@ -1,5 +1,6 @@
 import { memo, useState, useCallback } from 'react';
 import { useAdminStore } from '../../../store/adminStore';
+import { useMetaStore } from '../../../store/metaStore';
 import { useDateAdminStore } from '../../../store/dateAdminStore';
 import { useClipboardStore } from '../../../store/selection';
 import CellEditor from './CellEditor';
@@ -21,6 +22,9 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
     if (!date) return '';
     return state.draftSchedule[`${employeeId}-${date}`] ?? '';
   });
+
+  const colorBack = useMetaStore(state => state.statusColorMap?.[status]?.colorBack);
+  const colorText = useMetaStore(state => state.statusColorMap?.[status]?.colorText);
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -65,7 +69,7 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
     <td
       data-emp-idx={empIdx}
       data-slot={slotIndex}
-      style={{ position: 'relative' }}
+      style={{ position: 'relative', backgroundColor: colorBack, color: colorText }}
       onMouseDown={handleMouseDown}
       onMouseOver={handleMouseOver}
       onMouseUp={handleMouseUp}

@@ -1,21 +1,22 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useMetaStore } from '../../../store/metaStore';
 import styles from '../Table.module.css';
 
 export default function CellEditor({ value, onChange, onClose }) {
   const containerRef = useRef(null);
   const [selectedValue, setSelectedValue] = useState(value);
 
-  const statusOptions = [
-    { value: '', label: '-' },
-    { value: 'Д', label: 'Д (рабочий день)' },
-    { value: 'В', label: 'В (выходной)' },
-    { value: 'У', label: 'У (учёба)' },
-    { value: 'О', label: 'О (отпуск)' },
-    { value: 'ОВ', label: 'ОВ (отпуск)' },
-    { value: 'Н1', label: 'Н1 (ночь)' },
-    { value: 'Н2', label: 'Н2 (ночь)' },
-    { value: 'ЭУ', label: 'ЭУ (экстра)' },
-  ];
+  const currentConfig = useMetaStore(s => s.currentDepartmentConfig);
+
+  const statusOptions = useMemo(() => {
+    const options = [{ value: '', label: '-' }];
+    if (currentConfig?.statusConfig) {
+      currentConfig.statusConfig.forEach(s => {
+        options.push({ value: s.code, label: `${s.code} (${s.label})` });
+      });
+    }
+    return options;
+  }, [currentConfig]);
 
   // Закрытие при клике вне редактора
   useEffect(() => {

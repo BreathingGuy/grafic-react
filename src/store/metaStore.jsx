@@ -5,12 +5,26 @@ export const useMetaStore = create((set, get) => ({
     // === STATE ===
     departmentsList: [],
     currentDepartmentConfig: null,
+    // Карта: { "Д": { colorText, colorBack }, "Н1": { ... }, ... }
+    statusColorMap: {},
 
     isDepartmentsLoaded: false,
 
     loading: {
       departmentsList: false,
       config: false
+    },
+
+    // === HELPERS ===
+
+    // Построить statusColorMap из statusConfig
+    buildColorMap: (config) => {
+      if (!config?.statusConfig) return {};
+      const map = {};
+      config.statusConfig.forEach(s => {
+        map[s.code] = { colorText: s.colorText, colorBack: s.colorBack };
+      });
+      return map;
     },
 
     // === ACTIONS ===
@@ -52,6 +66,7 @@ export const useMetaStore = create((set, get) => ({
 
         set({
           currentDepartmentConfig: data,
+          statusColorMap: get().buildColorMap(data),
           loading: { ...get().loading, config: false }
         });
       } catch (error) {
@@ -63,7 +78,7 @@ export const useMetaStore = create((set, get) => ({
     },
 
     clearCurrentConfig: () => {
-      set({ currentDepartmentConfig: null });
+      set({ currentDepartmentConfig: null, statusColorMap: {} });
     }
 
     // === WEBSOCKET (закомментирован) ===

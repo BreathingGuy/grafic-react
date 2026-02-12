@@ -72,22 +72,6 @@ body {
     background: #555;
 }
 
-.working {
-    background: #d4edda;
-}
-
-.dayoff {
-    background: #f8d7da;
-}
-
-.study {
-    background: #fff3cd;
-}
-
-.vacation {
-    background: #d1ecf1;
-}
-
 input,
 select {
     padding: 4px;

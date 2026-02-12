@@ -294,8 +294,9 @@ function StatusesTab() {
       statusConfig: newStatuses
     };
 
-    // Обновляем metaStore
-    useMetaStore.setState({ currentDepartmentConfig: newConfig });
+    // Обновляем metaStore (конфиг + карту цветов)
+    const colorMap = useMetaStore.getState().buildColorMap(newConfig);
+    useMetaStore.setState({ currentDepartmentConfig: newConfig, statusColorMap: colorMap });
 
     // Сохраняем в localStorage
     usePostWebStore.getState().saveDepartmentConfig(editingDepartmentId, newConfig);
