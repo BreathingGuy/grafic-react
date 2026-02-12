@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import EmployeesTab from './Settings/EmployeesTab';
-import StatusesTab from './Settings/StatusesTab';
-import DepartmentTab from './Settings/DepartmentTab';
+import EmployeesTab from './Settings/EmployeesTab/EmployeesTab';
+import StatusesTab from './Settings/StatusesTab/StatusesTab';
+import DepartmentTab from './Settings/DepartmentTab/DepartmentTab';
 
 /**
  * DepartmentSettingsModal — модальное окно настроек отдела
