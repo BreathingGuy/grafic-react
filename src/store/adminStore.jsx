@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { useFetchWebStore } from './fetchWebStore';
 import { usePostWebStore } from './postWebStore';
 import { useScheduleStore } from './scheduleStore';
+import { useMetaStore } from './metaStore';
 import { useDateAdminStore } from './dateAdminStore';
 import { useVersionsStore } from './versionsStore';
 
@@ -549,6 +550,9 @@ export const useAdminStore = create(
           let targetYear = Number(year);
           if (isDepartmentChange) {
             set({ availableYears: [], editingDepartmentId: departmentId });
+
+            // Загружаем конфиг отдела (для настроек и цветов)
+            useMetaStore.getState().loadDepartmentConfig(departmentId);
 
             try {
               const years = await get().loadAvailableYears(departmentId);
