@@ -2,14 +2,14 @@
   "departmentId": "dept-1",
   "name": "ПЛЦР",
   "statusConfig": [
-    { "code": "Д", "label": "Дневная смена", "color": "#d4edda", "descriptin": "с 8 до 16.30 вечера" },
+    { "code": "Д",  "label": "Дневная смена",       "color": "#d4edda", "descriptin": "с 8 до 16.30 вечера" },
     { "code": "Н1", "label": "Ночная смена первая", "color": "#cfe2ff", "descriptin": "с 4 вечера до 12 ночи"  },
     { "code": "Н2", "label": "Ночная смена вторая", "color": "#cfe2ff", "descriptin": "с 12 ночи до 8 утра"  },
-    { "code": "Э", "label": "Эксперт", "color": "#cfe2ff", "descriptin": "с 9 утра до 18:00"  },
-    { "code": "ЭУ", "label": "Эксперт утро", "color": "#cfe2ff", "descriptin": "с 8 утра до 17:00"  },
-    { "code": "У", "label": "Учеба", "color": "#d4edda", "descriptin": "с 8 до 16.30 вечера" },
-    { "code": "В", "label": "Выходной", "color": "#f8d7da", "descriptin": "Выходной"  },
-    { "code": "О", "label": "Отпуск", "color": "#f8d7da", "descriptin": "Выходной"  },
-    { "code": "ОВ", "label": "Отпуск", "color": "#f8d7da", "descriptin": "Отпуск в выходной"  }
+    { "code": "Э",  "label": "Эксперт",             "color": "#cfe2ff", "descriptin": "с 9 утра до 18:00"  },
+    { "code": "ЭУ", "label": "Эксперт утро",        "color": "#cfe2ff", "descriptin": "с 8 утра до 17:00"  },
+    { "code": "У",  "label": "Учеба",               "color": "#d4edda", "descriptin": "с 8 до 16.30 вечера" },
+    { "code": "В",  "label": "Выходной",            "color": "#f8d7da", "descriptin": "Выходной"  },
+    { "code": "О",  "label": "Отпуск",              "color": "#f8d7da", "descriptin": "Выходной"  },
+    { "code": "ОВ", "label": "Отпуск",              "color": "#f8d7da", "descriptin": "Отпуск в выходной"  }
   ]
 }
