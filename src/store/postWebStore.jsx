@@ -324,6 +324,64 @@ export const usePostWebStore = create((set, get) => ({
       }
     },
 
+    // === DEPARTMENT CONFIG API ===
+
+    /**
+     * Сохранить конфигурацию отдела (statusConfig, name)
+     * @param {string} departmentId
+     * @param {Object} config - { departmentId, name, statusConfig }
+     */
+    saveDepartmentConfig: async (departmentId, config) => {
+      try {
+        const key = STORAGE_KEYS.departmentConfig(departmentId);
+        localStorage.setItem(key, JSON.stringify(config));
+
+        console.log(`✅ Конфиг отдела сохранен: ${departmentId}`);
+        return { success: true };
+
+      } catch (error) {
+        console.error('saveDepartmentConfig error:', error);
+        throw error;
+      }
+    },
+
+    /**
+     * Обновить имя отдела в списке отделов
+     * @param {string} departmentId
+     * @param {string} newName
+     */
+    updateDepartmentName: async (departmentId, newName) => {
+      try {
+        // Загружаем текущий список
+        const lsKey = STORAGE_KEYS.departmentList();
+        const stored = localStorage.getItem(lsKey);
+        let data;
+
+        if (stored) {
+          data = JSON.parse(stored);
+        } else {
+          // Загружаем из JSON и сохраняем в localStorage
+          const response = await fetch('../../public/department-list.json');
+          data = await response.json();
+        }
+
+        // Обновляем имя
+        const dept = data.departments.find(d => d.id === departmentId);
+        if (dept) {
+          dept.name = newName;
+        }
+
+        localStorage.setItem(lsKey, JSON.stringify(data));
+
+        console.log(`✅ Имя отдела обновлено: ${departmentId} → ${newName}`);
+        return { success: true };
+
+      } catch (error) {
+        console.error('updateDepartmentName error:', error);
+        throw error;
+      }
+    },
+
     // === LEGACY (для совместимости) ===
 
     /**
