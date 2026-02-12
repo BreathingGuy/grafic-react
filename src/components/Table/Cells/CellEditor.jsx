@@ -12,7 +12,7 @@ export default function CellEditor({ value, onChange, onClose }) {
     const options = [{ value: '', label: '-' }];
     if (currentConfig?.statusConfig) {
       currentConfig.statusConfig.forEach(s => {
-        options.push({ value: s.code, label: `${s.code} (${s.label})` });
+        options.push({ value: s.codeWork, label: `${s.codeWork} (${s.label})` });
       });
     }
     return options;

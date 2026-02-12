@@ -2,10 +2,28 @@ import { useState, useCallback } from 'react';
 import { useAdminStore } from '../../../../../store/adminStore';
 import { useMetaStore } from '../../../../../store/metaStore';
 import { usePostWebStore } from '../../../../../store/postWebStore';
+import { CODELIST_OPTIONS } from '../../../../../constants';
 import {
   tableStyle, thStyle, tdStyle, inputStyle, colorInputStyle,
   smallBtnStyle, smallBtnGrayStyle, smallBtnRedStyle, addFormStyle
 } from '../settingsStyles';
+
+// Быстрый lookup: codeList → { hours, label, descriptin }
+const codeListMap = {};
+CODELIST_OPTIONS.forEach(opt => {
+  codeListMap[opt.codeList] = opt;
+});
+
+const selectStyle = {
+  ...inputStyle,
+  width: '80px',
+  cursor: 'pointer'
+};
+
+const emptyAddForm = {
+  codeWork: '', codeList: '', label: '', hours: 0,
+  colorText: '#000000', colorBack: '#ffffff', descriptin: ''
+};
 
 export default function StatusesTab() {
   const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
@@ -15,10 +33,7 @@ export default function StatusesTab() {
   const [editingIdx, setEditingIdx] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addForm, setAddForm] = useState({
-    code: '', codeWork: '', codeList: '', label: '',
-    colorText: '#000000', colorBack: '#ffffff', descriptin: ''
-  });
+  const [addForm, setAddForm] = useState({ ...emptyAddForm });
 
   const saveConfig = useCallback((newStatuses) => {
     if (!editingDepartmentId || !currentConfig) return;
@@ -33,6 +48,18 @@ export default function StatusesTab() {
 
     usePostWebStore.getState().saveDepartmentConfig(editingDepartmentId, newConfig);
   }, [editingDepartmentId, currentConfig]);
+
+  // При смене codeList в форме — подтянуть hours и descriptin из CODELIST_OPTIONS
+  const handleCodeListChange = (setter) => (e) => {
+    const value = e.target.value;
+    const opt = codeListMap[value];
+    setter(f => ({
+      ...f,
+      codeList: value,
+      hours: opt ? opt.hours : f.hours,
+      descriptin: opt ? opt.descriptin : f.descriptin
+    }));
+  };
 
   const startEdit = (idx) => {
     setEditForm({ ...statuses[idx] });
@@ -51,18 +78,15 @@ export default function StatusesTab() {
   };
 
   const addStatus = () => {
-    if (!addForm.code) return;
+    if (!addForm.codeWork) return;
     const newStatuses = [...statuses, { ...addForm }];
     saveConfig(newStatuses);
-    setAddForm({
-      code: '', codeWork: '', codeList: '', label: '',
-      colorText: '#000000', colorBack: '#ffffff', descriptin: ''
-    });
+    setAddForm({ ...emptyAddForm });
     setShowAddForm(false);
   };
 
   const deleteStatus = (idx) => {
-    if (!window.confirm(`Удалить обозначение "${statuses[idx].code}"?`)) return;
+    if (!window.confirm(`Удалить обозначение "${statuses[idx].codeWork}"?`)) return;
     const newStatuses = statuses.filter((_, i) => i !== idx);
     saveConfig(newStatuses);
   };
@@ -73,10 +97,10 @@ export default function StatusesTab() {
         <table style={tableStyle}>
           <thead>
             <tr>
-              <th style={thStyle}>Код</th>
               <th style={thStyle}>Отобр.</th>
               <th style={thStyle}>Список</th>
               <th style={thStyle}>Название</th>
+              <th style={thStyle}>Часы</th>
               <th style={thStyle}>Цвет текста</th>
               <th style={thStyle}>Цвет фона</th>
               <th style={thStyle}>Описание</th>
@@ -90,30 +114,39 @@ export default function StatusesTab() {
                   <tr key={idx}>
                     <td style={tdStyle}>
                       <input
-                        value={editForm.code}
-                        onChange={e => setEditForm(f => ({ ...f, code: e.target.value }))}
-                        style={{ ...inputStyle, width: '40px' }}
-                      />
-                    </td>
-                    <td style={tdStyle}>
-                      <input
                         value={editForm.codeWork || ''}
                         onChange={e => setEditForm(f => ({ ...f, codeWork: e.target.value }))}
                         style={{ ...inputStyle, width: '40px' }}
                       />
                     </td>
                     <td style={tdStyle}>
-                      <input
+                      <select
                         value={editForm.codeList || ''}
-                        onChange={e => setEditForm(f => ({ ...f, codeList: e.target.value }))}
-                        style={{ ...inputStyle, width: '40px' }}
-                      />
+                        onChange={handleCodeListChange(setEditForm)}
+                        style={selectStyle}
+                      >
+                        <option value="">—</option>
+                        {CODELIST_OPTIONS.map(opt => (
+                          <option key={opt.codeList} value={opt.codeList}>
+                            {opt.codeList} ({opt.label})
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td style={tdStyle}>
                       <input
                         value={editForm.label}
                         onChange={e => setEditForm(f => ({ ...f, label: e.target.value }))}
                         style={inputStyle}
+                      />
+                    </td>
+                    <td style={tdStyle}>
+                      <input
+                        type="number"
+                        value={editForm.hours ?? 0}
+                        onChange={e => setEditForm(f => ({ ...f, hours: Number(e.target.value) }))}
+                        style={{ ...inputStyle, width: '50px' }}
+                        min={0}
                       />
                     </td>
                     <td style={tdStyle}>
@@ -149,10 +182,10 @@ export default function StatusesTab() {
 
               return (
                 <tr key={idx}>
-                  <td style={tdStyle}><strong>{status.code}</strong></td>
-                  <td style={tdStyle}>{status.codeWork}</td>
+                  <td style={tdStyle}><strong>{status.codeWork}</strong></td>
                   <td style={tdStyle}>{status.codeList}</td>
                   <td style={tdStyle}>{status.label}</td>
+                  <td style={tdStyle}>{status.hours ?? '—'}</td>
                   <td style={tdStyle}>
                     <span style={{
                       display: 'inline-block', width: '20px', height: '20px',
@@ -184,28 +217,36 @@ export default function StatusesTab() {
           <h4 style={{ margin: '0 0 8px 0' }}>Новое обозначение</h4>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <input
-              placeholder="Код"
-              value={addForm.code}
-              onChange={e => setAddForm(f => ({ ...f, code: e.target.value }))}
-              style={{ ...inputStyle, width: '50px' }}
-            />
-            <input
               placeholder="Отобр."
               value={addForm.codeWork}
               onChange={e => setAddForm(f => ({ ...f, codeWork: e.target.value }))}
               style={{ ...inputStyle, width: '50px' }}
             />
-            <input
-              placeholder="Список"
+            <select
               value={addForm.codeList}
-              onChange={e => setAddForm(f => ({ ...f, codeList: e.target.value }))}
-              style={{ ...inputStyle, width: '50px' }}
-            />
+              onChange={handleCodeListChange(setAddForm)}
+              style={selectStyle}
+            >
+              <option value="">— Список —</option>
+              {CODELIST_OPTIONS.map(opt => (
+                <option key={opt.codeList} value={opt.codeList}>
+                  {opt.codeList} ({opt.label})
+                </option>
+              ))}
+            </select>
             <input
               placeholder="Название"
               value={addForm.label}
               onChange={e => setAddForm(f => ({ ...f, label: e.target.value }))}
               style={inputStyle}
+            />
+            <input
+              type="number"
+              placeholder="Часы"
+              value={addForm.hours}
+              onChange={e => setAddForm(f => ({ ...f, hours: Number(e.target.value) }))}
+              style={{ ...inputStyle, width: '50px' }}
+              min={0}
             />
             <label style={{ fontSize: '12px' }}>
               Текст: <input

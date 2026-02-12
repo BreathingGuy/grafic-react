@@ -2,14 +2,18 @@
   "departmentId": "dept-1",
   "name": "ПФ АС",
   "statusConfig": [
-    { "code": "Д",  "codeWork": "Д",  "codeList": "Д",  "label": "Дневная смена",       "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "с 8 до 16.30 вечера" },
-    { "code": "Н1", "codeWork": "Н1", "codeList": "Н1", "label": "Ночная смена первая", "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "с 4 вечера до 12 ночи" },
-    { "code": "Н2", "codeWork": "Н2", "codeList": "Н2", "label": "Ночная смена вторая", "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "с 12 ночи до 8 утра" },
-    { "code": "Э",  "codeWork": "Э",  "codeList": "Э",  "label": "Эксперт",             "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "с 9 утра до 18:00" },
-    { "code": "ЭУ", "codeWork": "ЭУ", "codeList": "ЭУ", "label": "Эксперт утро",       "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "с 8 утра до 17:00" },
-    { "code": "У",  "codeWork": "У",  "codeList": "У",  "label": "Учеба",               "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "с 8 до 16.30 вечера" },
-    { "code": "В",  "codeWork": "В",  "codeList": "В",  "label": "Выходной",            "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Выходной" },
-    { "code": "О",  "codeWork": "О",  "codeList": "О",  "label": "Отпуск",              "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Выходной" },
-    { "code": "ОВ", "codeWork": "ОВ", "codeList": "ОВ", "label": "Отпуск",              "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Отпуск в выходной" }
+    { "codeWork": "В",  "codeList": "В",  "label": "Выходной",             "hours": 0, "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Выходной" },
+    { "codeWork": "Д",  "codeList": "Д",  "label": "Дневная смена",        "hours": 8, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "08:00–16:30" },
+    { "codeWork": "ДК", "codeList": "ДК", "label": "День короткий",        "hours": 7, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "08:00–15:30" },
+    { "codeWork": "ДП", "codeList": "ДП", "label": "День (поздний)",        "hours": 8, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "10:00–18:30" },
+    { "codeWork": "К",  "codeList": "К",  "label": "Командировка",          "hours": 8, "colorText": "#000000", "colorBack": "#fff3cd", "descriptin": "Командировка" },
+    { "codeWork": "Н1", "codeList": "Н1", "label": "Ночная смена первая",  "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "16:00–00:00" },
+    { "codeWork": "Н2", "codeList": "Н2", "label": "Ночная смена вторая",  "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "00:00–08:00" },
+    { "codeWork": "О",  "codeList": "О",  "label": "Отпуск",               "hours": 8, "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Отпуск" },
+    { "codeWork": "ОВ", "codeList": "ОВ", "label": "Отпуск в выходной",    "hours": 0, "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Отпуск в выходной" },
+    { "codeWork": "У",  "codeList": "У",  "label": "Учёба",                "hours": 8, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "Учёба" },
+    { "codeWork": "Э",  "codeList": "Э",  "label": "Эксперт",              "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "09:00–17:30" },
+    { "codeWork": "ЭК", "codeList": "ЭК", "label": "Эксперт короткий",    "hours": 7, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "09:00–16:45" },
+    { "codeWork": "ЭУ", "codeList": "ЭУ", "label": "Эксперт утро",         "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "08:00–16:00" }
   ]
 }
