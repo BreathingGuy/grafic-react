@@ -32,9 +32,9 @@ body {
 .fixed_column td,
 .scrollable_column th,
 .scrollable_column td {
-    border: 1px solid #ccc;
+    border: 1px solid #000;
     padding: 4px;
-    height: 20px; 
+    height: 20px;
 }
 
 .scrollable_column th,
@@ -55,7 +55,7 @@ body {
 
 .scrollable_container {
     overflow-x: auto ;
-    border-right: 1px solid #ccc;
+    border-right: 1px solid #000;
     max-width: calc(100% - 250px);
     -ms-overflow-style: none; 
     scrollbar-width: thin;
