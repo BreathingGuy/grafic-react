@@ -6,6 +6,7 @@ import { useScheduleStore } from './scheduleStore';
 import { useMetaStore } from './metaStore';
 import { useDateAdminStore } from './dateAdminStore';
 import { useVersionsStore } from './versionsStore';
+import { buildCodeToHours, calcFullHoursSummary, deltaUpdateSummary, batchDeltaUpdateSummary } from '../utils/hoursCalc';
 
 export const useAdminStore = create(
   persist(
@@ -40,6 +41,35 @@ export const useAdminStore = create(
 
         // === MONTH NORMS ===
         monthNorms: {},                // Нормы часов по месяцам: { "2025-01": 160, ... }
+
+        // === HOURS SUMMARY ===
+        hoursSummary: {},              // Факт часов: { "empId-Q1": 480, "empId-Q2": 512, ... }
+        codeToHours: {},               // Карта code→hours: { "Д": 8, "В": 0, ... }
+        showQuarterSummary: JSON.parse(localStorage.getItem('admin-showQuarterSummary') || 'false'),
+
+        toggleQuarterSummary: () => {
+          const next = !get().showQuarterSummary;
+          set({ showQuarterSummary: next });
+          localStorage.setItem('admin-showQuarterSummary', JSON.stringify(next));
+        },
+
+        // Пересчитать hoursSummary полностью (при init, undo, discard)
+        recalcHoursSummary: () => {
+          const { draftSchedule, employeeIds, codeToHours, editingYear } = get();
+          if (!editingYear || Object.keys(codeToHours).length === 0) {
+            set({ hoursSummary: {} });
+            return;
+          }
+          const summary = calcFullHoursSummary(draftSchedule, employeeIds, codeToHours, editingYear);
+          set({ hoursSummary: summary });
+        },
+
+        // Обновить codeToHours из текущего statusConfig
+        refreshCodeToHours: () => {
+          const config = useMetaStore.getState().currentDepartmentConfig;
+          const map = buildCodeToHours(config?.statusConfig);
+          set({ codeToHours: map });
+        },
 
         // === YEARS ===
         availableYears: [],            // Доступные года для отдела: ["2024", "2025", "2026"]
@@ -267,37 +297,45 @@ export const useAdminStore = create(
           console.log(`✅ Создан пустой год ${year} с ${Object.keys(emptyDraft).length} ячейками (включая Q1 ${year + 1}), version: ${prodVersion}`);
         },
 
-        // Обновить одну ячейку в draft
+        // Обновить одну ячейку в draft (с дельта-обновлением hoursSummary)
         updateDraftCell: (employeeId, date, status) => {
           const key = `${employeeId}-${date}`;
+          const { draftSchedule, hoursSummary, codeToHours } = get();
+          const oldStatus = draftSchedule[key] ?? '';
+
+          // Дельта-обновление hoursSummary
+          const newSummary = deltaUpdateSummary(hoursSummary, employeeId, date, oldStatus, status, codeToHours);
 
           set(state => ({
             draftSchedule: {
               ...state.draftSchedule,
               [key]: status
             },
-            // Добавляем в changedCells
             changedCells: {
               ...state.changedCells,
               [key]: status
             },
-            hasUnsavedChanges: true
+            hasUnsavedChanges: true,
+            ...(newSummary ? { hoursSummary: newSummary } : {})
           }));
         },
 
-        // Массовое обновление ячеек (для вставки)
+        // Массовое обновление ячеек (для вставки, с дельта-обновлением hoursSummary)
         batchUpdateDraftCells: (updates) => {
+          const { draftSchedule, hoursSummary, codeToHours, editingYear } = get();
+          const newSummary = batchDeltaUpdateSummary(hoursSummary, updates, draftSchedule, codeToHours, editingYear);
+
           set(state => ({
             draftSchedule: {
               ...state.draftSchedule,
               ...updates
             },
-            // Добавляем все обновления в changedCells
             changedCells: {
               ...state.changedCells,
               ...updates
             },
-            hasUnsavedChanges: true
+            hasUnsavedChanges: true,
+            hoursSummary: newSummary
           }));
         },
 
@@ -324,6 +362,9 @@ export const useAdminStore = create(
             undoStack: undoStack.slice(0, -1),
             hasUnsavedChanges: Object.keys(previousState.changedCells).length > 0
           });
+
+          // Полный пересчёт hoursSummary (undo — редкая операция)
+          get().recalcHoursSummary();
 
           return true;
         },
@@ -466,8 +507,10 @@ export const useAdminStore = create(
             draftSchedule: { ...originalSchedule },
             hasUnsavedChanges: false,
             undoStack: [],
-            changedCells: {}  // Сбрасываем изменённые ячейки
+            changedCells: {}
           });
+          // Полный пересчёт hoursSummary
+          get().recalcHoursSummary();
         },
 
         // Очистить draft (при выходе из режима редактирования)
@@ -504,6 +547,8 @@ export const useAdminStore = create(
             editingYear: null,
             editingDepartmentId: null,
             availableYears: [],
+            hoursSummary: {},
+            codeToHours: {},
             // Versioning
             baseVersion: null,
             changedCells: {},
@@ -523,6 +568,7 @@ export const useAdminStore = create(
             hasUnsavedChanges: false,
             undoStack: [],
             editingYear: null,
+            hoursSummary: {},
             // Versioning
             baseVersion: null,
             changedCells: {},
@@ -577,6 +623,10 @@ export const useAdminStore = create(
           // 6. Загрузка норм месяцев
           const norms = useFetchWebStore.getState().fetchMonthNorms(departmentId, targetYear);
           set({ monthNorms: norms || {} });
+
+          // 7. Построить codeToHours и рассчитать hoursSummary
+          get().refreshCodeToHours();
+          get().recalcHoursSummary();
         },
 
         // === YEARS & VERSIONS ACTIONS ===
