@@ -1,3 +1,4 @@
+import { useAdminStore } from '../../../store/adminStore';
 import YearSelect from './Buttons/YearSelect';
 import CreateYearButton from './Buttons/CreateYearButton';
 import VersionSelect from './Buttons/VersionSelect';
@@ -8,6 +9,9 @@ import VersionIndicator from './Buttons/VersionIndicator';
  * Композиция из изолированных компонентов с минимальными подписками
  */
 export default function AdminYearSelector({ onOpenYearSettings }) {
+  const showQuarterSummary = useAdminStore(s => s.showQuarterSummary);
+  const toggleQuarterSummary = useAdminStore(s => s.toggleQuarterSummary);
+
   return (
     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
       <YearSelect />
@@ -26,6 +30,16 @@ export default function AdminYearSelector({ onOpenYearSettings }) {
       >
         Нормы часов
       </button>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', cursor: 'pointer' }}>
+        <input
+          type="checkbox"
+          checked={showQuarterSummary}
+          onChange={toggleQuarterSummary}
+        />
+        Итоги кварталов
+      </label>
+
       <VersionSelect />
       <VersionIndicator />
     </div>
