@@ -1,15 +1,24 @@
 import DepartmentIdField from './DepartmentIdField';
-import DepartmentNameField from './DepartmentNameField';
+import { inputStyle } from '../settingsStyles';
 
 /**
- * DepartmentTab — вкладка настроек отдела
- * Композиция: ID (readonly) + редактирование имени
+ * DepartmentTab — вкладка настроек отдела (controlled)
+ * Props: name, onNameChange
  */
-export default function DepartmentTab() {
+export default function DepartmentTab({ name, onNameChange }) {
   return (
     <div>
       <DepartmentIdField />
-      <DepartmentNameField />
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', fontWeight: 500, marginBottom: '4px' }}>
+          Название отдела
+        </label>
+        <input
+          value={name}
+          onChange={e => onNameChange(e.target.value)}
+          style={{ ...inputStyle, width: '300px' }}
+        />
+      </div>
     </div>
   );
 }

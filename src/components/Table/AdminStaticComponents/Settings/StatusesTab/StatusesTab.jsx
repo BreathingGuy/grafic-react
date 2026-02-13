@@ -1,7 +1,4 @@
-import { useState, useCallback } from 'react';
-import { useAdminStore } from '../../../../../store/adminStore';
-import { useMetaStore } from '../../../../../store/metaStore';
-import { usePostWebStore } from '../../../../../store/postWebStore';
+import { useState } from 'react';
 import {
   tableStyle, thStyle, tdStyle, inputStyle, colorInputStyle,
   smallBtnStyle, smallBtnGrayStyle, smallBtnRedStyle, addFormStyle
@@ -12,29 +9,15 @@ const emptyAddForm = {
   colorText: '#000000', colorBack: '#ffffff', descriptin: ''
 };
 
-export default function StatusesTab() {
-  const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
-  const currentConfig = useMetaStore(s => s.currentDepartmentConfig);
-
-  const statuses = currentConfig?.statusConfig || [];
+/**
+ * StatusesTab — вкладка обозначений (controlled)
+ * Props: statuses (массив), onChange (сеттер массива)
+ */
+export default function StatusesTab({ statuses, onChange }) {
   const [editingIdx, setEditingIdx] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ ...emptyAddForm });
-
-  const saveConfig = useCallback((newStatuses) => {
-    if (!editingDepartmentId || !currentConfig) return;
-
-    const newConfig = {
-      ...currentConfig,
-      statusConfig: newStatuses
-    };
-
-    const colorMap = useMetaStore.getState().buildColorMap(newConfig);
-    useMetaStore.setState({ currentDepartmentConfig: newConfig, statusColorMap: colorMap });
-
-    usePostWebStore.getState().saveDepartmentConfig(editingDepartmentId, newConfig);
-  }, [editingDepartmentId, currentConfig]);
 
   const startEdit = (idx) => {
     setEditForm({ ...statuses[idx] });
@@ -46,24 +29,22 @@ export default function StatusesTab() {
   };
 
   const saveEdit = () => {
-    const newStatuses = [...statuses];
-    newStatuses[editingIdx] = { ...editForm };
-    saveConfig(newStatuses);
+    const next = [...statuses];
+    next[editingIdx] = { ...editForm };
+    onChange(next);
     setEditingIdx(null);
   };
 
   const addStatus = () => {
     if (!addForm.code) return;
-    const newStatuses = [...statuses, { ...addForm }];
-    saveConfig(newStatuses);
+    onChange([...statuses, { ...addForm }]);
     setAddForm({ ...emptyAddForm });
     setShowAddForm(false);
   };
 
   const deleteStatus = (idx) => {
     if (!window.confirm(`Удалить обозначение "${statuses[idx].code}"?`)) return;
-    const newStatuses = statuses.filter((_, i) => i !== idx);
-    saveConfig(newStatuses);
+    onChange(statuses.filter((_, i) => i !== idx));
   };
 
   return (
@@ -133,7 +114,7 @@ export default function StatusesTab() {
                       />
                     </td>
                     <td style={tdStyle}>
-                      <button onClick={saveEdit} style={smallBtnStyle}>Сохр.</button>
+                      <button onClick={saveEdit} style={smallBtnStyle}>Ок</button>
                       <button onClick={cancelEdit} style={smallBtnGrayStyle}>Отм.</button>
                     </td>
                   </tr>

@@ -1,92 +1,19 @@
-import { useState, useCallback } from 'react';
-import { useAdminStore } from '../../../../../store/adminStore';
-import { usePostWebStore } from '../../../../../store/postWebStore';
+import { useState } from 'react';
 import { tableStyle, thStyle, smallBtnStyle } from '../settingsStyles';
 import EmployeeRow from './EmployeeRow';
 import AddEmployeeForm from './AddEmployeeForm';
 
 /**
- * EmployeesTab — вкладка управления сотрудниками
- * Композиция: таблица EmployeeRow + AddEmployeeForm
+ * EmployeesTab — вкладка управления сотрудниками (controlled)
+ * Props: employeeById, employeeIds, onSave, onAdd, onDelete
  */
-export default function EmployeesTab() {
-  const employeeIds = useAdminStore(s => s.employeeIds);
-  const employeeById = useAdminStore(s => s.employeeById);
-  const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
-
+export default function EmployeesTab({ employeeById, employeeIds, onSave, onAdd, onDelete }) {
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const saveEmployee = useCallback((empId, editForm) => {
-    if (!editingDepartmentId) return;
-
-    const newEmployeeById = {
-      ...employeeById,
-      [empId]: {
-        ...employeeById[empId],
-        name: editForm.name,
-        fullName: editForm.fullName,
-        position: editForm.position
-      }
-    };
-
-    useAdminStore.setState({ employeeById: newEmployeeById });
-
-    usePostWebStore.getState().updateEmployees(editingDepartmentId, {
-      employeeById: newEmployeeById,
-      employeeIds
-    });
-  }, [editingDepartmentId, employeeById, employeeIds]);
-
-  const addEmployee = useCallback((form) => {
-    if (!form.id || !form.fullName || !editingDepartmentId) return;
-
-    if (employeeById[form.id]) {
-      alert('Сотрудник с таким ID уже существует');
-      return;
-    }
-
-    const newEmployeeById = {
-      ...employeeById,
-      [form.id]: {
-        id: form.id,
-        name: form.name || form.fullName,
-        fullName: form.fullName,
-        position: form.position
-      }
-    };
-    const newEmployeeIds = [...employeeIds, form.id];
-
-    useAdminStore.setState({
-      employeeById: newEmployeeById,
-      employeeIds: newEmployeeIds
-    });
-
-    usePostWebStore.getState().updateEmployees(editingDepartmentId, {
-      employeeById: newEmployeeById,
-      employeeIds: newEmployeeIds
-    });
-
+  const handleAdd = (form) => {
+    onAdd(form);
     setShowAddForm(false);
-  }, [editingDepartmentId, employeeById, employeeIds]);
-
-  const deleteEmployee = useCallback((empId) => {
-    if (!editingDepartmentId) return;
-    if (!window.confirm(`Удалить сотрудника ${employeeById[empId]?.fullName}?`)) return;
-
-    const newEmployeeById = { ...employeeById };
-    delete newEmployeeById[empId];
-    const newEmployeeIds = employeeIds.filter(id => id !== empId);
-
-    useAdminStore.setState({
-      employeeById: newEmployeeById,
-      employeeIds: newEmployeeIds
-    });
-
-    usePostWebStore.getState().updateEmployees(editingDepartmentId, {
-      employeeById: newEmployeeById,
-      employeeIds: newEmployeeIds
-    });
-  }, [editingDepartmentId, employeeById, employeeIds]);
+  };
 
   return (
     <div>
@@ -110,8 +37,8 @@ export default function EmployeesTab() {
                   key={empId}
                   empId={empId}
                   employee={emp}
-                  onSave={saveEmployee}
-                  onDelete={deleteEmployee}
+                  onSave={onSave}
+                  onDelete={onDelete}
                 />
               );
             })}
@@ -121,7 +48,7 @@ export default function EmployeesTab() {
 
       {showAddForm ? (
         <AddEmployeeForm
-          onAdd={addEmployee}
+          onAdd={handleAdd}
           onCancel={() => setShowAddForm(false)}
         />
       ) : (
