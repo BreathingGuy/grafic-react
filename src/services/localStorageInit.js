@@ -55,6 +55,9 @@ export const STORAGE_KEYS = {
   // Список отделов
   departmentList: () => `department-list`,
 
+  // Нормы часов по месяцам для года
+  monthNorms: (deptId, year) => `month-norms-${deptId}-${year}`,
+
   // Устаревший ключ (для миграции)
   // @deprecated используйте draftSchedule
   draft: (deptId, year) => `draft-${deptId}-${year}`

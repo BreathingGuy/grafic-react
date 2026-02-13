@@ -417,6 +417,20 @@ export const useFetchWebStore = create((set, get) => ({
       }
     },
 
+    // === MONTH NORMS API ===
+
+    /**
+     * Получить нормы часов по месяцам для года
+     * @param {string} departmentId
+     * @param {number|string} year
+     * @returns {Object|null} { "2025-01": 160, ... } или null
+     */
+    fetchMonthNorms: (departmentId, year) => {
+      const key = STORAGE_KEYS.monthNorms(departmentId, year);
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : null;
+    },
+
 }));
 
 export default useFetchWebStore;

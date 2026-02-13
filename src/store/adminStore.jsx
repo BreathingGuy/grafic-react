@@ -38,6 +38,9 @@ export const useAdminStore = create(
         editingYear: null,
         editingDepartmentId: null,
 
+        // === MONTH NORMS ===
+        monthNorms: {},                // Нормы часов по месяцам: { "2025-01": 160, ... }
+
         // === YEARS ===
         availableYears: [],            // Доступные года для отдела: ["2024", "2025", "2026"]
         loadingYears: false,
@@ -570,6 +573,10 @@ export const useAdminStore = create(
 
           // 5. Загрузка draft — заменит все данные в одном set()
           await get().initializeDraft(departmentId, targetYear);
+
+          // 6. Загрузка норм месяцев
+          const norms = useFetchWebStore.getState().fetchMonthNorms(departmentId, targetYear);
+          set({ monthNorms: norms || {} });
         },
 
         // === YEARS & VERSIONS ACTIONS ===

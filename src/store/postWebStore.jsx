@@ -382,6 +382,20 @@ export const usePostWebStore = create((set, get) => ({
       }
     },
 
+    // === MONTH NORMS API ===
+
+    /**
+     * Сохранить нормы часов по месяцам для года
+     * @param {string} departmentId
+     * @param {number|string} year
+     * @param {Object} norms - { "2025-01": 160, ... }
+     */
+    saveMonthNorms: (departmentId, year, norms) => {
+      const key = STORAGE_KEYS.monthNorms(departmentId, year);
+      localStorage.setItem(key, JSON.stringify(norms));
+      console.log(`✅ Нормы месяцев сохранены: ${departmentId}/${year}`);
+    },
+
     // === LEGACY (для совместимости) ===
 
     /**
