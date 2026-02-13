@@ -2,18 +2,18 @@
   "departmentId": "dept-1",
   "name": "ПФ АС",
   "statusConfig": [
-    { "codeWork": "В",  "codeList": "В",  "label": "Выходной",             "hours": 0, "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Выходной" },
-    { "codeWork": "Д",  "codeList": "Д",  "label": "Дневная смена",        "hours": 8, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "08:00–16:30" },
-    { "codeWork": "ДК", "codeList": "ДК", "label": "День короткий",        "hours": 7, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "08:00–15:30" },
-    { "codeWork": "ДП", "codeList": "ДП", "label": "День (поздний)",        "hours": 8, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "10:00–18:30" },
-    { "codeWork": "К",  "codeList": "К",  "label": "Командировка",          "hours": 8, "colorText": "#000000", "colorBack": "#fff3cd", "descriptin": "Командировка" },
-    { "codeWork": "Н1", "codeList": "Н1", "label": "Ночная смена первая",  "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "16:00–00:00" },
-    { "codeWork": "Н2", "codeList": "Н2", "label": "Ночная смена вторая",  "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "00:00–08:00" },
-    { "codeWork": "О",  "codeList": "О",  "label": "Отпуск",               "hours": 8, "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Отпуск" },
-    { "codeWork": "ОВ", "codeList": "ОВ", "label": "Отпуск в выходной",    "hours": 0, "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Отпуск в выходной" },
-    { "codeWork": "У",  "codeList": "У",  "label": "Учёба",                "hours": 8, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "Учёба" },
-    { "codeWork": "Э",  "codeList": "Э",  "label": "Эксперт",              "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "09:00–17:30" },
-    { "codeWork": "ЭК", "codeList": "ЭК", "label": "Эксперт короткий",    "hours": 7, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "09:00–16:45" },
-    { "codeWork": "ЭУ", "codeList": "ЭУ", "label": "Эксперт утро",         "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "08:00–16:00" }
+    { "code": "В",  "label": "Выходной",             "hours": 0, "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Выходной" },
+    { "code": "Д",  "label": "Дневная смена",        "hours": 8, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "08:00–16:30" },
+    { "code": "ДК", "label": "День короткий",        "hours": 7, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "08:00–15:30" },
+    { "code": "ДП", "label": "День (поздний)",        "hours": 8, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "10:00–18:30" },
+    { "code": "К",  "label": "Командировка",          "hours": 8, "colorText": "#000000", "colorBack": "#fff3cd", "descriptin": "Командировка" },
+    { "code": "Н1", "label": "Ночная смена первая",  "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "16:00–00:00" },
+    { "code": "Н2", "label": "Ночная смена вторая",  "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "00:00–08:00" },
+    { "code": "О",  "label": "Отпуск",               "hours": 8, "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Отпуск" },
+    { "code": "ОВ", "label": "Отпуск в выходной",    "hours": 0, "colorText": "#000000", "colorBack": "#f8d7da", "descriptin": "Отпуск в выходной" },
+    { "code": "У",  "label": "Учёба",                "hours": 8, "colorText": "#000000", "colorBack": "#d4edda", "descriptin": "Учёба" },
+    { "code": "Э",  "label": "Эксперт",              "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "09:00–17:30" },
+    { "code": "ЭК", "label": "Эксперт короткий",    "hours": 7, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "09:00–16:45" },
+    { "code": "ЭУ", "label": "Эксперт утро",         "hours": 8, "colorText": "#000000", "colorBack": "#cfe2ff", "descriptin": "08:00–16:00" }
   ]
 }

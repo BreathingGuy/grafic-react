@@ -2,26 +2,13 @@ import { useState, useCallback } from 'react';
 import { useAdminStore } from '../../../../../store/adminStore';
 import { useMetaStore } from '../../../../../store/metaStore';
 import { usePostWebStore } from '../../../../../store/postWebStore';
-import { CODELIST_OPTIONS } from '../../../../../constants';
 import {
   tableStyle, thStyle, tdStyle, inputStyle, colorInputStyle,
   smallBtnStyle, smallBtnGrayStyle, smallBtnRedStyle, addFormStyle
 } from '../settingsStyles';
 
-// Быстрый lookup: codeList → { hours, label, descriptin }
-const codeListMap = {};
-CODELIST_OPTIONS.forEach(opt => {
-  codeListMap[opt.codeList] = opt;
-});
-
-const selectStyle = {
-  ...inputStyle,
-  width: '80px',
-  cursor: 'pointer'
-};
-
 const emptyAddForm = {
-  codeWork: '', codeList: '', label: '', hours: 0,
+  code: '', label: '', hours: 0,
   colorText: '#000000', colorBack: '#ffffff', descriptin: ''
 };
 
@@ -49,18 +36,6 @@ export default function StatusesTab() {
     usePostWebStore.getState().saveDepartmentConfig(editingDepartmentId, newConfig);
   }, [editingDepartmentId, currentConfig]);
 
-  // При смене codeList в форме — подтянуть hours и descriptin из CODELIST_OPTIONS
-  const handleCodeListChange = (setter) => (e) => {
-    const value = e.target.value;
-    const opt = codeListMap[value];
-    setter(f => ({
-      ...f,
-      codeList: value,
-      hours: opt ? opt.hours : f.hours,
-      descriptin: opt ? opt.descriptin : f.descriptin
-    }));
-  };
-
   const startEdit = (idx) => {
     setEditForm({ ...statuses[idx] });
     setEditingIdx(idx);
@@ -78,7 +53,7 @@ export default function StatusesTab() {
   };
 
   const addStatus = () => {
-    if (!addForm.codeWork) return;
+    if (!addForm.code) return;
     const newStatuses = [...statuses, { ...addForm }];
     saveConfig(newStatuses);
     setAddForm({ ...emptyAddForm });
@@ -86,7 +61,7 @@ export default function StatusesTab() {
   };
 
   const deleteStatus = (idx) => {
-    if (!window.confirm(`Удалить обозначение "${statuses[idx].codeWork}"?`)) return;
+    if (!window.confirm(`Удалить обозначение "${statuses[idx].code}"?`)) return;
     const newStatuses = statuses.filter((_, i) => i !== idx);
     saveConfig(newStatuses);
   };
@@ -97,8 +72,7 @@ export default function StatusesTab() {
         <table style={tableStyle}>
           <thead>
             <tr>
-              <th style={thStyle}>Отобр.</th>
-              <th style={thStyle}>Список</th>
+              <th style={thStyle}>Код</th>
               <th style={thStyle}>Название</th>
               <th style={thStyle}>Часы</th>
               <th style={thStyle}>Цвет текста</th>
@@ -114,28 +88,14 @@ export default function StatusesTab() {
                   <tr key={idx}>
                     <td style={tdStyle}>
                       <input
-                        value={editForm.codeWork || ''}
-                        onChange={e => setEditForm(f => ({ ...f, codeWork: e.target.value }))}
+                        value={editForm.code || ''}
+                        onChange={e => setEditForm(f => ({ ...f, code: e.target.value }))}
                         style={{ ...inputStyle, width: '40px' }}
                       />
                     </td>
                     <td style={tdStyle}>
-                      <select
-                        value={editForm.codeList || ''}
-                        onChange={handleCodeListChange(setEditForm)}
-                        style={selectStyle}
-                      >
-                        <option value="">—</option>
-                        {CODELIST_OPTIONS.map(opt => (
-                          <option key={opt.codeList} value={opt.codeList}>
-                            {opt.codeList} ({opt.label})
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td style={tdStyle}>
                       <input
-                        value={editForm.label}
+                        value={editForm.label || ''}
                         onChange={e => setEditForm(f => ({ ...f, label: e.target.value }))}
                         style={inputStyle}
                       />
@@ -182,8 +142,7 @@ export default function StatusesTab() {
 
               return (
                 <tr key={idx}>
-                  <td style={tdStyle}><strong>{status.codeWork}</strong></td>
-                  <td style={tdStyle}>{status.codeList}</td>
+                  <td style={tdStyle}><strong>{status.code}</strong></td>
                   <td style={tdStyle}>{status.label}</td>
                   <td style={tdStyle}>{status.hours ?? '—'}</td>
                   <td style={tdStyle}>
@@ -217,23 +176,11 @@ export default function StatusesTab() {
           <h4 style={{ margin: '0 0 8px 0' }}>Новое обозначение</h4>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <input
-              placeholder="Отобр."
-              value={addForm.codeWork}
-              onChange={e => setAddForm(f => ({ ...f, codeWork: e.target.value }))}
+              placeholder="Код"
+              value={addForm.code}
+              onChange={e => setAddForm(f => ({ ...f, code: e.target.value }))}
               style={{ ...inputStyle, width: '50px' }}
             />
-            <select
-              value={addForm.codeList}
-              onChange={handleCodeListChange(setAddForm)}
-              style={selectStyle}
-            >
-              <option value="">— Список —</option>
-              {CODELIST_OPTIONS.map(opt => (
-                <option key={opt.codeList} value={opt.codeList}>
-                  {opt.codeList} ({opt.label})
-                </option>
-              ))}
-            </select>
             <input
               placeholder="Название"
               value={addForm.label}

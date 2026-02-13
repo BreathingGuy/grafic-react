@@ -22,7 +22,7 @@ export const useMetaStore = create((set, get) => ({
       if (!config?.statusConfig) return {};
       const map = {};
       config.statusConfig.forEach(s => {
-        map[s.codeWork] = { colorText: s.colorText, colorBack: s.colorBack };
+        map[s.code] = { colorText: s.colorText, colorBack: s.colorBack };
       });
       return map;
     },
