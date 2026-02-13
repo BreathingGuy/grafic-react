@@ -19,13 +19,6 @@ export const useAdminStore = create(
         // === UI STATE ===
         isAdminMode: false,            // Режим админ-консоли
         isCreatingNewYear: false,      // Флаг создания нового года (защита от race condition)
-        showQuarterSummary: JSON.parse(localStorage.getItem('admin-showQuarterSummary') || 'false'),
-
-        toggleQuarterSummary: () => {
-          const next = !get().showQuarterSummary;
-          set({ showQuarterSummary: next });
-          localStorage.setItem('admin-showQuarterSummary', JSON.stringify(next));
-        },
 
         // === DRAFT STATE ===
         draftSchedule: {},             // Рабочая копия: { "empId-date": "status" }
