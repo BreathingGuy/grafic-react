@@ -1,12 +1,13 @@
-import { memo, useState, useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import { useAdminStore } from '../../../store/adminStore';
 import { useMetaStore } from '../../../store/metaStore';
 import { useDateAdminStore } from '../../../store/dateAdminStore';
 import { useClipboardStore } from '../../../store/selection';
-import CellEditor from './CellEditor';
 
 /**
  * AdminScheduleCell - Ячейка расписания для админ-режима
+ *
+ * Редактирование: через SelectionOverlay (drag-выделение) или Ctrl+C/V
  *
  * @param {string} tableId - 'main' | 'offset' для выбора slotToDate из store
  * @param {Function} useSelectionStore - хук selection store
@@ -26,8 +27,6 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
   const colorBack = useMetaStore(state => state.statusColorMap?.[status]?.colorBack);
   const colorText = useMetaStore(state => state.statusColorMap?.[status]?.colorText);
 
-  const [isEditing, setIsEditing] = useState(false);
-
   const handleMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
     e.preventDefault();
@@ -46,39 +45,18 @@ const AdminScheduleCell = memo(({ employeeId, slotIndex, empIdx, tableId = 'main
     }
   }, [useSelectionStore]);
 
-  const handleDoubleClick = useCallback(() => {
-    setIsEditing(true);
-  }, []);
-
-  const handleChange = useCallback((newValue) => {
-    if (date) {
-      const { saveUndoState, updateDraftCell } = useAdminStore.getState();
-      saveUndoState();
-      updateDraftCell(employeeId, date, newValue);
-    }
-    setIsEditing(false);
-  }, [employeeId, date]);
-
-  const handleClose = useCallback(() => {
-    setIsEditing(false);
-  }, []);
-
   if (!date) return <td />;
 
   return (
     <td
       data-emp-idx={empIdx}
       data-slot={slotIndex}
-      style={{ position: 'relative', backgroundColor: colorBack, color: colorText }}
+      style={{ backgroundColor: colorBack, color: colorText }}
       onMouseDown={handleMouseDown}
       onMouseOver={handleMouseOver}
       onMouseUp={handleMouseUp}
-      onDoubleClick={handleDoubleClick}
     >
       {status}
-      {isEditing && (
-        <CellEditor value={status} onChange={handleChange} onClose={handleClose} />
-      )}
     </td>
   );
 }, (prev, next) =>

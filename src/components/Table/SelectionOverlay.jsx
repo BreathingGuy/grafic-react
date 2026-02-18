@@ -1,27 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAdminStore } from '../../store/adminStore';
+import { useMetaStore } from '../../store/metaStore';
 import { useDateAdminStore } from '../../store/dateAdminStore';
 import { useClipboardStore } from '../../store/selection';
 import styles from './Table.module.css';
-
-/**
- * SelectionOverlay - Оверлей для визуализации выделения + CellEditor
- *
- * Поддерживает множественное выделение через Ctrl+click.
- * Работает с переданным selection store (main или offset).
- */
-
-const statusOptions = [
-  { value: '', label: '-' },
-  { value: 'Д', label: 'Д (рабочий день)' },
-  { value: 'В', label: 'В (выходной)' },
-  { value: 'У', label: 'У (учёба)' },
-  { value: 'О', label: 'О (отпуск)' },
-  { value: 'ОВ', label: 'ОВ (отпуск)' },
-  { value: 'Н1', label: 'Н1 (ночь)' },
-  { value: 'Н2', label: 'Н2 (ночь)' },
-  { value: 'ЭУ', label: 'ЭУ (экстра)' },
-];
 
 // Вычислить стиль для одного региона выделения
 function computeRegionStyle(startCell, endCell, employeeIds, tableRef) {
@@ -72,6 +54,18 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
   const [regionStyles, setRegionStyles] = useState([]);
   const [editorPosition, setEditorPosition] = useState(null);
   const [hoveredValue, setHoveredValue] = useState(null);
+
+  // Статусы из конфига отдела
+  const currentConfig = useMetaStore(s => s.currentDepartmentConfig);
+  const statusOptions = useMemo(() => {
+    const options = [{ value: '', label: '-' }];
+    if (currentConfig?.statusConfig) {
+      currentConfig.statusConfig.forEach(s => {
+        options.push({ value: s.code, label: `${s.code} (${s.label})` });
+      });
+    }
+    return options;
+  }, [currentConfig]);
 
   // Подписываемся на все выделения из переданного стора
   const startCell = useSelectionStore(s => s.startCell);
