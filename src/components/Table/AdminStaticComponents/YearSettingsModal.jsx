@@ -2,6 +2,7 @@ import { useState, Fragment } from 'react';
 import { useAdminStore, useHoursStore } from '../../../store/admin';
 import { usePostWebStore } from '../../../store/postWebStore';
 import { MONTHS } from '../../../constants';
+import s from './Modal.module.css';
 
 /**
  * YearSettingsModal — настройка норм часов по месяцам для года
@@ -67,19 +68,19 @@ export default function YearSettingsModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <div style={modalStyle} onClick={e => e.stopPropagation()}>
-        <div style={headerStyle}>
-          <h3 style={{ margin: 0 }}>Нормы часов — {editingYear}</h3>
-          <button onClick={onClose} style={closeButtonStyle}>&times;</button>
+    <div className={s.overlay} onClick={onClose}>
+      <div className={`${s.modal} ${s.modalNarrow}`} onClick={e => e.stopPropagation()}>
+        <div className={s.header}>
+          <h3 className={s.headerTitle}>Нормы часов — {editingYear}</h3>
+          <button onClick={onClose} className={s.closeButton}>&times;</button>
         </div>
 
-        <div style={contentStyle}>
-          <table style={tableStyle}>
+        <div className={s.content}>
+          <table className={s.table}>
             <thead>
               <tr>
-                <th style={thStyle}>Месяц</th>
-                <th style={thStyle}>Норма (часы)</th>
+                <th className={s.th}>Месяц</th>
+                <th className={s.th}>Норма (часы)</th>
               </tr>
             </thead>
             <tbody>
@@ -90,26 +91,26 @@ export default function YearSettingsModal({ isOpen, onClose }) {
                 return (
                   <Fragment key={idx}>
                     <tr>
-                      <td style={tdStyle}>
-                        <span style={{ textTransform: 'capitalize' }}>{name}</span>
+                      <td className={s.td}>
+                        <span className={s.capitalize}>{name}</span>
                       </td>
-                      <td style={tdStyle}>
+                      <td className={s.td}>
                         <input
                           type="number"
                           value={getValue(idx)}
                           onChange={e => setValue(idx, e.target.value)}
-                          style={inputStyle}
+                          className={s.input}
                           min={0}
                           placeholder="0"
                         />
                       </td>
                     </tr>
                     {isQuarterEnd && (
-                      <tr style={quarterRowStyle}>
-                        <td style={quarterTdStyle}>
+                      <tr className={s.quarterRow}>
+                        <td className={s.quarterTd}>
                           <strong>Квартал {quarterIdx + 1}</strong>
                         </td>
-                        <td style={quarterTdStyle}>
+                        <td className={s.quarterTd}>
                           <strong>{quarterSums[quarterIdx]}</strong>
                         </td>
                       </tr>
@@ -117,134 +118,19 @@ export default function YearSettingsModal({ isOpen, onClose }) {
                   </Fragment>
                 );
               })}
-              <tr style={totalRowStyle}>
-                <td style={quarterTdStyle}><strong>Итого за год</strong></td>
-                <td style={quarterTdStyle}><strong>{yearTotal}</strong></td>
+              <tr className={s.totalRow}>
+                <td className={s.quarterTd}><strong>Итого за год</strong></td>
+                <td className={s.quarterTd}><strong>{yearTotal}</strong></td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div style={footerStyle}>
-          <button onClick={handleSave} style={saveBtnStyle}>Сохранить</button>
-          <button onClick={onClose} style={cancelBtnStyle}>Отмена</button>
+        <div className={s.footer}>
+          <button onClick={handleSave} className={s.saveBtn}>Сохранить</button>
+          <button onClick={onClose} className={s.cancelBtn}>Отмена</button>
         </div>
       </div>
     </div>
   );
 }
-
-// Стили
-
-const overlayStyle = {
-  position: 'fixed',
-  top: 0, left: 0, right: 0, bottom: 0,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 1000
-};
-
-const modalStyle = {
-  backgroundColor: 'white',
-  borderRadius: '8px',
-  padding: '24px',
-  minWidth: '400px',
-  maxWidth: '500px',
-  maxHeight: '85vh',
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
-};
-
-const headerStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '16px'
-};
-
-const closeButtonStyle = {
-  background: 'none',
-  border: 'none',
-  fontSize: '24px',
-  cursor: 'pointer',
-  padding: '4px 8px',
-  color: '#666'
-};
-
-const contentStyle = {
-  flex: 1,
-  overflow: 'auto'
-};
-
-const tableStyle = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '14px'
-};
-
-const thStyle = {
-  padding: '8px 12px',
-  borderBottom: '2px solid #e0e0e0',
-  textAlign: 'left',
-  fontWeight: 500
-};
-
-const tdStyle = {
-  padding: '6px 12px',
-  borderBottom: '1px solid #f0f0f0'
-};
-
-const inputStyle = {
-  padding: '4px 8px',
-  border: '1px solid #ccc',
-  borderRadius: '4px',
-  fontSize: '14px',
-  width: '100px'
-};
-
-const quarterRowStyle = {
-  backgroundColor: '#e8f0fe'
-};
-
-const quarterTdStyle = {
-  padding: '8px 12px',
-  borderBottom: '2px solid #ccc'
-};
-
-const totalRowStyle = {
-  backgroundColor: '#e0e0e0'
-};
-
-const footerStyle = {
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: '8px',
-  marginTop: '16px',
-  paddingTop: '16px',
-  borderTop: '1px solid #e0e0e0'
-};
-
-const saveBtnStyle = {
-  padding: '8px 24px',
-  fontSize: '14px',
-  fontWeight: 500,
-  border: 'none',
-  backgroundColor: '#1976d2',
-  color: 'white',
-  borderRadius: '4px',
-  cursor: 'pointer'
-};
-
-const cancelBtnStyle = {
-  padding: '8px 24px',
-  fontSize: '14px',
-  border: '1px solid #ccc',
-  backgroundColor: 'white',
-  color: '#333',
-  borderRadius: '4px',
-  cursor: 'pointer'
-};
