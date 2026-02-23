@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { useHoursStore } from '../../../../store/admin';
 import { useDateAdminStore } from '../../../../store/dateAdminStore';
 
-const AdminMonthHeaders = ({tableId = 'main'}) => {
+const AdminMonthHeaders = memo(({tableId = 'main'}) => {
     const monthGroups = useDateAdminStore(state =>
         tableId === 'offset' ? state.offsetMonthGroups : state.monthGroups
     );
@@ -31,7 +32,9 @@ const AdminMonthHeaders = ({tableId = 'main'}) => {
             })}
         </tr>
     );
-};
+});
+
+AdminMonthHeaders.displayName = 'AdminMonthHeaders';
 
 const summaryHeaderStyle = {
     fontSize: '11px',

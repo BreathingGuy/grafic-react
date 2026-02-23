@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import { useDateUserStore } from '../../../../store/dateUserStore';
 
-const MonthHeaders = () => {
+const MonthHeaders = memo(() => {
     const monthGroups = useDateUserStore(state => state.monthGroups);
 
     return (
@@ -12,6 +13,8 @@ const MonthHeaders = () => {
             ))}
         </tr>
     )
-}
+});
+
+MonthHeaders.displayName = 'MonthHeaders';
 
 export default MonthHeaders;

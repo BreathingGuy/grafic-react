@@ -1,7 +1,7 @@
+import { memo } from 'react';
 import { useDateUserStore } from '../../../../store/dateUserStore';
 
-
-const DaySlots = () => {
+const DaySlots = memo(() => {
     const visibleSlots = useDateUserStore(state => state.visibleSlots);
     const slotToDate = useDateUserStore(state => state.slotToDate);
 
@@ -18,6 +18,8 @@ const DaySlots = () => {
             })}
         </tr>
     )
-}
+});
+
+DaySlots.displayName = 'DaySlots';
 
 export default DaySlots;

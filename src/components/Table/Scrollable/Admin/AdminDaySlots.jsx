@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { useHoursStore } from '../../../../store/admin';
 import { useDateAdminStore } from '../../../../store/dateAdminStore';
 
-const AdminDaySlots = ({tableId = 'main'}) => {
+const AdminDaySlots = memo(({tableId = 'main'}) => {
     const visibleSlots = useDateAdminStore(state => state.visibleSlots);
     const slotToDate = useDateAdminStore(state =>
         tableId === 'offset' ? state.offsetSlotToDate : state.slotToDate
@@ -51,7 +51,9 @@ const AdminDaySlots = ({tableId = 'main'}) => {
             })}
         </tr>
     );
-};
+});
+
+AdminDaySlots.displayName = 'AdminDaySlots';
 
 const subHeaderStyle = {
     fontSize: '10px',
