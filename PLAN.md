@@ -2,7 +2,7 @@
 
 ---
 
-## Фаза 1: Критические баги и быстрые победы
+## Фаза 1: Критические баги и быстрые победы ✅
 
 ### 1.1 Исправить баг ViewScheduleCell memo
 - `src/components/Table/Cells/ViewScheduleCell.jsx` — memo сравнивает `prevProps.date`, но `date` не передаётся как проп → memo бесполезен, ячейки ререндерятся всегда
@@ -21,7 +21,7 @@
 
 ---
 
-## Фаза 2: Удаление мёртвого кода
+## Фаза 2: Удаление мёртвого кода ✅
 
 ### 2.1 Удалить пустые файлы
 - `src/services/api.js` — пустой, заменён fetchWebStore/postWebStore
@@ -37,7 +37,7 @@
 
 ---
 
-## Фаза 3: Разбить adminStore (839 строк → 4-5 файлов)
+## Фаза 3: Разбить adminStore (839 строк → 4-5 файлов) ✅
 
 ### 3.1 Выделить adminAuthStore (~60 строк)
 **Состояние:** `isAuthenticated`, `user`, `ownedDepartments`, `editableDepartments`
