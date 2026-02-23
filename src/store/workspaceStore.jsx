@@ -4,7 +4,7 @@ import { useMetaStore } from './metaStore'
 import { useUserStore } from './userStore'
 import { useDateUserStore } from './dateUserStore'
 import { useDateAdminStore } from './dateAdminStore'
-import { useAdminStore } from './admin'
+import { enterAdminContext } from '../services/adminOrchestrator'
 
 export const useWorkspaceStore = create((set, get) => ({
     // === STATE ===
@@ -52,8 +52,8 @@ export const useWorkspaceStore = create((set, get) => ({
       // Используем текущий год из dateAdminStore или текущий календарный год
       const currentYear = useDateAdminStore.getState().currentYear || new Date().getFullYear();
 
-      // Единая точка входа — очистка + инициализация
-      await useAdminStore.getState().enterAdminContext(departmentId, currentYear);
+      // Координация через оркестратор
+      await enterAdminContext(departmentId, currentYear);
     },
 
     // Навигация по годам — загружаем данные для нового года

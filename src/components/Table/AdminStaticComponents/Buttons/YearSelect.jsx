@@ -1,5 +1,6 @@
 import { memo, useEffect } from 'react';
 import { useAdminStore } from '../../../../store/admin';
+import { switchYear } from '../../../../services/adminOrchestrator';
 
 /**
  * YearSelect — выпадающий список годов
@@ -29,7 +30,7 @@ const YearSelect = memo(() => {
       if (!confirmed) return;
     }
 
-    await useAdminStore.getState().switchYear(newYear);
+    await switchYear(newYear);
   };
 
   return (

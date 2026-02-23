@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { useFetchWebStore } from '../fetchWebStore';
 import { usePostWebStore } from '../postWebStore';
 import { useUserStore } from '../userStore';
-import { useMetaStore } from '../metaStore';
 import { useDateAdminStore } from '../dateAdminStore';
 import { useVersionsStore } from '../versionsStore';
 import { useHoursStore } from './hoursStore';
@@ -421,54 +420,6 @@ export const useAdminStore = create((set, get) => ({
       useVersionsStore.getState().resetVersions();
     },
 
-    // === UNIFIED ENTRY POINT ===
-
-    /**
-     * Единая точка входа в админ-контекст
-     */
-    enterAdminContext: async (departmentId, year) => {
-      const currentDeptId = get().editingDepartmentId;
-      const isDepartmentChange = departmentId !== currentDeptId;
-
-      console.log(`🚀 enterAdminContext: ${departmentId}/${year} (was: ${currentDeptId}/${get().editingYear})`);
-
-      // 1. Сброс версий
-      useVersionsStore.getState().resetVersions();
-
-      // 2. При смене отдела — загрузить годы и проверить что запрошенный год существует
-      let targetYear = Number(year);
-      if (isDepartmentChange) {
-        set({ availableYears: [], editingDepartmentId: departmentId });
-
-        useMetaStore.getState().loadDepartmentConfig(departmentId);
-
-        try {
-          const years = await get().loadAvailableYears(departmentId);
-          if (years && years.length > 0 && !years.includes(String(targetYear))) {
-            targetYear = Number(years[years.length - 1]);
-            console.log(`⚠️ Год ${year} не найден для ${departmentId}, fallback на ${targetYear}`);
-          }
-        } catch (error) {
-          console.error('Не удалось загрузить годы:', error);
-        }
-      }
-
-      // 3. Инициализация дат
-      useDateAdminStore.getState().initializeYear(targetYear);
-
-      // 4. Загрузка draft
-      await get().initializeDraft(departmentId, targetYear);
-
-      // 5. Загрузка норм и пересчёт часов
-      const hoursStore = useHoursStore.getState();
-      const norms = useFetchWebStore.getState().fetchMonthNorms(departmentId, targetYear);
-      hoursStore.setMonthNorms(norms);
-      hoursStore.refreshCodeToHours();
-
-      const { draftSchedule, employeeIds } = get();
-      hoursStore.recalcHoursSummary(draftSchedule, employeeIds, targetYear);
-    },
-
     // === YEARS & VERSIONS ACTIONS ===
 
     /**
@@ -492,16 +443,6 @@ export const useAdminStore = create((set, get) => ({
         set({ loadingYears: false });
         throw error;
       }
-    },
-
-    /**
-     * Переключить год
-     */
-    switchYear: async (year) => {
-      const { editingDepartmentId } = get();
-      if (!editingDepartmentId) return;
-
-      await get().enterAdminContext(editingDepartmentId, Number(year));
     },
 
     /**
