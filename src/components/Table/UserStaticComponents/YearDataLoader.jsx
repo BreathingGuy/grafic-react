@@ -1,10 +1,10 @@
 import { useEffect, memo } from 'react';
 
-import { useDateStore } from '../../../store/dateStore';
+import { useDateUserStore } from '../../../store/dateUserStore';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
 
 const YearDataLoader = memo(() => {
-  const currentYear = useDateStore(state => state.currentYear);
+  const currentYear = useDateUserStore(state => state.currentYear);
   const loadYearData = useWorkspaceStore(state => state.loadYearData);
 
   useEffect(() => {

@@ -81,9 +81,6 @@ export const useMetaStore = create((set, get) => ({
       set({ currentDepartmentConfig: null, statusColorMap: {} });
     }
 
-    // === WEBSOCKET (закомментирован) ===
-    // updateDepartmentConfig: (config) => { ... }
-
 }));
 
 export default useMetaStore;

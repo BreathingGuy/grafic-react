@@ -1,9 +1,9 @@
 import { memo } from 'react';
-import { useDateStore } from '../../../store/dateStore';
+import { useDateUserStore } from '../../../store/dateUserStore';
 import ViewScheduleCell from '../Cells/ViewScheduleCell';
 
 const EmployeeRow = memo(({ empId }) => {
-  const visibleSlots = useDateStore(state => state.visibleSlots);
+  const visibleSlots = useDateUserStore(state => state.visibleSlots);
 
   return (
     <tr>

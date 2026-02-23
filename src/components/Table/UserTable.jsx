@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { useDateStore } from '../../store/dateStore';
+import { useDateUserStore } from '../../store/dateUserStore';
 
 import ScrollableUserTable from './Scrollable/User/ScrollableUserTable';
 import FixedEmployeeColumn from './Static/FixedEmployeeColumn'
@@ -10,7 +10,7 @@ import TableNavigation from '../Controls/TableNavigation';
 import styles from '../Table/Table.module.css';
 
 export default function UserTable({ period }) {
-  const setPeriod = useDateStore(state => state.setPeriod);
+  const setPeriod = useDateUserStore(state => state.setPeriod);
 
   // Синхронизация периода из пропса с dateStore
   useEffect(() => {

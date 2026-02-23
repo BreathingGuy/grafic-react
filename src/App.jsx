@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useMetaStore } from './store/metaStore';
-import { useDateStore } from './store/dateStore';
+import { useDateUserStore } from './store/dateUserStore';
 import { useAdminStore } from './store/adminStore';
 import { isInitialized, initializeLocalStorage } from './services/localStorageInit';
 
@@ -36,7 +36,7 @@ function Main() {
       setStorageReady(true);
 
       // Инициализируем dateStore (вычислить начальный диапазон дат)
-      useDateStore.getState().initialize();
+      useDateUserStore.getState().initialize();
       console.log('📅 DateStore initialized');
 
       // Загружаем список отделов

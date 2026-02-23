@@ -1,7 +1,7 @@
-import { useDateStore } from '../../../../store/dateStore';
+import { useDateUserStore } from '../../../../store/dateUserStore';
 
 const MonthHeaders = () => {
-    const monthGroups = useDateStore(state => state.monthGroups);
+    const monthGroups = useDateUserStore(state => state.monthGroups);
 
     return (
         <tr>

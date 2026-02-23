@@ -260,7 +260,4 @@ export const useDateUserStore = create((set, get) => ({
 
 }));
 
-// Для обратной совместимости (временно)
-export const useDateStore = useDateUserStore;
-
 export default useDateUserStore;

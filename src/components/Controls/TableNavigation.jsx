@@ -1,13 +1,13 @@
-import { useDateStore } from '../../store/dateStore';
+import { useDateUserStore } from '../../store/dateUserStore';
 import { memo } from "react"
 
 import styles from '../Table/Table.module.css';
 
 const TableNavigation = memo(() => {
-    const currentYear = useDateStore(state => state.currentYear);
-    const shiftDates = useDateStore(state => state.shiftDates);
-    const canGoNext = useDateStore(state => state.canGoNext);
-    const canGoPrev = useDateStore(state => state.canGoPrev);
+    const currentYear = useDateUserStore(state => state.currentYear);
+    const shiftDates = useDateUserStore(state => state.shiftDates);
+    const canGoNext = useDateUserStore(state => state.canGoNext);
+    const canGoPrev = useDateUserStore(state => state.canGoPrev);
 
     return (
       <div className={styles.navigation}>

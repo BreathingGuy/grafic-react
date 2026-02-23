@@ -19,10 +19,6 @@ export const useScheduleStore = create((set, get) => ({
     loadedDepartment: null,        // Текущий загруженный отдел
     loadingKey: null,              // Ключ текущей загрузки (для предотвращения дублей)
 
-    // WebSocket
-    ws: null,
-    isConnected: false,
-
     // === ACTIONS ===
 
     // Загрузка расписания с кэшированием
@@ -236,9 +232,5 @@ export const useScheduleStore = create((set, get) => ({
         loadingKey: null
       });
     }
-
-    // === WEBSOCKET (закомментирован) ===
-    // connectWebSocket, disconnectWebSocket, subscribeToUpdates, etc.
-    // См. предыдущую версию для WebSocket логики
 
 }));

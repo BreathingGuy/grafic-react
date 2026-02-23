@@ -1,9 +1,9 @@
-import { useDateStore } from '../../../../store/dateStore';
+import { useDateUserStore } from '../../../../store/dateUserStore';
 
 
 const DaySlots = () => {
-    const visibleSlots = useDateStore(state => state.visibleSlots);
-    const slotToDate = useDateStore(state => state.slotToDate);
+    const visibleSlots = useDateUserStore(state => state.visibleSlots);
+    const slotToDate = useDateUserStore(state => state.slotToDate);
 
     return (
         <tr>

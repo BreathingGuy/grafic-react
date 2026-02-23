@@ -38,8 +38,6 @@ export const useWorkspaceStore = create((set, get) => ({
       await metaStore.loadDepartmentConfig(departmentId);
       await scheduleStore.loadSchedule(departmentId, currentYear);
 
-      // Подписываемся на WebSocket
-      // scheduleStore.subscribeToUpdates(departmentId);
     },
 
     // Выбрать отдел (для admin mode)

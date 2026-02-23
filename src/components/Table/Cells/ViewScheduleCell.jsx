@@ -1,10 +1,10 @@
 import { memo } from 'react';
 import { useScheduleStore } from '../../../store/scheduleStore';
 import { useMetaStore } from '../../../store/metaStore';
-import { useDateStore } from '../../../store/dateStore';
+import { useDateUserStore } from '../../../store/dateUserStore';
 
 const ViewScheduleCell = memo(({ employeeId, slotIndex}) => {
-  const date = useDateStore(state => state.slotToDate[slotIndex]);
+  const date = useDateUserStore(state => state.slotToDate[slotIndex]);
 
   const status = useScheduleStore(state => {
     if (!date) return '';  // Если дата не определена, ячейка пустая

@@ -1,9 +1,9 @@
-import {useDateStore} from '../../store/dateStore'
+import {useDateUserStore} from '../../store/dateUserStore'
 
 export function PeriodSelector() {
-    const setPeriod = useDateStore(state => state.setPeriod);
-    const period = useDateStore(state => state.period);
-    const periods = useDateStore(state => state.periods);
+    const setPeriod = useDateUserStore(state => state.setPeriod);
+    const period = useDateUserStore(state => state.period);
+    const periods = useDateUserStore(state => state.periods);
 
   return (
     <select 
