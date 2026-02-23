@@ -1,4 +1,4 @@
-import { useAdminStore } from '../../../../../store/adminStore';
+import { useAdminStore } from '../../../../../store/admin';
 import { inputStyle } from '../settingsStyles';
 
 /**

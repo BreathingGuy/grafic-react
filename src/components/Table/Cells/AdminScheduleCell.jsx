@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react';
-import { useAdminStore } from '../../../store/adminStore';
+import { useAdminStore } from '../../../store/admin';
 import { useMetaStore } from '../../../store/metaStore';
 import { useDateAdminStore } from '../../../store/dateAdminStore';
 import { useClipboardStore } from '../../../store/selection';

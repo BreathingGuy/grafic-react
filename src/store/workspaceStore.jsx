@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 
 import { useMetaStore } from './metaStore'
-import { useScheduleStore } from './scheduleStore'
+import { useUserStore } from './userStore'
 import { useDateUserStore } from './dateUserStore'
 import { useDateAdminStore } from './dateAdminStore'
-import { useAdminStore } from './adminStore'
+import { useAdminStore } from './admin'
 
 export const useWorkspaceStore = create((set, get) => ({
     // === STATE ===
@@ -22,13 +22,13 @@ export const useWorkspaceStore = create((set, get) => ({
 
       // Загружаем данные для нового отдела
       const metaStore = useMetaStore.getState();
-      const scheduleStore = useScheduleStore.getState();
+      const userStore = useUserStore.getState();
       const dateUserStore = useDateUserStore.getState();
 
       // Очищаем старые данные
       if (prevDepartmentId) {
         metaStore.clearCurrentConfig();
-        scheduleStore.clearSchedule();
+        userStore.clearSchedule();
       }
 
       // Получаем текущий год из dateUserStore
@@ -36,7 +36,7 @@ export const useWorkspaceStore = create((set, get) => ({
 
       // Загружаем новые
       await metaStore.loadDepartmentConfig(departmentId);
-      await scheduleStore.loadSchedule(departmentId, currentYear);
+      await userStore.loadSchedule(departmentId, currentYear);
 
     },
 
@@ -60,7 +60,7 @@ export const useWorkspaceStore = create((set, get) => ({
     loadYearData: async (year) => {
       const departmentId = get().currentDepartmentId;
       if (departmentId) {
-        await useScheduleStore.getState().loadSchedule(departmentId, year);
+        await useUserStore.getState().loadSchedule(departmentId, year);
       }
     },
 
@@ -71,7 +71,7 @@ export const useWorkspaceStore = create((set, get) => ({
       });
 
       useMetaStore.getState().clearCurrentConfig();
-      useScheduleStore.getState().clearCache();
+      useUserStore.getState().clearCache();
       useDateUserStore.getState().resetToCurrentYear();
     }
 }));

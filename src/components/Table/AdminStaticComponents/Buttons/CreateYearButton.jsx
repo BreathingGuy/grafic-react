@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { useAdminStore } from '../../../../store/adminStore';
+import { useAdminStore } from '../../../../store/admin';
 
 /**
  * CreateYearButton — кнопка создания нового года

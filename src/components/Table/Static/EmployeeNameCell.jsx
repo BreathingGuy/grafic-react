@@ -1,8 +1,8 @@
 import { memo } from 'react';
-import { useScheduleStore } from '../../../store/scheduleStore';
+import { useUserStore } from '../../../store/userStore';
 
 const EmployeeNameCell = memo(({ empId }) => {
-    const Emp = useScheduleStore(state => state.employeeById[empId]);
+    const Emp = useUserStore(state => state.employeeById[empId]);
 
     return (
         <tr key={empId}>

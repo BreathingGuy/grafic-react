@@ -2,15 +2,15 @@ import YearSelect from './Buttons/YearSelect';
 import CreateYearButton from './Buttons/CreateYearButton';
 import VersionSelect from './Buttons/VersionSelect';
 import VersionIndicator from './Buttons/VersionIndicator';
-import { useAdminStore } from '../../../store/adminStore';
+import { useHoursStore } from '../../../store/admin';
 
 /**
  * AdminYearSelector — выбор года и версии для админа
  * Композиция из изолированных компонентов с минимальными подписками
  */
 export default function AdminYearSelector({ onOpenYearSettings }) {
-  const showQuarterSummary = useAdminStore(state => state.showQuarterSummary);
-  const toggleQuarterSummary = useAdminStore(state => state.toggleQuarterSummary);
+  const showQuarterSummary = useHoursStore(state => state.showQuarterSummary);
+  const toggleQuarterSummary = useHoursStore(state => state.toggleQuarterSummary);
 
   return (
     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>

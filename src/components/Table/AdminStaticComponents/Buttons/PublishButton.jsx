@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { useAdminStore } from '../../../../store/adminStore';
+import { useAdminStore } from '../../../../store/admin';
 
 /**
  * PublishButton — кнопка публикации draft в production

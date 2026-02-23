@@ -1,5 +1,5 @@
 import { memo, useEffect } from 'react';
-import { useAdminStore } from '../../../../store/adminStore';
+import { useAdminStore } from '../../../../store/admin';
 import { useVersionsStore } from '../../../../store/versionsStore';
 
 /**

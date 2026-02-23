@@ -1,12 +1,12 @@
 import { memo } from 'react';
-import { useScheduleStore } from '../../../store/scheduleStore';
+import { useUserStore } from '../../../store/userStore';
 import { useMetaStore } from '../../../store/metaStore';
 import { useDateUserStore } from '../../../store/dateUserStore';
 
 const ViewScheduleCell = memo(({ employeeId, slotIndex}) => {
   const date = useDateUserStore(state => state.slotToDate[slotIndex]);
 
-  const status = useScheduleStore(state => {
+  const status = useUserStore(state => {
     if (!date) return '';  // Если дата не определена, ячейка пустая
     const key = `${employeeId}-${date}`;
     return state.scheduleMap[key] || '';

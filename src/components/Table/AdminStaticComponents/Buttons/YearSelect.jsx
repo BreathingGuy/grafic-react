@@ -1,5 +1,5 @@
 import { memo, useEffect } from 'react';
-import { useAdminStore } from '../../../../store/adminStore';
+import { useAdminStore } from '../../../../store/admin';
 
 /**
  * YearSelect — выпадающий список годов

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useAdminStore } from '../../store/adminStore';
+import { useAdminStore } from '../../store/admin';
 import { useClipboardStore } from '../../store/selection';
 
 /**

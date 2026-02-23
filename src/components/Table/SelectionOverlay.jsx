@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useAdminStore } from '../../store/adminStore';
+import { useAdminStore } from '../../store/admin';
 import { useMetaStore } from '../../store/metaStore';
 import { useClipboardStore } from '../../store/selection';
 import styles from './Table.module.css';

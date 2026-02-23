@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { useDateAdminStore } from '../../../store/dateAdminStore';
-import { useAdminStore } from '../../../store/adminStore';
+import { useHoursStore } from '../../../store/admin';
 import AdminScheduleCell from '../Cells/AdminScheduleCell';
 import QuarterSummaryCell from '../Cells/QuarterSummaryCell';
 
@@ -15,7 +15,7 @@ import QuarterSummaryCell from '../Cells/QuarterSummaryCell';
  */
 const AdminEmployeeRow = memo(({ empId, empIdx, tableId = 'main', useSelectionStore, quarterEndSlots, slotToQuarter }) => {
   const visibleSlots = useDateAdminStore(state => state.visibleSlots);
-  const showQuarterSummary = useAdminStore(state => state.showQuarterSummary);
+  const showQuarterSummary = useHoursStore(state => state.showQuarterSummary);
 
   if (!showQuarterSummary || !quarterEndSlots) {
     return (

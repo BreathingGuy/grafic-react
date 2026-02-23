@@ -1,11 +1,11 @@
-import { useAdminStore } from '../../../../store/adminStore';
+import { useHoursStore } from '../../../../store/admin';
 import { useDateAdminStore } from '../../../../store/dateAdminStore';
 
 const AdminMonthHeaders = ({tableId = 'main'}) => {
     const monthGroups = useDateAdminStore(state =>
         tableId === 'offset' ? state.offsetMonthGroups : state.monthGroups
     );
-    const showQuarterSummary = useAdminStore(state => state.showQuarterSummary);
+    const showQuarterSummary = useHoursStore(state => state.showQuarterSummary);
 
     return (
         <tr>

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useAdminStore } from '../../../store/adminStore';
+import { useAdminStore } from '../../../store/admin';
 import { useMetaStore } from '../../../store/metaStore';
 import { usePostWebStore } from '../../../store/postWebStore';
 import EmployeesTab from './Settings/EmployeesTab/EmployeesTab';

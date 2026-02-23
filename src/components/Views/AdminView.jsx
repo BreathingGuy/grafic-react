@@ -3,7 +3,7 @@ import { AdminDepartmentSelector } from '../Selectors/AdminDepartmentSelector';
 import AdminConsole from '../Table/AdminConsole';
 import AdminInitializer from '../Table/AdminInitializer';
 import DepartmentSettingsModal from '../Table/AdminStaticComponents/DepartmentSettingsModal';
-import { useAdminStore } from '../../store/adminStore';
+import { useAdminAuthStore } from '../../store/admin';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 
 /**
@@ -14,7 +14,7 @@ const AdminToolbar = memo(({ onOpenSettings }) => {
   const currentDepartmentId = useWorkspaceStore(state => state.currentDepartmentId);
 
   const handleExitAdminMode = () => {
-    useAdminStore.getState().setAdminMode(false);
+    useAdminAuthStore.getState().setAdminMode(false);
   };
 
   return (

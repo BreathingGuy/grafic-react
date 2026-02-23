@@ -1,4 +1,4 @@
-import { useScheduleStore } from '../../../../store/scheduleStore';
+import { useUserStore } from '../../../../store/userStore';
 
 import EmployeeRow from '../../Rows/EmployeeRow';
 import DatingComps from './DatingComps';
@@ -7,7 +7,7 @@ import styles from '../../Table.module.css';
 
 
 const ScrollableUserTable = () => {
-    const employeeIds = useScheduleStore(state => state.employeeIds);
+    const employeeIds = useUserStore(state => state.employeeIds);
 
     return (
         <div className={styles.scrollable_container}>

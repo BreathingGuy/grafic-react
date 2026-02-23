@@ -1,12 +1,12 @@
 import { memo } from "react";
-import { useScheduleStore } from '../../../store/scheduleStore';
+import { useUserStore } from '../../../store/userStore';
 
 import EmployeeNameCell from './EmployeeNameCell' 
 
 import styles from '../Table.module.css';
 
 const FixedEmployeeColumn = memo(() => {
-    const employeeIds = useScheduleStore(state => state.employeeIds);
+    const employeeIds = useUserStore(state => state.employeeIds);
 
     return (
         <table className={styles.fixed_column}>

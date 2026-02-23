@@ -3,7 +3,7 @@ import { DepartmentSelector } from '../Selectors/DepartmentSelector';
 import { PeriodSelector } from '../Selectors/PeriodSelector';
 import UserTable from '../Table/UserTable';
 import { useWorkspaceStore } from '../../store/workspaceStore';
-import { useAdminStore } from '../../store/adminStore';
+import { useAdminAuthStore } from '../../store/admin';
 
 /**
  * UserToolbar — верхняя панель (селектор отдела + период + кнопка админки)
@@ -11,7 +11,7 @@ import { useAdminStore } from '../../store/adminStore';
  */
 const UserToolbar = memo(() => {
   const handleEnterAdminMode = () => {
-    useAdminStore.getState().setAdminMode(true);
+    useAdminAuthStore.getState().setAdminMode(true);
   };
 
   return (

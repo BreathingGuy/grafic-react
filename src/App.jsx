@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { useMetaStore } from './store/metaStore';
 import { useDateUserStore } from './store/dateUserStore';
-import { useAdminStore } from './store/adminStore';
+import { useAdminAuthStore } from './store/admin';
 import { isInitialized, initializeLocalStorage } from './services/localStorageInit';
 
 import UserView from './components/Views/UserView';
@@ -14,7 +14,7 @@ import AdminView from './components/Views/AdminView';
  */
 function Main() {
   const [storageReady, setStorageReady] = useState(false);
-  const isAdminMode = useAdminStore(state => state.isAdminMode);
+  const isAdminMode = useAdminAuthStore(state => state.isAdminMode);
 
   useEffect(() => {
     const initApp = async () => {

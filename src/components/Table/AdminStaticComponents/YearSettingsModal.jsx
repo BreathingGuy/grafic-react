@@ -1,5 +1,5 @@
 import { useState, Fragment } from 'react';
-import { useAdminStore } from '../../../store/adminStore';
+import { useAdminStore, useHoursStore } from '../../../store/admin';
 import { usePostWebStore } from '../../../store/postWebStore';
 import { MONTHS } from '../../../constants';
 
@@ -10,7 +10,7 @@ import { MONTHS } from '../../../constants';
 export default function YearSettingsModal({ isOpen, onClose }) {
   const editingYear = useAdminStore(s => s.editingYear);
   const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
-  const storeNorms = useAdminStore(s => s.monthNorms);
+  const storeNorms = useHoursStore(s => s.monthNorms);
 
   const [draftNorms, setDraftNorms] = useState({});
   const [initialized, setInitialized] = useState(false);
@@ -59,7 +59,7 @@ export default function YearSettingsModal({ isOpen, onClose }) {
       cleaned[key] = typeof val === 'number' ? val : 0;
     }
 
-    useAdminStore.setState({ monthNorms: cleaned });
+    useHoursStore.setState({ monthNorms: cleaned });
     usePostWebStore.getState().saveMonthNorms(editingDepartmentId, editingYear, cleaned);
     onClose();
   };

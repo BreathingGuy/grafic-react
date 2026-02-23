@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { useAdminStore } from '../../../../store/adminStore';
+import { useAdminStore, useHoursStore } from '../../../../store/admin';
 import { useDateAdminStore } from '../../../../store/dateAdminStore';
 import AdminEmployeeRow from '../../Rows/AdminEmployeeRow';
 
@@ -35,7 +35,7 @@ function computeQuarterBoundaries(monthGroups) {
  */
 const AdminRows = memo(({ tableId = 'main', useSelectionStore }) => {
   const employeeIds = useAdminStore(state => state.employeeIds, Object.is);
-  const showQuarterSummary = useAdminStore(state => state.showQuarterSummary);
+  const showQuarterSummary = useHoursStore(state => state.showQuarterSummary);
   const monthGroups = useDateAdminStore(state =>
     tableId === 'offset' ? state.offsetMonthGroups : state.monthGroups
   );

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { useAdminStore } from '../../../store/adminStore';
+import { useAdminStore, useHoursStore } from '../../../store/admin';
 
 /**
  * QuarterSummaryCell — ячейка с итогом часов за квартал
@@ -10,17 +10,17 @@ import { useAdminStore } from '../../../store/adminStore';
  * @param {number} quarter - 1..4
  */
 const QuarterSummaryCell = memo(({ type, empId, quarter }) => {
-  const fact = useAdminStore(state => state.hoursSummary[`${empId}-Q${quarter}`] ?? 0);
+  const fact = useHoursStore(state => state.hoursSummary[`${empId}-Q${quarter}`] ?? 0);
 
-  // Норма: сумма 3-х месяцев квартала
-  const norm = useAdminStore(state => {
+  // editingYear из adminStore, monthNorms из hoursStore
+  const editingYear = useAdminStore(state => state.editingYear);
+  const norm = useHoursStore(state => {
     const norms = state.monthNorms;
-    const year = state.editingYear;
-    if (!year) return 0;
+    if (!editingYear) return 0;
     let sum = 0;
     const startMonth = (quarter - 1) * 3 + 1;
     for (let m = startMonth; m < startMonth + 3; m++) {
-      const key = `${year}-${String(m).padStart(2, '0')}`;
+      const key = `${editingYear}-${String(m).padStart(2, '0')}`;
       sum += (norms[key] ?? 0);
     }
     return sum;

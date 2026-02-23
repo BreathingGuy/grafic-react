@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { useMainSelectionStore, useOffsetSelectionStore, useClipboardStore } from '../../../store/selection';
-import { useAdminStore } from '../../../store/adminStore';
+import { useAdminStore } from '../../../store/admin';
 
 /**
  * AdminStatusCount - Показывает количество выделенных ячеек

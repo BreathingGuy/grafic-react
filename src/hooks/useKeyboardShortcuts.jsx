@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useMainSelectionStore, useOffsetSelectionStore, useClipboardStore } from '../store/selection';
-import { useAdminStore } from '../store/adminStore';
+import { useAdminStore } from '../store/admin';
 import { useDateAdminStore } from '../store/dateAdminStore';
 
 /**
