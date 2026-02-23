@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAdminStore } from '../../store/adminStore';
 import { useMetaStore } from '../../store/metaStore';
-import { useDateAdminStore } from '../../store/dateAdminStore';
 import { useClipboardStore } from '../../store/selection';
 import styles from './Table.module.css';
 
@@ -79,9 +78,8 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
   // Object.is для сравнения ссылок — предотвращает ре-рендер при изменении других полей стора
   const employeeIds = useAdminStore(s => s.employeeIds, Object.is);
 
-  // slotToDate может передаваться как проп (для offset таблицы) или браться из store
-  const storeSlotToDate = useDateAdminStore(s => s.slotToDate);
-  const slotToDate = slotToDateProp || storeSlotToDate;
+  // slotToDate передаётся как проп (main или offset)
+  const slotToDate = slotToDateProp;
 
   // Пересчитываем позиции всех регионов
   const updateOverlayPositions = useCallback(() => {

@@ -14,11 +14,12 @@ export default function DepartmentSettingsModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('employees');
 
   // Снимки из stores (инициализируются при mount = при открытии модалки)
+  // Object.is предотвращает ререндер при изменении других полей стора
   const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
-  const storeEmployeeById = useAdminStore(s => s.employeeById);
-  const storeEmployeeIds = useAdminStore(s => s.employeeIds);
+  const storeEmployeeById = useAdminStore(s => s.employeeById, Object.is);
+  const storeEmployeeIds = useAdminStore(s => s.employeeIds, Object.is);
   const currentConfig = useMetaStore(s => s.currentDepartmentConfig);
-  const departmentsList = useMetaStore(s => s.departmentsList);
+  const departmentsList = useMetaStore(s => s.departmentsList, Object.is);
 
   // Draft state
   const [draftEmployeeById, setDraftEmployeeById] = useState({});

@@ -3,12 +3,13 @@ import { useAdminStore } from '../../../store/adminStore';
 
 /**
  * AdminEmployeeNameCell — ячейка с именем сотрудника для админа
- * Берёт данные из adminStore.employeeById
+ * Точечные селекторы на примитивы — ререндер только при изменении имени конкретного сотрудника
  */
 const AdminEmployeeNameCell = memo(({ empId }) => {
-  const employee = useAdminStore(state => state.employeeById[empId]);
+  const name = useAdminStore(state => state.employeeById[empId]?.name);
+  const fullName = useAdminStore(state => state.employeeById[empId]?.fullName);
 
-  if (!employee) {
+  if (!name) {
     return (
       <tr>
         <td>—</td>
@@ -18,8 +19,8 @@ const AdminEmployeeNameCell = memo(({ empId }) => {
 
   return (
     <tr>
-      <td title={employee.fullName}>
-        {employee.name}
+      <td title={fullName}>
+        {name}
       </td>
     </tr>
   );

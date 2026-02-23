@@ -25,7 +25,7 @@ const ViewScheduleCell = memo(({ employeeId, slotIndex}) => {
 }, (prevProps, nextProps) => {
   return (
     prevProps.employeeId === nextProps.employeeId &&
-    prevProps.date === nextProps.date
+    prevProps.slotIndex === nextProps.slotIndex
   );
 });
 
