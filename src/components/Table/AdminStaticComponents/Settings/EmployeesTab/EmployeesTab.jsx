@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { tableStyle, thStyle, smallBtnStyle } from '../settingsStyles';
+import s from '../Settings.module.css';
 import EmployeeRow from './EmployeeRow';
 import AddEmployeeForm from './AddEmployeeForm';
 
@@ -17,15 +17,15 @@ export default function EmployeesTab({ employeeById, employeeIds, onSave, onAdd,
 
   return (
     <div>
-      <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-        <table style={tableStyle}>
+      <div className={s.scrollContainer}>
+        <table className={s.table}>
           <thead>
             <tr>
-              <th style={thStyle}>ID</th>
-              <th style={thStyle}>Краткое имя</th>
-              <th style={thStyle}>Полное имя</th>
-              <th style={thStyle}>Должность</th>
-              <th style={thStyle}>Действия</th>
+              <th className={s.th}>ID</th>
+              <th className={s.th}>Краткое имя</th>
+              <th className={s.th}>Полное имя</th>
+              <th className={s.th}>Должность</th>
+              <th className={s.th}>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -54,7 +54,7 @@ export default function EmployeesTab({ employeeById, employeeIds, onSave, onAdd,
       ) : (
         <button
           onClick={() => setShowAddForm(true)}
-          style={{ ...smallBtnStyle, marginTop: '12px' }}
+          className={s.addButton}
         >
           + Добавить сотрудника
         </button>

@@ -2,7 +2,7 @@ import { useState, Fragment } from 'react';
 import { useAdminStore, useHoursStore } from '../../../store/admin';
 import { usePostWebStore } from '../../../store/postWebStore';
 import { MONTHS } from '../../../constants';
-import s from './Modal.module.css';
+import css from './Modal.module.css';
 
 /**
  * YearSettingsModal — настройка норм часов по месяцам для года
@@ -68,19 +68,19 @@ export default function YearSettingsModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className={s.overlay} onClick={onClose}>
-      <div className={`${s.modal} ${s.modalNarrow}`} onClick={e => e.stopPropagation()}>
-        <div className={s.header}>
-          <h3 className={s.headerTitle}>Нормы часов — {editingYear}</h3>
-          <button onClick={onClose} className={s.closeButton}>&times;</button>
+    <div className={css.overlay} onClick={onClose}>
+      <div className={`${css.modal} ${css.modalNarrow}`} onClick={e => e.stopPropagation()}>
+        <div className={css.header}>
+          <h3 className={css.headerTitle}>Нормы часов — {editingYear}</h3>
+          <button onClick={onClose} className={css.closeButton}>&times;</button>
         </div>
 
-        <div className={s.content}>
-          <table className={s.table}>
+        <div className={css.content}>
+          <table className={css.table}>
             <thead>
               <tr>
-                <th className={s.th}>Месяц</th>
-                <th className={s.th}>Норма (часы)</th>
+                <th className={css.th}>Месяц</th>
+                <th className={css.th}>Норма (часы)</th>
               </tr>
             </thead>
             <tbody>
@@ -91,26 +91,26 @@ export default function YearSettingsModal({ isOpen, onClose }) {
                 return (
                   <Fragment key={idx}>
                     <tr>
-                      <td className={s.td}>
-                        <span className={s.capitalize}>{name}</span>
+                      <td className={css.td}>
+                        <span className={css.capitalize}>{name}</span>
                       </td>
-                      <td className={s.td}>
+                      <td className={css.td}>
                         <input
                           type="number"
                           value={getValue(idx)}
                           onChange={e => setValue(idx, e.target.value)}
-                          className={s.input}
+                          className={css.input}
                           min={0}
                           placeholder="0"
                         />
                       </td>
                     </tr>
                     {isQuarterEnd && (
-                      <tr className={s.quarterRow}>
-                        <td className={s.quarterTd}>
+                      <tr className={css.quarterRow}>
+                        <td className={css.quarterTd}>
                           <strong>Квартал {quarterIdx + 1}</strong>
                         </td>
-                        <td className={s.quarterTd}>
+                        <td className={css.quarterTd}>
                           <strong>{quarterSums[quarterIdx]}</strong>
                         </td>
                       </tr>
@@ -118,17 +118,17 @@ export default function YearSettingsModal({ isOpen, onClose }) {
                   </Fragment>
                 );
               })}
-              <tr className={s.totalRow}>
-                <td className={s.quarterTd}><strong>Итого за год</strong></td>
-                <td className={s.quarterTd}><strong>{yearTotal}</strong></td>
+              <tr className={css.totalRow}>
+                <td className={css.quarterTd}><strong>Итого за год</strong></td>
+                <td className={css.quarterTd}><strong>{yearTotal}</strong></td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <div className={s.footer}>
-          <button onClick={handleSave} className={s.saveBtn}>Сохранить</button>
-          <button onClick={onClose} className={s.cancelBtn}>Отмена</button>
+        <div className={css.footer}>
+          <button onClick={handleSave} className={css.saveBtn}>Сохранить</button>
+          <button onClick={onClose} className={css.cancelBtn}>Отмена</button>
         </div>
       </div>
     </div>

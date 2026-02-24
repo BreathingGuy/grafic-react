@@ -1,5 +1,5 @@
 import DepartmentIdField from './DepartmentIdField';
-import { inputStyle } from '../settingsStyles';
+import s from '../Settings.module.css';
 
 /**
  * DepartmentTab — вкладка настроек отдела (controlled)
@@ -9,14 +9,15 @@ export default function DepartmentTab({ name, onNameChange }) {
   return (
     <div>
       <DepartmentIdField />
-      <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontWeight: 500, marginBottom: '4px' }}>
+      <div className={s.fieldGroup}>
+        <label className={s.label}>
           Название отдела
         </label>
         <input
           value={name}
           onChange={e => onNameChange(e.target.value)}
-          style={{ ...inputStyle, width: '300px' }}
+          className={s.input}
+          style={{ width: '300px' }}
         />
       </div>
     </div>

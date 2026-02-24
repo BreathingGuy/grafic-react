@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { inputStyle, smallBtnStyle, smallBtnGrayStyle, addFormStyle } from '../settingsStyles';
+import s from '../Settings.module.css';
 
 /**
  * AddEmployeeForm — форма добавления нового сотрудника
@@ -14,37 +14,38 @@ export default function AddEmployeeForm({ onAdd, onCancel }) {
   };
 
   return (
-    <div style={addFormStyle}>
-      <h4 style={{ margin: '0 0 8px 0' }}>Новый сотрудник</h4>
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+    <div className={s.addForm}>
+      <h4 className={s.formHeading}>Новый сотрудник</h4>
+      <div className={s.formRow}>
         <input
           placeholder="ID"
           value={form.id}
           onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
-          style={{ ...inputStyle, width: '80px' }}
+          className={s.input}
+          style={{ width: '80px' }}
         />
         <input
           placeholder="Краткое имя"
           value={form.name}
           onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-          style={inputStyle}
+          className={s.input}
         />
         <input
           placeholder="Полное имя"
           value={form.fullName}
           onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))}
-          style={inputStyle}
+          className={s.input}
         />
         <input
           placeholder="Должность"
           value={form.position}
           onChange={e => setForm(f => ({ ...f, position: e.target.value }))}
-          style={inputStyle}
+          className={s.input}
         />
       </div>
-      <div style={{ marginTop: '8px' }}>
-        <button onClick={handleAdd} style={smallBtnStyle}>Добавить</button>
-        <button onClick={onCancel} style={smallBtnGrayStyle}>Отмена</button>
+      <div className={s.formActions}>
+        <button onClick={handleAdd} className={s.smallBtn}>Добавить</button>
+        <button onClick={onCancel} className={s.smallBtnGray}>Отмена</button>
       </div>
     </div>
   );

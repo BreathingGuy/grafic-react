@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { tdStyle, inputStyle, smallBtnStyle, smallBtnGrayStyle, smallBtnRedStyle } from '../settingsStyles';
+import s from '../Settings.module.css';
 
 /**
  * EmployeeRow — строка сотрудника (просмотр / редактирование)
@@ -30,31 +30,31 @@ export default function EmployeeRow({ empId, employee, onSave, onDelete }) {
   if (isEditing) {
     return (
       <tr>
-        <td style={tdStyle}>{empId}</td>
-        <td style={tdStyle}>
+        <td className={s.td}>{empId}</td>
+        <td className={s.td}>
           <input
             value={editForm.name}
             onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
-            style={inputStyle}
+            className={s.input}
           />
         </td>
-        <td style={tdStyle}>
+        <td className={s.td}>
           <input
             value={editForm.fullName}
             onChange={e => setEditForm(f => ({ ...f, fullName: e.target.value }))}
-            style={inputStyle}
+            className={s.input}
           />
         </td>
-        <td style={tdStyle}>
+        <td className={s.td}>
           <input
             value={editForm.position}
             onChange={e => setEditForm(f => ({ ...f, position: e.target.value }))}
-            style={inputStyle}
+            className={s.input}
           />
         </td>
-        <td style={tdStyle}>
-          <button onClick={saveEdit} style={smallBtnStyle}>Сохр.</button>
-          <button onClick={cancelEdit} style={smallBtnGrayStyle}>Отм.</button>
+        <td className={s.td}>
+          <button onClick={saveEdit} className={s.smallBtn}>Сохр.</button>
+          <button onClick={cancelEdit} className={s.smallBtnGray}>Отм.</button>
         </td>
       </tr>
     );
@@ -62,13 +62,13 @@ export default function EmployeeRow({ empId, employee, onSave, onDelete }) {
 
   return (
     <tr>
-      <td style={tdStyle}>{empId}</td>
-      <td style={tdStyle}>{employee.name}</td>
-      <td style={tdStyle}>{employee.fullName}</td>
-      <td style={tdStyle}>{employee.position}</td>
-      <td style={tdStyle}>
-        <button onClick={startEdit} style={smallBtnStyle}>Ред.</button>
-        <button onClick={() => onDelete(empId)} style={smallBtnRedStyle}>Уд.</button>
+      <td className={s.td}>{empId}</td>
+      <td className={s.td}>{employee.name}</td>
+      <td className={s.td}>{employee.fullName}</td>
+      <td className={s.td}>{employee.position}</td>
+      <td className={s.td}>
+        <button onClick={startEdit} className={s.smallBtn}>Ред.</button>
+        <button onClick={() => onDelete(empId)} className={s.smallBtnRed}>Уд.</button>
       </td>
     </tr>
   );

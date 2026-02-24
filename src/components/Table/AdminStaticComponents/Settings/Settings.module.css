@@ -1,0 +1,132 @@
+/* === Table === */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.th {
+  padding: 8px;
+  border-bottom: 2px solid #e0e0e0;
+  text-align: left;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+/* === Inputs === */
+
+.input {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.inputDisabled {
+  composes: input;
+  background-color: #f5f5f5;
+}
+
+.colorInput {
+  width: 32px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* === Buttons === */
+
+.smallBtn {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid #1976d2;
+  background-color: #1976d2;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.smallBtnGray {
+  composes: smallBtn;
+  background-color: #999;
+  border-color: #999;
+}
+
+.smallBtnRed {
+  composes: smallBtn;
+  background-color: #d32f2f;
+  border-color: #d32f2f;
+}
+
+.addButton {
+  composes: smallBtn;
+  margin-top: 12px;
+}
+
+/* === Add form === */
+
+.addForm {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.formHeading {
+  margin: 0 0 8px 0;
+}
+
+.formRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.formActions {
+  margin-top: 8px;
+}
+
+/* === Scrollable container === */
+
+.scrollContainer {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* === Field group (DepartmentTab) === */
+
+.fieldGroup {
+  margin-bottom: 16px;
+}
+
+.label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+/* === Color swatch (StatusesTab) === */
+
+.colorSwatch {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #ccc;
+  vertical-align: middle;
+}
+
+.colorLabel {
+  font-size: 12px;
+}
