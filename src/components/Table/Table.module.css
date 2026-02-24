@@ -5,6 +5,11 @@ body {
     padding: 0;
 }
 
+/* AdminConsole wrapper */
+.consoleWrapper {
+    padding: 20px;
+}
+
 /*###### ТАБЛИЦА */
 .container {
     display: flex;

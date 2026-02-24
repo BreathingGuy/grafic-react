@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import { useHoursStore } from '../../../../store/admin';
 import { useDateAdminStore } from '../../../../store/dateAdminStore';
+import s from '../../QuarterSummary.module.css';
 
 const AdminDaySlots = memo(({tableId = 'main'}) => {
     const visibleSlots = useDateAdminStore(state => state.visibleSlots);
@@ -41,9 +42,9 @@ const AdminDaySlots = memo(({tableId = 'main'}) => {
                 if (quarterEndSlots && quarterEndSlots.has(slotIndex)) {
                     return [
                         th,
-                        <th key={`${slotIndex}-n`} style={subHeaderStyle}>Н</th>,
-                        <th key={`${slotIndex}-f`} style={subHeaderStyle}>Ф</th>,
-                        <th key={`${slotIndex}-d`} style={subHeaderStyle}>Δ</th>
+                        <th key={`${slotIndex}-n`} className={s.subHeader}>Н</th>,
+                        <th key={`${slotIndex}-f`} className={s.subHeader}>Ф</th>,
+                        <th key={`${slotIndex}-d`} className={s.subHeader}>Δ</th>
                     ];
                 }
 
@@ -54,16 +55,5 @@ const AdminDaySlots = memo(({tableId = 'main'}) => {
 });
 
 AdminDaySlots.displayName = 'AdminDaySlots';
-
-const subHeaderStyle = {
-    fontSize: '10px',
-    fontWeight: 600,
-    backgroundColor: '#e8e8e8',
-    borderLeft: '1px solid #000',
-    borderRight: '1px solid #000',
-    textAlign: 'center',
-    padding: '0 1px',
-    minWidth: '28px'
-};
 
 export default AdminDaySlots;

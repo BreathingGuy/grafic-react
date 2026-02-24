@@ -21,7 +21,7 @@ function AdminConsole() {
   const [yearSettingsOpen, setYearSettingsOpen] = useState(false);
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div className={styles.consoleWrapper}>
       <AdminHeader />
       <AdminYearSelector onOpenYearSettings={() => setYearSettingsOpen(true)} />
       <AdminStatusBar />

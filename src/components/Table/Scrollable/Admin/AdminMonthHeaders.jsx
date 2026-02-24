@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { useHoursStore } from '../../../../store/admin';
 import { useDateAdminStore } from '../../../../store/dateAdminStore';
+import s from '../../QuarterSummary.module.css';
 
 const AdminMonthHeaders = memo(({tableId = 'main'}) => {
     const monthGroups = useDateAdminStore(state =>
@@ -22,7 +23,7 @@ const AdminMonthHeaders = memo(({tableId = 'main'}) => {
                     const q = Math.floor(i / 3) + 1;
                     return [
                         th,
-                        <th key={`q${q}-summary`} colSpan={3} style={summaryHeaderStyle}>
+                        <th key={`q${q}-summary`} colSpan={3} className={s.summaryHeader}>
                             Q{q}
                         </th>
                     ];
@@ -35,15 +36,5 @@ const AdminMonthHeaders = memo(({tableId = 'main'}) => {
 });
 
 AdminMonthHeaders.displayName = 'AdminMonthHeaders';
-
-const summaryHeaderStyle = {
-    fontSize: '11px',
-    fontWeight: 600,
-    backgroundColor: '#e8e8e8',
-    borderLeft: '2px solid #000',
-    borderRight: '2px solid #000',
-    textAlign: 'center',
-    padding: '2px 4px'
-};
 
 export default AdminMonthHeaders;

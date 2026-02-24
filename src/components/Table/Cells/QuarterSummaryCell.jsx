@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { useAdminStore, useHoursStore } from '../../../store/admin';
+import s from '../QuarterSummary.module.css';
 
 /**
  * QuarterSummaryCell — ячейка с итогом часов за квартал
@@ -27,7 +28,7 @@ const QuarterSummaryCell = memo(({ type, empId, quarter }) => {
   });
 
   let value;
-  let style = { ...cellStyle };
+  let className = s.cell;
 
   if (type === 'norm') {
     value = norm;
@@ -36,28 +37,16 @@ const QuarterSummaryCell = memo(({ type, empId, quarter }) => {
   } else {
     // delta = fact - norm
     value = fact - norm;
-    if (value > 0) style.color = '#2e7d32';
-    else if (value < 0) style.color = '#c62828';
+    if (value > 0) className = `${s.cell} ${s.deltaPositive}`;
+    else if (value < 0) className = `${s.cell} ${s.deltaNegative}`;
   }
 
   return (
-    <td style={style}>
+    <td className={className}>
       {value}
     </td>
   );
 });
-
-const cellStyle = {
-  textAlign: 'center',
-  fontSize: '11px',
-  fontWeight: 500,
-  padding: '0 2px',
-  backgroundColor: '#f5f5f5',
-  borderLeft: '1px solid #000',
-  borderRight: '1px solid #000',
-  minWidth: '28px',
-  whiteSpace: 'nowrap'
-};
 
 QuarterSummaryCell.displayName = 'QuarterSummaryCell';
 
