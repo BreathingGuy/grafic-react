@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { useAdminStore } from '../../../../store/admin';
+import s from '../AdminPanel.module.css';
 
 /**
  * LastSavedIndicator — отображает время последнего сохранения черновика
@@ -19,7 +20,7 @@ const LastSavedIndicator = memo(() => {
   });
 
   return (
-    <div style={{ textAlign: 'right', fontSize: '12px', color: '#666', marginTop: '4px' }}>
+    <div className={s.lastSaved}>
       Черновик сохранен: {formatted}
     </div>
   );

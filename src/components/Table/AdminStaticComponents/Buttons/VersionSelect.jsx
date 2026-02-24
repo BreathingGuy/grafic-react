@@ -1,6 +1,7 @@
 import { memo, useEffect } from 'react';
 import { useAdminStore } from '../../../../store/admin';
 import { useVersionsStore } from '../../../../store/versionsStore';
+import s from '../AdminPanel.module.css';
 
 /**
  * VersionSelect — выпадающий список версий
@@ -31,20 +32,14 @@ const VersionSelect = memo(() => {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <label style={{ fontWeight: 500 }}>Версия:</label>
+    <div className={s.selectGroup}>
+      <label className={s.selectLabel}>Версия:</label>
       <select
         value={selectedVersion || ''}
         onChange={handleVersionChange}
         disabled={loadingVersions}
-        style={{
-          padding: '6px 12px',
-          borderRadius: '4px',
-          border: '1px solid #ccc',
-          fontSize: '14px',
-          minWidth: '140px',
-          backgroundColor: selectedVersion ? '#fff3cd' : 'white'
-        }}
+        className={s.selectWide}
+        style={selectedVersion ? { backgroundColor: '#fff3cd' } : undefined}
       >
         <option value="">Текущий draft</option>
         {loadingVersions ? (

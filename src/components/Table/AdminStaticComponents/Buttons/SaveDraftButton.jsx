@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { useAdminStore } from '../../../../store/admin';
+import s from '../AdminPanel.module.css';
 
 /**
  * SaveDraftButton — кнопка сохранения черновика в localStorage
@@ -20,11 +21,7 @@ const SaveDraftButton = memo(() => {
     <button
       onClick={handleSaveDraft}
       disabled={!hasUnsavedChanges}
-      style={{
-        marginLeft: '8px',
-        backgroundColor: hasUnsavedChanges ? '#2196F3' : undefined,
-        color: hasUnsavedChanges ? 'white' : undefined
-      }}
+      className={hasUnsavedChanges ? s.actionBtnDraft : s.actionBtn}
     >
       Сохранить черновик
     </button>

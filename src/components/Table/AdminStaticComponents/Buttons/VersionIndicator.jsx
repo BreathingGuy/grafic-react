@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { useVersionsStore } from '../../../../store/versionsStore';
+import s from '../AdminPanel.module.css';
 
 /**
  * VersionIndicator — индикатор режима просмотра версии (только чтение)
@@ -10,13 +11,7 @@ const VersionIndicator = memo(() => {
   if (!selectedVersion) return null;
 
   return (
-    <span style={{
-      padding: '4px 8px',
-      backgroundColor: '#fff3cd',
-      borderRadius: '4px',
-      fontSize: '12px',
-      color: '#856404'
-    }}>
+    <span className={s.versionBadge}>
       Просмотр версии (только чтение)
     </span>
   );

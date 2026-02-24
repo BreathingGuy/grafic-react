@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { useAdminStore } from '../../../../store/admin';
+import s from '../AdminPanel.module.css';
 
 /**
  * CreateYearButton — кнопка создания нового года
@@ -37,17 +38,7 @@ const CreateYearButton = memo(() => {
     <button
       onClick={handleCreateNewYear}
       disabled={disabled}
-      style={{
-        padding: '6px 12px',
-        backgroundColor: '#28a745',
-        color: 'white',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '14px',
-        fontWeight: 500,
-        opacity: disabled ? 0.5 : 1
-      }}
+      className={s.createYearBtn}
       title="Создать следующий год"
     >
       + Новый год

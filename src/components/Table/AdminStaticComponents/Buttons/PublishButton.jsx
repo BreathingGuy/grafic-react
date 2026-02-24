@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { useAdminStore } from '../../../../store/admin';
+import s from '../AdminPanel.module.css';
 
 /**
  * PublishButton — кнопка публикации draft в production
@@ -18,11 +19,7 @@ const PublishButton = memo(() => {
     <button
       onClick={handlePublish}
       disabled={!hasUnsavedChanges}
-      style={{
-        marginLeft: '8px',
-        backgroundColor: hasUnsavedChanges ? '#4caf50' : undefined,
-        color: hasUnsavedChanges ? 'white' : undefined
-      }}
+      className={hasUnsavedChanges ? s.actionBtnPublish : s.actionBtn}
     >
       Опубликовать
     </button>

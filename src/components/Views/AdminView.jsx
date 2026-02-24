@@ -5,6 +5,7 @@ import AdminInitializer from '../Table/AdminInitializer';
 import DepartmentSettingsModal from '../Table/AdminStaticComponents/DepartmentSettingsModal';
 import { useAdminAuthStore } from '../../store/admin';
 import { useWorkspaceStore } from '../../store/workspaceStore';
+import s from './Toolbar.module.css';
 
 /**
  * AdminToolbar — верхняя панель админки (селектор отдела + кнопка выхода + настройки)
@@ -18,22 +19,14 @@ const AdminToolbar = memo(({ onOpenSettings }) => {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
+    <div className={s.toolbar}>
       <AdminDepartmentSelector />
 
       {currentDepartmentId && (
         <button
           onClick={onOpenSettings}
           title="Настройки отдела"
-          style={{
-            padding: '6px 10px',
-            backgroundColor: 'transparent',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            lineHeight: 1
-          }}
+          className={s.settingsBtn}
         >
           &#9881;
         </button>
@@ -41,15 +34,7 @@ const AdminToolbar = memo(({ onOpenSettings }) => {
 
       <button
         onClick={handleExitAdminMode}
-        style={{
-          padding: '6px 16px',
-          backgroundColor: '#d32f2f',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontWeight: 500
-        }}
+        className={s.exitBtn}
       >
         Выйти из админки
       </button>

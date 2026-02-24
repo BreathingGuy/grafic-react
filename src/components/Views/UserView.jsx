@@ -4,6 +4,7 @@ import { PeriodSelector } from '../Selectors/PeriodSelector';
 import UserTable from '../Table/UserTable';
 import { useWorkspaceStore } from '../../store/workspaceStore';
 import { useAdminAuthStore } from '../../store/admin';
+import s from './Toolbar.module.css';
 
 /**
  * UserToolbar — верхняя панель (селектор отдела + период + кнопка админки)
@@ -15,21 +16,13 @@ const UserToolbar = memo(() => {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
+    <div className={s.toolbar}>
       <DepartmentSelector />
       <PeriodSelector />
 
       <button
         onClick={handleEnterAdminMode}
-        style={{
-          padding: '6px 16px',
-          backgroundColor: '#1976d2',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontWeight: 500
-        }}
+        className={s.adminModeBtn}
       >
         Режим админа
       </button>

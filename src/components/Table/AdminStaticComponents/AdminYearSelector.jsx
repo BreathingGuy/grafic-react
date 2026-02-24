@@ -3,6 +3,7 @@ import CreateYearButton from './Buttons/CreateYearButton';
 import VersionSelect from './Buttons/VersionSelect';
 import VersionIndicator from './Buttons/VersionIndicator';
 import { useHoursStore } from '../../../store/admin';
+import s from './AdminPanel.module.css';
 
 /**
  * AdminYearSelector — выбор года и версии для админа
@@ -13,24 +14,17 @@ export default function AdminYearSelector({ onOpenYearSettings }) {
   const toggleQuarterSummary = useHoursStore(state => state.toggleQuarterSummary);
 
   return (
-    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+    <div className={s.yearSelectorRow}>
       <YearSelect />
       <CreateYearButton />
       <button
         onClick={onOpenYearSettings}
         title="Настройки года (нормы часов)"
-        style={{
-          padding: '4px 10px',
-          backgroundColor: 'transparent',
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontSize: '13px'
-        }}
+        className={s.normsButton}
       >
         Нормы часов
       </button>
-      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', cursor: 'pointer' }}>
+      <label className={s.checkboxLabel}>
         <input
           type="checkbox"
           checked={showQuarterSummary}

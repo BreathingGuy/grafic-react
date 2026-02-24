@@ -1,6 +1,7 @@
 import { memo, useEffect } from 'react';
 import { useAdminStore } from '../../../../store/admin';
 import { switchYear } from '../../../../services/adminOrchestrator';
+import s from '../AdminPanel.module.css';
 
 /**
  * YearSelect — выпадающий список годов
@@ -34,19 +35,13 @@ const YearSelect = memo(() => {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <label style={{ fontWeight: 500 }}>Год:</label>
+    <div className={s.selectGroup}>
+      <label className={s.selectLabel}>Год:</label>
       <select
         value={editingYear || ''}
         onChange={handleYearChange}
         disabled={loadingYears}
-        style={{
-          padding: '6px 12px',
-          borderRadius: '4px',
-          border: '1px solid #ccc',
-          fontSize: '14px',
-          minWidth: '100px'
-        }}
+        className={s.select}
       >
         {loadingYears ? (
           <option>Загрузка...</option>

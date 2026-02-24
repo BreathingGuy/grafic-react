@@ -2,6 +2,7 @@ import DiscardButton from './Buttons/DiscardButton';
 import SaveDraftButton from './Buttons/SaveDraftButton';
 import PublishButton from './Buttons/PublishButton';
 import LastSavedIndicator from './Buttons/LastSavedIndicator';
+import s from './AdminPanel.module.css';
 
 /**
  * AdminHeader - Заголовок и кнопки управления админ-консоли
@@ -9,9 +10,9 @@ import LastSavedIndicator from './Buttons/LastSavedIndicator';
  */
 export default function AdminHeader() {
   return (
-    <div style={{ marginBottom: '16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Редактирование графика</h2>
+    <div className={s.headerContainer}>
+      <div className={s.headerRow}>
+        <h2 className={s.headerTitle}>Редактирование графика</h2>
         <div>
           <DiscardButton />
           <SaveDraftButton />
