@@ -188,13 +188,10 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
   // Применить значение ко ВСЕМ выделенным ячейкам (включая множественные регионы)
   const handleSelectValue = useCallback((newValue) => {
     const { setStatus } = useClipboardStore.getState();
-    const { saveUndoState, batchUpdateDraftCells, employeeIds } = useAdminStore.getState();
+    const { pushUndoDelta, batchUpdateDraftCells, employeeIds } = useAdminStore.getState();
     const allSelections = useSelectionStore.getState().getAllSelections();
 
     if (allSelections.length === 0) return;
-
-    // Сохраняем для undo
-    saveUndoState();
 
     const updates = {};
     let count = 0;
@@ -220,6 +217,8 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
       }
     }
 
+    // Сохраняем дельту для undo (только старые значения затронутых ячеек)
+    pushUndoDelta(updates);
     batchUpdateDraftCells(updates);
     setStatus(`Установлено "${newValue || '-'}" для ${count} ячеек`);
     setHoveredValue(null);

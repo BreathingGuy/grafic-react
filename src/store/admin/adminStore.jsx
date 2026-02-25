@@ -214,37 +214,55 @@ export const useAdminStore = create(devtools((set, get) => ({
       }));
     },
 
-    // Сохранить состояние для undo (максимум 30 шагов)
-    saveUndoState: () => {
-      const { draftSchedule, changedCells, undoStack } = get();
+    // Сохранить дельту для undo (максимум 30 шагов)
+    // updates — объект { cellKey: newValue }, для которых захватываются СТАРЫЕ значения
+    pushUndoDelta: (updates) => {
+      const { draftSchedule, undoStack } = get();
       const MAX_UNDO = 30;
+
+      // Захватываем только старые значения затронутых ячеек
+      const delta = {};
+      for (const key of Object.keys(updates)) {
+        delta[key] = draftSchedule[key] ?? '';
+      }
+
       const trimmed = undoStack.length >= MAX_UNDO
         ? undoStack.slice(undoStack.length - MAX_UNDO + 1)
         : undoStack;
-      set({
-        undoStack: [...trimmed, {
-          draftSchedule: { ...draftSchedule },
-          changedCells: { ...changedCells }
-        }]
-      });
+      set({ undoStack: [...trimmed, delta] });
     },
 
     // Отменить последнее действие (Ctrl+Z)
     undo: () => {
-      const { undoStack } = get();
+      const { undoStack, draftSchedule, originalSchedule, changedCells, employeeIds, editingYear } = get();
       if (undoStack.length === 0) return false;
 
-      const previousState = undoStack[undoStack.length - 1];
+      const delta = undoStack[undoStack.length - 1];
+
+      // Восстанавливаем только затронутые ячейки
+      const newDraftSchedule = { ...draftSchedule, ...delta };
+
+      // Пересчитываем changedCells только для ячеек из дельты
+      const newChangedCells = { ...changedCells };
+      for (const [key, oldValue] of Object.entries(delta)) {
+        if (oldValue === (originalSchedule[key] ?? '')) {
+          // Значение вернулось к production — ячейка больше не изменена
+          delete newChangedCells[key];
+        } else {
+          // Всё ещё отличается от production
+          newChangedCells[key] = oldValue;
+        }
+      }
+
       set({
-        draftSchedule: previousState.draftSchedule,
-        changedCells: previousState.changedCells,
+        draftSchedule: newDraftSchedule,
+        changedCells: newChangedCells,
         undoStack: undoStack.slice(0, -1),
-        hasUnsavedChanges: Object.keys(previousState.changedCells).length > 0
+        hasUnsavedChanges: Object.keys(newChangedCells).length > 0
       });
 
       // Полный пересчёт hoursSummary (undo — редкая операция)
-      const { employeeIds, editingYear } = get();
-      useHoursStore.getState().recalcHoursSummary(previousState.draftSchedule, employeeIds, editingYear);
+      useHoursStore.getState().recalcHoursSummary(newDraftSchedule, employeeIds, editingYear);
 
       return true;
     },

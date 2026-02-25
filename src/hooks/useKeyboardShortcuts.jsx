@@ -84,7 +84,7 @@ export function useKeyboardShortcuts() {
   // === ВСТАВКА (Ctrl+V) ===
   const pasteSelected = useCallback(() => {
     const { setStatus } = useClipboardStore.getState();
-    const { saveUndoState, batchUpdateDraftCells, employeeIds } = useAdminStore.getState();
+    const { pushUndoDelta, batchUpdateDraftCells, employeeIds } = useAdminStore.getState();
     const { selectionStore, slotToDate } = getActiveContext();
 
     const allSelections = selectionStore.getState().getAllSelections();
@@ -102,9 +102,6 @@ export function useKeyboardShortcuts() {
         setStatus('Неверный формат данных');
         return;
       }
-
-      // Сохраняем для undo
-      saveUndoState();
 
       const updates = {};
 
@@ -197,6 +194,8 @@ export function useKeyboardShortcuts() {
         }
       }
 
+      // Сохраняем дельту для undo (только старые значения затронутых ячеек)
+      pushUndoDelta(updates);
       batchUpdateDraftCells(updates);
       setStatus(`Вставлено ${data.length}x${data[0]?.length || 0}`);
     }).catch(err => {
