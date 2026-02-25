@@ -214,11 +214,15 @@ export const useAdminStore = create(devtools((set, get) => ({
       }));
     },
 
-    // Сохранить состояние для undo
+    // Сохранить состояние для undo (максимум 30 шагов)
     saveUndoState: () => {
       const { draftSchedule, changedCells, undoStack } = get();
+      const MAX_UNDO = 30;
+      const trimmed = undoStack.length >= MAX_UNDO
+        ? undoStack.slice(undoStack.length - MAX_UNDO + 1)
+        : undoStack;
       set({
-        undoStack: [...undoStack, {
+        undoStack: [...trimmed, {
           draftSchedule: { ...draftSchedule },
           changedCells: { ...changedCells }
         }]
