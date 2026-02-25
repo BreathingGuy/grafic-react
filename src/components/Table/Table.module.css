@@ -62,9 +62,10 @@ body {
     overflow-x: auto ;
     border-right: 1px solid #000;
     max-width: calc(100% - 250px);
-    -ms-overflow-style: none; 
+    -ms-overflow-style: none;
     scrollbar-width: thin;
     scrollbar-color: rgb(113, 112, 112) #f9f9fd;
+    will-change: transform;
 }
 
 .scrollable_container::-webkit-scrollbar {

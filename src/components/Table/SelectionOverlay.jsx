@@ -214,6 +214,9 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
     if (!scrollContainer) return;
 
     const handleScroll = () => {
+      // Пропускаем пересчёт если нет активного выделения — нечего двигать
+      const { startCell: sc, selections: sels } = useSelectionStore.getState();
+      if (!sc && sels.length === 0) return;
       updateOverlayRef.current();
     };
 
