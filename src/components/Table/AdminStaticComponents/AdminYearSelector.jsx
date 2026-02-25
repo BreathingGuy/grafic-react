@@ -32,46 +32,44 @@ export default function AdminYearSelector({ onOpenYearSettings }) {
   }, [viewOpen]);
 
   return (
-    <div className={s.yearSelectorContainer}>
-      <div className={s.yearSelectorRow}>
-        <YearSelect />
-        <VersionSelect />
-        <VersionIndicator />
-        <CreateYearButton />
+    <div className={s.yearSelectorRow}>
+      <YearSelect />
+      <VersionSelect />
+      <VersionIndicator />
+      <CreateYearButton />
+      <button
+        onClick={onOpenYearSettings}
+        className={s.controlBtn}
+      >
+        Настройки года
+      </button>
+      <div className={s.viewWrapper} ref={viewRef}>
         <button
-          onClick={onOpenYearSettings}
           className={s.controlBtn}
+          onClick={() => setViewOpen(v => !v)}
         >
-          Настройки года
+          Вид {viewOpen ? '▲' : '▼'}
         </button>
-        <div className={s.viewWrapper} ref={viewRef}>
-          <button
-            className={s.controlBtn}
-            onClick={() => setViewOpen(v => !v)}
-          >
-            Вид {viewOpen ? '▲' : '▼'}
-          </button>
-          {viewOpen && (
-            <div className={s.viewMenu}>
-              <label className={s.viewMenuItem}>
-                <input
-                  type="checkbox"
-                  checked={showQuarterSummary}
-                  onChange={toggleQuarterSummary}
-                />
-                Итоги кварталов
-              </label>
-            </div>
-          )}
-        </div>
-
-        <div className={s.actionGroup}>
-          <DiscardButton />
-          <SaveDraftButton />
-          <PublishButton />
-        </div>
+        {viewOpen && (
+          <div className={s.viewMenu}>
+            <label className={s.viewMenuItem}>
+              <input
+                type="checkbox"
+                checked={showQuarterSummary}
+                onChange={toggleQuarterSummary}
+              />
+              Итоги кварталов
+            </label>
+          </div>
+        )}
       </div>
-      <LastSavedIndicator />
+
+      <div className={s.actionGroup}>
+        <LastSavedIndicator />
+        <DiscardButton />
+        <SaveDraftButton />
+        <PublishButton />
+      </div>
     </div>
   );
 }
