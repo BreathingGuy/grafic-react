@@ -181,6 +181,7 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
   // Подавляем браузерное контекстное меню и показываем своё при правом клике
   useEffect(() => {
     const handleContextMenu = (e) => {
+      if (!tableRef?.current?.contains(e.target)) return;
       const { startCell: sc, getAllSelections } = useSelectionStore.getState();
       const allSels = getAllSelections();
       if (allSels.length > 0 || sc) {
@@ -190,7 +191,7 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
     };
     document.addEventListener('contextmenu', handleContextMenu);
     return () => document.removeEventListener('contextmenu', handleContextMenu);
-  }, [useSelectionStore]);
+  }, [useSelectionStore, tableRef]);
 
   // Обновляем позиции при скролле — listener регистрируется только при смене tableRef
   useEffect(() => {
@@ -257,8 +258,8 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
     startCell.employeeId === endCell.employeeId &&
     startCell.slotIndex === endCell.slotIndex;
 
-  // Показывать CellEditor только по правому клику при наличии выделения
-  const showEditor = showContextMenu && editorPosition && !isDragging && !hasCopiedData && !isSingleCell && regionStyles.length > 0;
+  // Показывать CellEditor только по правому клику при наличии выделения (включая одну ячейку)
+  const showEditor = showContextMenu && editorPosition && !isDragging && !hasCopiedData && regionStyles.length > 0;
 
   // Не рендерим если нет выделения
   if (regionStyles.length === 0) return null;
