@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useAdminStore } from '../../../store/admin';
 import { useMetaStore } from '../../../store/metaStore';
 import { usePostWebStore } from '../../../store/postWebStore';
@@ -24,6 +24,8 @@ export default function DepartmentSettingsModal({ isOpen, onClose }) {
 
   // Draft state
   const [draftEmployeeById, setDraftEmployeeById] = useState({});
+  const draftEmployeeByIdRef = useRef(draftEmployeeById);
+  draftEmployeeByIdRef.current = draftEmployeeById;
   const [draftEmployeeIds, setDraftEmployeeIds] = useState([]);
   const [draftStatuses, setDraftStatuses] = useState([]);
   const [draftName, setDraftName] = useState('');
@@ -52,7 +54,7 @@ export default function DepartmentSettingsModal({ isOpen, onClose }) {
 
   const addEmployee = useCallback((form) => {
     if (!form.id || !form.fullName) return;
-    if (draftEmployeeById[form.id]) {
+    if (draftEmployeeByIdRef.current[form.id]) {
       alert('Сотрудник с таким ID уже существует');
       return;
     }
@@ -61,7 +63,7 @@ export default function DepartmentSettingsModal({ isOpen, onClose }) {
       [form.id]: { id: form.id, name: form.name || form.fullName, fullName: form.fullName, position: form.position }
     }));
     setDraftEmployeeIds(prev => [...prev, form.id]);
-  }, [draftEmployeeById]);
+  }, []);
 
   const deleteEmployee = useCallback((empId) => {
     setDraftEmployeeById(prev => {

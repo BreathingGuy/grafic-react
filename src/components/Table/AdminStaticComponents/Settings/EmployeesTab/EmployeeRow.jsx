@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import s from '../Settings.module.css';
 
 /**
  * EmployeeRow — строка сотрудника (просмотр / редактирование)
  * Самодостаточный компонент — сам управляет режимом редактирования
  */
-export default function EmployeeRow({ empId, employee, onSave, onDelete }) {
+const EmployeeRow = memo(function EmployeeRow({ empId, employee, onSave, onDelete }) {
+
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', fullName: '', position: '' });
 
@@ -72,4 +73,6 @@ export default function EmployeeRow({ empId, employee, onSave, onDelete }) {
       </td>
     </tr>
   );
-}
+});
+
+export default EmployeeRow;
