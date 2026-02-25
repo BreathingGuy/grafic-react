@@ -53,6 +53,7 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
   const [regionStyles, setRegionStyles] = useState([]);
   const [editorPosition, setEditorPosition] = useState(null);
   const [hoveredValue, setHoveredValue] = useState(null);
+  const [showContextMenu, setShowContextMenu] = useState(false);
 
   // Статусы из конфига отдела
   const currentConfig = useMetaStore(s => s.currentDepartmentConfig);
@@ -170,6 +171,27 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
     updateOverlayRef.current = updateOverlayPositions;
   }, [updateOverlayPositions]);
 
+  // Сбрасываем контекстное меню при начале нового drag или снятии выделения
+  useEffect(() => {
+    if (isDragging || (!startCell && selections.length === 0)) {
+      setShowContextMenu(false);
+    }
+  }, [isDragging, startCell, selections]);
+
+  // Подавляем браузерное контекстное меню и показываем своё при правом клике
+  useEffect(() => {
+    const handleContextMenu = (e) => {
+      const { startCell: sc, getAllSelections } = useSelectionStore.getState();
+      const allSels = getAllSelections();
+      if (allSels.length > 0 || sc) {
+        e.preventDefault();
+        setShowContextMenu(true);
+      }
+    };
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => document.removeEventListener('contextmenu', handleContextMenu);
+  }, [useSelectionStore]);
+
   // Обновляем позиции при скролле — listener регистрируется только при смене tableRef
   useEffect(() => {
     if (!tableRef?.current) return;
@@ -222,6 +244,7 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
     batchUpdateDraftCells(updates);
     setStatus(`Установлено "${newValue || '-'}" для ${count} ячеек`);
     setHoveredValue(null);
+    setShowContextMenu(false);
   }, [slotToDate, useSelectionStore]);
 
   // Остановка событий мыши
@@ -234,8 +257,8 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
     startCell.employeeId === endCell.employeeId &&
     startCell.slotIndex === endCell.slotIndex;
 
-  // Показывать CellEditor если есть множественное выделение и нет скопированных данных
-  const showEditor = editorPosition && !isDragging && !hasCopiedData && !isSingleCell && regionStyles.length > 0;
+  // Показывать CellEditor только по правому клику при наличии выделения
+  const showEditor = showContextMenu && editorPosition && !isDragging && !hasCopiedData && !isSingleCell && regionStyles.length > 0;
 
   // Не рендерим если нет выделения
   if (regionStyles.length === 0) return null;
