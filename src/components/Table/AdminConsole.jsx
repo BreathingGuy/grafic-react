@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
-import AdminHeader from './AdminStaticComponents/AdminHeader';
 import AdminYearSelector from './AdminStaticComponents/AdminYearSelector';
 import AdminStatusBar from './AdminStaticComponents/AdminStatusBar';
 import YearSettingsModal from './AdminStaticComponents/YearSettingsModal';
@@ -22,7 +21,6 @@ function AdminConsole() {
 
   return (
     <div className={styles.consoleWrapper}>
-      <AdminHeader />
       <AdminYearSelector onOpenYearSettings={() => setYearSettingsOpen(true)} />
       <AdminStatusBar />
 
