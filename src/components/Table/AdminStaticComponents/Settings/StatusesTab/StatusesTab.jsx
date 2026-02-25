@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import s from '../Settings.module.css';
 
 const emptyAddForm = {
@@ -7,41 +7,135 @@ const emptyAddForm = {
 };
 
 /**
+ * StatusEditRow — строка редактирования с изолированным editForm
+ * При перемещении color picker перерисовывается только этот компонент,
+ * а не весь StatusesTab со всеми строками таблицы.
+ */
+const StatusEditRow = memo(({ status, onSave, onCancel }) => {
+  const [editForm, setEditForm] = useState({ ...status });
+
+  return (
+    <tr>
+      <td className={s.td}>
+        <input
+          value={editForm.code || ''}
+          onChange={e => setEditForm(f => ({ ...f, code: e.target.value }))}
+          className={s.input}
+          style={{ width: '40px' }}
+        />
+      </td>
+      <td className={s.td}>
+        <input
+          value={editForm.label || ''}
+          onChange={e => setEditForm(f => ({ ...f, label: e.target.value }))}
+          className={s.input}
+        />
+      </td>
+      <td className={s.td}>
+        <input
+          type="number"
+          value={editForm.hours ?? 0}
+          onChange={e => setEditForm(f => ({ ...f, hours: Number(e.target.value) }))}
+          className={s.input}
+          style={{ width: '50px' }}
+          min={0}
+        />
+      </td>
+      <td className={s.td}>
+        <input
+          type="color"
+          value={editForm.colorText || '#000000'}
+          onChange={e => setEditForm(f => ({ ...f, colorText: e.target.value }))}
+          className={s.colorInput}
+        />
+      </td>
+      <td className={s.td}>
+        <input
+          type="color"
+          value={editForm.colorBack || '#ffffff'}
+          onChange={e => setEditForm(f => ({ ...f, colorBack: e.target.value }))}
+          className={s.colorInput}
+        />
+      </td>
+      <td className={s.td}>
+        <input
+          value={editForm.descriptin || ''}
+          onChange={e => setEditForm(f => ({ ...f, descriptin: e.target.value }))}
+          className={s.input}
+        />
+      </td>
+      <td className={s.td}>
+        <button onClick={() => onSave(editForm)} className={s.smallBtn}>Ок</button>
+        <button onClick={onCancel} className={s.smallBtnGray}>Отм.</button>
+      </td>
+    </tr>
+  );
+});
+
+StatusEditRow.displayName = 'StatusEditRow';
+
+/**
+ * StatusDisplayRow — строка отображения (memo)
+ * Не перерисовывается при изменении editForm в StatusEditRow
+ */
+const StatusDisplayRow = memo(({ status, idx, onEdit, onDelete }) => (
+  <tr>
+    <td className={s.td}><strong>{status.code}</strong></td>
+    <td className={s.td}>{status.label}</td>
+    <td className={s.td}>{status.hours ?? '—'}</td>
+    <td className={s.td}>
+      <span className={s.colorSwatch} style={{ backgroundColor: status.colorText || '#000' }} />
+    </td>
+    <td className={s.td}>
+      <span className={s.colorSwatch} style={{ backgroundColor: status.colorBack || '#fff' }} />
+    </td>
+    <td className={s.td}>{status.descriptin}</td>
+    <td className={s.td}>
+      <button onClick={() => onEdit(idx)} className={s.smallBtn}>Ред.</button>
+      <button onClick={() => onDelete(idx)} className={s.smallBtnRed}>Уд.</button>
+    </td>
+  </tr>
+));
+
+StatusDisplayRow.displayName = 'StatusDisplayRow';
+
+/**
  * StatusesTab — вкладка обозначений (controlled)
  * Props: statuses (массив), onChange (сеттер массива)
  */
 export default function StatusesTab({ statuses, onChange }) {
   const [editingIdx, setEditingIdx] = useState(null);
-  const [editForm, setEditForm] = useState({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ ...emptyAddForm });
 
-  const startEdit = (idx) => {
-    setEditForm({ ...statuses[idx] });
+  const startEdit = useCallback((idx) => {
     setEditingIdx(idx);
-  };
+  }, []);
 
-  const cancelEdit = () => {
+  const cancelEdit = useCallback(() => {
     setEditingIdx(null);
-  };
+  }, []);
 
-  const saveEdit = () => {
-    const next = [...statuses];
-    next[editingIdx] = { ...editForm };
-    onChange(next);
+  // editForm передаётся из StatusEditRow при нажатии "Ок"
+  const saveEdit = useCallback((editForm) => {
+    onChange(prev => {
+      const next = [...prev];
+      next[editingIdx] = { ...editForm };
+      return next;
+    });
     setEditingIdx(null);
-  };
+  }, [editingIdx, onChange]);
+
+  const deleteStatus = useCallback((idx) => {
+    if (!window.confirm(`Удалить обозначение "${statuses[idx].code}"?`)) return;
+    onChange(statuses.filter((_, i) => i !== idx));
+  }, [statuses, onChange]);
 
   const addStatus = () => {
     if (!addForm.code) return;
     onChange([...statuses, { ...addForm }]);
     setAddForm({ ...emptyAddForm });
     setShowAddForm(false);
-  };
-
-  const deleteStatus = (idx) => {
-    if (!window.confirm(`Удалить обозначение "${statuses[idx].code}"?`)) return;
-    onChange(statuses.filter((_, i) => i !== idx));
   };
 
   return (
@@ -60,91 +154,24 @@ export default function StatusesTab({ statuses, onChange }) {
             </tr>
           </thead>
           <tbody>
-            {statuses.map((status, idx) => {
-              if (editingIdx === idx) {
-                return (
-                  <tr key={idx}>
-                    <td className={s.td}>
-                      <input
-                        value={editForm.code || ''}
-                        onChange={e => setEditForm(f => ({ ...f, code: e.target.value }))}
-                        className={s.input}
-                        style={{ width: '40px' }}
-                      />
-                    </td>
-                    <td className={s.td}>
-                      <input
-                        value={editForm.label || ''}
-                        onChange={e => setEditForm(f => ({ ...f, label: e.target.value }))}
-                        className={s.input}
-                      />
-                    </td>
-                    <td className={s.td}>
-                      <input
-                        type="number"
-                        value={editForm.hours ?? 0}
-                        onChange={e => setEditForm(f => ({ ...f, hours: Number(e.target.value) }))}
-                        className={s.input}
-                        style={{ width: '50px' }}
-                        min={0}
-                      />
-                    </td>
-                    <td className={s.td}>
-                      <input
-                        type="color"
-                        value={editForm.colorText || '#000000'}
-                        onChange={e => setEditForm(f => ({ ...f, colorText: e.target.value }))}
-                        className={s.colorInput}
-                      />
-                    </td>
-                    <td className={s.td}>
-                      <input
-                        type="color"
-                        value={editForm.colorBack || '#ffffff'}
-                        onChange={e => setEditForm(f => ({ ...f, colorBack: e.target.value }))}
-                        className={s.colorInput}
-                      />
-                    </td>
-                    <td className={s.td}>
-                      <input
-                        value={editForm.descriptin || ''}
-                        onChange={e => setEditForm(f => ({ ...f, descriptin: e.target.value }))}
-                        className={s.input}
-                      />
-                    </td>
-                    <td className={s.td}>
-                      <button onClick={saveEdit} className={s.smallBtn}>Ок</button>
-                      <button onClick={cancelEdit} className={s.smallBtnGray}>Отм.</button>
-                    </td>
-                  </tr>
-                );
-              }
-
-              return (
-                <tr key={idx}>
-                  <td className={s.td}><strong>{status.code}</strong></td>
-                  <td className={s.td}>{status.label}</td>
-                  <td className={s.td}>{status.hours ?? '—'}</td>
-                  <td className={s.td}>
-                    <span
-                      className={s.colorSwatch}
-                      style={{ backgroundColor: status.colorText || '#000' }}
-                    />
-                  </td>
-                  <td className={s.td}>
-                    <span
-                      className={s.colorSwatch}
-                      style={{ backgroundColor: status.colorBack || '#fff' }}
-                    />
-                  </td>
-                  <td className={s.td}>{status.descriptin}</td>
-                  <td className={s.td}>
-                    <button onClick={() => startEdit(idx)} className={s.smallBtn}>Ред.</button>
-                    <button onClick={() => deleteStatus(idx)} className={s.smallBtnRed}>Уд.</button>
-                  </td>
-                </tr>
-              );
-            })}
+            {statuses.map((status, idx) =>
+              editingIdx === idx ? (
+                <StatusEditRow
+                  key={idx}
+                  status={status}
+                  onSave={saveEdit}
+                  onCancel={cancelEdit}
+                />
+              ) : (
+                <StatusDisplayRow
+                  key={idx}
+                  status={status}
+                  idx={idx}
+                  onEdit={startEdit}
+                  onDelete={deleteStatus}
+                />
+              )
+            )}
           </tbody>
         </table>
       </div>
