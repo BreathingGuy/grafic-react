@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 import { useAdminStore } from './adminStore';
 import { useVersionsStore } from '../versionsStore';
 
 export const useAdminAuthStore = create(
-  persist(
-    (set, get) => ({
+  devtools(
+    persist(
+      (set, get) => ({
       // === AUTHENTICATION ===
       isAuthenticated: false,
       user: null,                    // { userId, email, name, token }
@@ -73,7 +74,8 @@ export const useAdminAuthStore = create(
         ownedDepartments: state.ownedDepartments,
         editableDepartments: state.editableDepartments
       })
-    }
+    }),
+    { name: 'AdminAuthStore' }
   )
 );
 

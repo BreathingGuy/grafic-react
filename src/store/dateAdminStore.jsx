@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import {
   VISIBLE_SLOTS,
   createSlotMapping,
@@ -14,7 +15,7 @@ import {
  * Поддерживает сдвинутую таблицу (offset) для отображения
  * кварталов один над другим.
  */
-export const useDateAdminStore = create((set, get) => ({
+export const useDateAdminStore = create(devtools((set, get) => ({
     // === STATE ===
 
     currentYear: new Date().getFullYear(),
@@ -116,6 +117,6 @@ export const useDateAdminStore = create((set, get) => ({
       get().initializeYear(currentYear);
     }
 
-}));
+}), { name: 'DateAdminStore' }));
 
 export default useDateAdminStore;

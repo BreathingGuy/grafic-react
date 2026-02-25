@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import { useMainSelectionStore } from './mainSelectionStore';
 import { useOffsetSelectionStore } from './offsetSelectionStore';
 
@@ -7,7 +8,7 @@ import { useOffsetSelectionStore } from './offsetSelectionStore';
  *
  * Хранит скопированные данные и отслеживает активную таблицу
  */
-export const useClipboardStore = create((set, get) => ({
+export const useClipboardStore = create(devtools((set, get) => ({
       // === STATE ===
       hasCopiedData: false,
       statusMessage: '',
@@ -58,4 +59,4 @@ export const useClipboardStore = create((set, get) => ({
       setCopiedData: (hasCopied) => {
         set({ hasCopiedData: hasCopied });
       }
-}));
+}), { name: 'ClipboardStore' }));

@@ -1,7 +1,8 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import { useFetchWebStore } from './fetchWebStore';
 
-export const useUserStore = create((set, get) => ({
+export const useUserStore = create(devtools((set, get) => ({
     // === STATE ===
     scheduleMap: {},               // { "emp-1-2025-01-15": "Д", ... }
 
@@ -233,4 +234,4 @@ export const useUserStore = create((set, get) => ({
       });
     }
 
-}));
+}), { name: 'UserStore' }));

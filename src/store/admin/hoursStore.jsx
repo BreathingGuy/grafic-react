@@ -1,8 +1,9 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import { useMetaStore } from '../metaStore';
 import { buildCodeToHours, calcFullHoursSummary, deltaUpdateSummary, batchDeltaUpdateSummary } from '../../utils/hoursCalc';
 
-export const useHoursStore = create((set, get) => ({
+export const useHoursStore = create(devtools((set, get) => ({
   // === STATE ===
   hoursSummary: {},              // Факт часов: { "empId-Q1": 480, "empId-Q2": 512, ... }
   codeToHours: {},               // Карта code→hours: { "Д": 8, "В": 0, ... }
@@ -64,6 +65,6 @@ export const useHoursStore = create((set, get) => ({
       monthNorms: {}
     });
   }
-}));
+}), { name: 'HoursStore' }));
 
 export default useHoursStore;

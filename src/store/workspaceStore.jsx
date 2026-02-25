@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 
 import { useMetaStore } from './metaStore'
 import { useUserStore } from './userStore'
@@ -6,7 +7,7 @@ import { useDateUserStore } from './dateUserStore'
 import { useDateAdminStore } from './dateAdminStore'
 import { enterAdminContext } from '../services/adminOrchestrator'
 
-export const useWorkspaceStore = create((set, get) => ({
+export const useWorkspaceStore = create(devtools((set, get) => ({
     // === STATE ===
     currentDepartmentId: null,
 
@@ -74,6 +75,6 @@ export const useWorkspaceStore = create((set, get) => ({
       useUserStore.getState().clearCache();
       useDateUserStore.getState().resetToCurrentYear();
     }
-}));
+}), { name: 'WorkspaceStore' }));
 
 export default useWorkspaceStore

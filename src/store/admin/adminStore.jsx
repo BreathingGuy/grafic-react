@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import { useFetchWebStore } from '../fetchWebStore';
 import { usePostWebStore } from '../postWebStore';
 import { useUserStore } from '../userStore';
@@ -6,7 +7,7 @@ import { useDateAdminStore } from '../dateAdminStore';
 import { useVersionsStore } from '../versionsStore';
 import { useHoursStore } from './hoursStore';
 
-export const useAdminStore = create((set, get) => ({
+export const useAdminStore = create(devtools((set, get) => ({
     // === UI STATE ===
     isCreatingNewYear: false,      // Флаг создания нового года (защита от race condition)
 
@@ -582,6 +583,6 @@ export const useAdminStore = create((set, get) => ({
       const { draftSchedule, originalSchedule } = get();
       return draftSchedule[key] !== originalSchedule[key];
     }
-}));
+}), { name: 'AdminStore' }));
 
 export default useAdminStore;
