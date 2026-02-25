@@ -19,10 +19,9 @@ export default function AdminYearSelector({ onOpenYearSettings }) {
       <CreateYearButton />
       <button
         onClick={onOpenYearSettings}
-        title="Настройки года (нормы часов)"
         className={s.normsButton}
       >
-        Нормы часов
+        Настройки года
       </button>
       <label className={s.checkboxLabel}>
         <input

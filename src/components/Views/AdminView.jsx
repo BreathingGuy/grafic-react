@@ -25,10 +25,9 @@ const AdminToolbar = memo(({ onOpenSettings }) => {
       {currentDepartmentId && (
         <button
           onClick={onOpenSettings}
-          title="Настройки отдела"
           className={s.settingsBtn}
         >
-          &#9881;
+          Настройки отдела
         </button>
       )}
 

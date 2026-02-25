@@ -13,6 +13,7 @@ export default function YearSettingsModal({ isOpen, onClose }) {
   const editingDepartmentId = useAdminStore(s => s.editingDepartmentId);
   const storeNorms = useHoursStore(s => s.monthNorms);
 
+  const [activeTab, setActiveTab] = useState('norms');
   const [draftNorms, setDraftNorms] = useState({});
   const [initialized, setInitialized] = useState(false);
 
@@ -23,6 +24,7 @@ export default function YearSettingsModal({ isOpen, onClose }) {
   }
   if (!isOpen && initialized) {
     setInitialized(false);
+    setActiveTab('norms');
   }
 
   // Ключ месяца: "2025-01"
@@ -71,63 +73,88 @@ export default function YearSettingsModal({ isOpen, onClose }) {
     <div className={css.overlay} onClick={onClose}>
       <div className={`${css.modal} ${css.modalNarrow}`} onClick={e => e.stopPropagation()}>
         <div className={css.header}>
-          <h3 className={css.headerTitle}>Нормы часов — {editingYear}</h3>
+          <h3 className={css.headerTitle}>Настройки года</h3>
           <button onClick={onClose} className={css.closeButton}>&times;</button>
         </div>
 
-        <div className={css.content}>
-          <table className={css.table}>
-            <thead>
-              <tr>
-                <th className={css.th}>Месяц</th>
-                <th className={css.th}>Норма (часы)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MONTHS.map((name, idx) => {
-                const isQuarterEnd = (idx + 1) % 3 === 0;
-                const quarterIdx = Math.floor(idx / 3);
+        <div className={css.tabs}>
+          <button
+            className={activeTab === 'norms' ? css.tabActive : css.tab}
+            onClick={() => setActiveTab('norms')}
+          >
+            Нормы часов
+          </button>
+          <button
+            className={activeTab === 'holidays' ? css.tabActive : css.tab}
+            onClick={() => setActiveTab('holidays')}
+          >
+            Праздники
+          </button>
+        </div>
 
-                return (
-                  <Fragment key={idx}>
-                    <tr>
-                      <td className={css.td}>
-                        <span className={css.capitalize}>{name}</span>
-                      </td>
-                      <td className={css.td}>
-                        <input
-                          type="number"
-                          value={getValue(idx)}
-                          onChange={e => setValue(idx, e.target.value)}
-                          className={css.input}
-                          min={0}
-                          placeholder="0"
-                        />
-                      </td>
-                    </tr>
-                    {isQuarterEnd && (
-                      <tr className={css.quarterRow}>
-                        <td className={css.quarterTd}>
-                          <strong>Квартал {quarterIdx + 1}</strong>
+        <div className={css.content}>
+          {activeTab === 'norms' && (
+            <table className={css.table}>
+              <thead>
+                <tr>
+                  <th className={css.th}>Месяц</th>
+                  <th className={css.th}>Норма (часы)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {MONTHS.map((name, idx) => {
+                  const isQuarterEnd = (idx + 1) % 3 === 0;
+                  const quarterIdx = Math.floor(idx / 3);
+
+                  return (
+                    <Fragment key={idx}>
+                      <tr>
+                        <td className={css.td}>
+                          <span className={css.capitalize}>{name}</span>
                         </td>
-                        <td className={css.quarterTd}>
-                          <strong>{quarterSums[quarterIdx]}</strong>
+                        <td className={css.td}>
+                          <input
+                            type="number"
+                            value={getValue(idx)}
+                            onChange={e => setValue(idx, e.target.value)}
+                            className={css.input}
+                            min={0}
+                            placeholder="0"
+                          />
                         </td>
                       </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
-              <tr className={css.totalRow}>
-                <td className={css.quarterTd}><strong>Итого за год</strong></td>
-                <td className={css.quarterTd}><strong>{yearTotal}</strong></td>
-              </tr>
-            </tbody>
-          </table>
+                      {isQuarterEnd && (
+                        <tr className={css.quarterRow}>
+                          <td className={css.quarterTd}>
+                            <strong>Квартал {quarterIdx + 1}</strong>
+                          </td>
+                          <td className={css.quarterTd}>
+                            <strong>{quarterSums[quarterIdx]}</strong>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+                <tr className={css.totalRow}>
+                  <td className={css.quarterTd}><strong>Итого за год</strong></td>
+                  <td className={css.quarterTd}><strong>{yearTotal}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          )}
+
+          {activeTab === 'holidays' && (
+            <div className={css.tabPlaceholder}>
+              Праздники — будет добавлено позже
+            </div>
+          )}
         </div>
 
         <div className={css.footer}>
-          <button onClick={handleSave} className={css.saveBtn}>Сохранить</button>
+          {activeTab === 'norms' && (
+            <button onClick={handleSave} className={css.saveBtn}>Сохранить</button>
+          )}
           <button onClick={onClose} className={css.cancelBtn}>Отмена</button>
         </div>
       </div>
