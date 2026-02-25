@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import s from '../Settings.module.css';
 
 const emptyAddForm = {
@@ -7,12 +7,47 @@ const emptyAddForm = {
 };
 
 /**
+ * ColorField — изолированный color picker
+ * Uncontrolled input + нативный 'change' (срабатывает только при фиксации цвета,
+ * не на каждом движении) → ноль React-рендеров во время перемещения
+ */
+const ColorField = memo(({ defaultValue, onCommit, className }) => {
+  const inputRef = useRef(null);
+  const onCommitRef = useRef(onCommit);
+  onCommitRef.current = onCommit;
+
+  useEffect(() => {
+    const el = inputRef.current;
+    const handler = (e) => onCommitRef.current(e.target.value);
+    el.addEventListener('change', handler);
+    return () => el.removeEventListener('change', handler);
+  }, []); // только mount/unmount
+
+  return (
+    <input
+      ref={inputRef}
+      type="color"
+      defaultValue={defaultValue}
+      className={className}
+    />
+  );
+});
+
+ColorField.displayName = 'ColorField';
+
+/**
  * StatusEditRow — строка редактирования с изолированным editForm
- * При перемещении color picker перерисовывается только этот компонент,
- * а не весь StatusesTab со всеми строками таблицы.
+ * Перерисовывается только при фиксации цвета, не при перемещении
  */
 const StatusEditRow = memo(({ status, onSave, onCancel }) => {
   const [editForm, setEditForm] = useState({ ...status });
+
+  const handleColorText = useCallback(
+    (val) => setEditForm(f => ({ ...f, colorText: val })), []
+  );
+  const handleColorBack = useCallback(
+    (val) => setEditForm(f => ({ ...f, colorBack: val })), []
+  );
 
   return (
     <tr>
@@ -42,18 +77,16 @@ const StatusEditRow = memo(({ status, onSave, onCancel }) => {
         />
       </td>
       <td className={s.td}>
-        <input
-          type="color"
-          value={editForm.colorText || '#000000'}
-          onChange={e => setEditForm(f => ({ ...f, colorText: e.target.value }))}
+        <ColorField
+          defaultValue={editForm.colorText || '#000000'}
+          onCommit={handleColorText}
           className={s.colorInput}
         />
       </td>
       <td className={s.td}>
-        <input
-          type="color"
-          value={editForm.colorBack || '#ffffff'}
-          onChange={e => setEditForm(f => ({ ...f, colorBack: e.target.value }))}
+        <ColorField
+          defaultValue={editForm.colorBack || '#ffffff'}
+          onCommit={handleColorBack}
           className={s.colorInput}
         />
       </td>
@@ -116,7 +149,6 @@ export default function StatusesTab({ statuses, onChange }) {
     setEditingIdx(null);
   }, []);
 
-  // editForm передаётся из StatusEditRow при нажатии "Ок"
   const saveEdit = useCallback((editForm) => {
     onChange(prev => {
       const next = [...prev];
@@ -130,6 +162,13 @@ export default function StatusesTab({ statuses, onChange }) {
     if (!window.confirm(`Удалить обозначение "${statuses[idx].code}"?`)) return;
     onChange(statuses.filter((_, i) => i !== idx));
   }, [statuses, onChange]);
+
+  const handleAddColorText = useCallback(
+    (val) => setAddForm(f => ({ ...f, colorText: val })), []
+  );
+  const handleAddColorBack = useCallback(
+    (val) => setAddForm(f => ({ ...f, colorBack: val })), []
+  );
 
   const addStatus = () => {
     if (!addForm.code) return;
@@ -203,18 +242,16 @@ export default function StatusesTab({ statuses, onChange }) {
               min={0}
             />
             <label className={s.colorLabel}>
-              Текст: <input
-                type="color"
-                value={addForm.colorText}
-                onChange={e => setAddForm(f => ({ ...f, colorText: e.target.value }))}
+              Текст: <ColorField
+                defaultValue={addForm.colorText}
+                onCommit={handleAddColorText}
                 className={s.colorInput}
               />
             </label>
             <label className={s.colorLabel}>
-              Фон: <input
-                type="color"
-                value={addForm.colorBack}
-                onChange={e => setAddForm(f => ({ ...f, colorBack: e.target.value }))}
+              Фон: <ColorField
+                defaultValue={addForm.colorBack}
+                onCommit={handleAddColorBack}
                 className={s.colorInput}
               />
             </label>
