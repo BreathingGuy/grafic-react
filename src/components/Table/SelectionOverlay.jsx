@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useAdminStore } from '../../store/admin';
 import { useMetaStore } from '../../store/metaStore';
 import { useClipboardStore } from '../../store/selection';
@@ -143,7 +143,14 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
     updateOverlayPositions();
   }, [updateOverlayPositions]);
 
-  // Обновляем позиции при скролле
+  // Стабильная ссылка на актуальную версию updateOverlayPositions —
+  // позволяет не пересоздавать scroll listener при каждом изменении выделения
+  const updateOverlayRef = useRef(updateOverlayPositions);
+  useEffect(() => {
+    updateOverlayRef.current = updateOverlayPositions;
+  }, [updateOverlayPositions]);
+
+  // Обновляем позиции при скролле — listener регистрируется только при смене tableRef
   useEffect(() => {
     if (!tableRef?.current) return;
 
@@ -151,12 +158,12 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
     if (!scrollContainer) return;
 
     const handleScroll = () => {
-      updateOverlayPositions();
+      updateOverlayRef.current();
     };
 
     scrollContainer.addEventListener('scroll', handleScroll);
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [tableRef, updateOverlayPositions]);
+  }, [tableRef]);
 
   // Применить значение ко ВСЕМ выделенным ячейкам (включая множественные регионы)
   const handleSelectValue = useCallback((newValue) => {
