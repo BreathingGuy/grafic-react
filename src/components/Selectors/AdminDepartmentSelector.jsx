@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { useMetaStore } from '../../store/metaStore';
 import { useWorkspaceStore } from '../../store/workspaceStore';
+import s from '../Table/AdminStaticComponents/AdminPanel.module.css';
 
 /**
  * AdminDepartmentSelector - Выбор отдела для админ-режима
@@ -21,6 +22,7 @@ export const AdminDepartmentSelector = memo(() => {
     <select
       value={currentDepartmentId || ''}
       onChange={handleChange}
+      className={s.select}
     >
       <option value="">Выберите отдел</option>
       {departmentsList.map(dept => (

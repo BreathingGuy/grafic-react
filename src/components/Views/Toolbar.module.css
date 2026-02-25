@@ -22,12 +22,12 @@
 /* === AdminView === */
 
 .settingsBtn {
-  padding: 6px 14px;
+  padding: 6px 12px;
+  font-size: 14px;
   background-color: transparent;
   border: 1px solid #ccc;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 13px;
 }
 
 .exitBtn {
