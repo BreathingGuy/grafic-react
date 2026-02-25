@@ -125,7 +125,7 @@ const StatusDisplayRow = memo(({ status, idx, onEdit, onDelete }) => (
     <td className={s.td}>{status.descriptin}</td>
     <td className={s.td}>
       <button onClick={() => onEdit(idx)} className={s.smallBtn}>Ред.</button>
-      <button onClick={() => onDelete(idx)} className={s.smallBtnRed}>Уд.</button>
+      <button onClick={() => onDelete(idx, status.code)} className={s.smallBtnRed}>Уд.</button>
     </td>
   </tr>
 ));
@@ -158,10 +158,10 @@ export default function StatusesTab({ statuses, onChange }) {
     setEditingIdx(null);
   }, [editingIdx, onChange]);
 
-  const deleteStatus = useCallback((idx) => {
-    if (!window.confirm(`Удалить обозначение "${statuses[idx].code}"?`)) return;
-    onChange(statuses.filter((_, i) => i !== idx));
-  }, [statuses, onChange]);
+  const deleteStatus = useCallback((idx, code) => {
+    if (!window.confirm(`Удалить обозначение "${code}"?`)) return;
+    onChange(prev => prev.filter((_, i) => i !== idx));
+  }, [onChange]);
 
   const handleAddColorText = useCallback(
     (val) => setAddForm(f => ({ ...f, colorText: val })), []
