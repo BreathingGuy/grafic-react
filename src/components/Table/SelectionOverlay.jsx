@@ -281,7 +281,7 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
     <>
       {/* Overlay для каждого региона выделения */}
       {regionStyles.map((style, idx) => (
-        <div key={idx} style={style} className={styles.selectionRegion} />
+        <div key={idx} style={style} />
       ))}
 
       {/* CellEditor */}
