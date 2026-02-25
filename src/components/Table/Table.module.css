@@ -102,6 +102,21 @@ button:hover {
     background: #e0e0e0;
 }
 
+@keyframes selectionFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes menuAppear {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Оверлей выделения ячеек */
+.selectionRegion {
+    animation: selectionFadeIn 0.08s ease;
+}
+
 /* CellEditor - выпадающий список (позиция задаётся через JS) */
 .cellEditor {
     background: white;
@@ -111,6 +126,7 @@ button:hover {
     min-width: 140px;
     max-height: 300px;
     overflow-y: auto;
+    animation: menuAppear 0.12s ease;
 }
 
 .cellEditorOption {
