@@ -52,7 +52,10 @@ export default function AdminView() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
-    <>
+    <div
+      onContextMenu={e => e.preventDefault()}
+      style={{ userSelect: 'none' }}
+    >
       <AdminToolbar onOpenSettings={() => setSettingsOpen(true)} />
 
       {currentDepartmentId ? (
@@ -69,6 +72,6 @@ export default function AdminView() {
           <p>Выберите отдел для редактирования расписания</p>
         </div>
       )}
-    </>
+    </div>
   );
 }

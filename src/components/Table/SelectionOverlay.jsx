@@ -54,6 +54,7 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
   const [editorPosition, setEditorPosition] = useState(null);
   const [hoveredValue, setHoveredValue] = useState(null);
   const [showContextMenu, setShowContextMenu] = useState(false);
+  const menuRef = useRef(null);
 
   // Статусы из конфига отдела
   const currentConfig = useMetaStore(s => s.currentDepartmentConfig);
@@ -193,6 +194,18 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
     return () => document.removeEventListener('contextmenu', handleContextMenu);
   }, [useSelectionStore, tableRef]);
 
+  // Закрываем контекстное меню при клике вне его
+  useEffect(() => {
+    if (!showContextMenu) return;
+    const handleMouseDown = (e) => {
+      if (!menuRef.current?.contains(e.target)) {
+        setShowContextMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [showContextMenu]);
+
   // Обновляем позиции при скролле — listener регистрируется только при смене tableRef
   useEffect(() => {
     if (!tableRef?.current) return;
@@ -240,6 +253,8 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
       }
     }
 
+    if (count === 0) return;
+
     // Сохраняем дельту для undo (только старые значения затронутых ячеек)
     pushUndoDelta(updates);
     batchUpdateDraftCells(updates);
@@ -252,11 +267,6 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
   const stopPropagation = useCallback((e) => {
     e.stopPropagation();
   }, []);
-
-  // Проверка: выделена только одна ячейка?
-  const isSingleCell = startCell && endCell && selections.length === 0 &&
-    startCell.employeeId === endCell.employeeId &&
-    startCell.slotIndex === endCell.slotIndex;
 
   // Показывать CellEditor только по правому клику при наличии выделения (включая одну ячейку)
   const showEditor = showContextMenu && editorPosition && !isDragging && !hasCopiedData && regionStyles.length > 0;
@@ -274,6 +284,7 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
       {/* CellEditor */}
       {showEditor && (
         <div
+          ref={menuRef}
           style={editorPosition}
           className={styles.cellEditor}
           onMouseDown={stopPropagation}
