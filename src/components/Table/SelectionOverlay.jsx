@@ -81,62 +81,82 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
   // slotToDate передаётся как проп (main или offset)
   const slotToDate = slotToDateProp;
 
+  // RAF ref для отмены предыдущего незавершённого запроса
+  const rafRef = useRef(null);
+
   // Пересчитываем позиции всех регионов
+  // Использует RAF: если функция вызвана несколько раз подряд (mouseover во время drag),
+  // предыдущий запрос отменяется — DOM-запросы выполняются не чаще ~60 раз/с
   const updateOverlayPositions = useCallback(() => {
-    if (!tableRef?.current) {
-      setRegionStyles([]);
-      setEditorPosition(null);
-      return;
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
     }
 
-    const allStyles = [];
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
 
-    // Добавляем стили для сохранённых выделений
-    for (const sel of selections) {
-      const style = computeRegionStyle(sel.startCell, sel.endCell, employeeIds, tableRef);
-      if (style) allStyles.push(style);
-    }
-
-    // Добавляем текущее активное выделение
-    if (startCell && endCell) {
-      const style = computeRegionStyle(startCell, endCell, employeeIds, tableRef);
-      if (style) {
-        allStyles.push(style);
-
-        // Позиция редактора - справа от последнего выделения (fixed относительно viewport)
-        const tableRect = tableRef.current.getBoundingClientRect();
-        const editorLeft = tableRect.left + style.left + style.width + 2;
-        const editorTop = tableRect.top + style.top;
-
-        // Проверяем, не выходит ли редактор за правый край экрана
-        const viewportWidth = window.innerWidth;
-        const editorWidth = 150; // примерная ширина редактора
-        const adjustedLeft = editorLeft + editorWidth > viewportWidth
-          ? tableRect.left + style.left - editorWidth - 2  // слева от выделения
-          : editorLeft;
-
-        // Проверяем, не выходит ли за нижний край
-        const viewportHeight = window.innerHeight;
-        const editorHeight = 300; // max-height редактора
-        const adjustedTop = editorTop + editorHeight > viewportHeight
-          ? viewportHeight - editorHeight - 10
-          : editorTop;
-
-        setEditorPosition({
-          position: 'fixed',
-          left: adjustedLeft,
-          top: Math.max(10, adjustedTop),  // минимум 10px от верха
-          zIndex: 1000
-        });
+      if (!tableRef?.current) {
+        setRegionStyles([]);
+        setEditorPosition(null);
+        return;
       }
-    }
 
-    setRegionStyles(allStyles);
+      const allStyles = [];
 
-    if (allStyles.length === 0) {
-      setEditorPosition(null);
-    }
+      // Добавляем стили для сохранённых выделений
+      for (const sel of selections) {
+        const style = computeRegionStyle(sel.startCell, sel.endCell, employeeIds, tableRef);
+        if (style) allStyles.push(style);
+      }
+
+      // Добавляем текущее активное выделение
+      if (startCell && endCell) {
+        const style = computeRegionStyle(startCell, endCell, employeeIds, tableRef);
+        if (style) {
+          allStyles.push(style);
+
+          // Позиция редактора - справа от последнего выделения (fixed относительно viewport)
+          const tableRect = tableRef.current.getBoundingClientRect();
+          const editorLeft = tableRect.left + style.left + style.width + 2;
+          const editorTop = tableRect.top + style.top;
+
+          // Проверяем, не выходит ли редактор за правый край экрана
+          const viewportWidth = window.innerWidth;
+          const editorWidth = 150; // примерная ширина редактора
+          const adjustedLeft = editorLeft + editorWidth > viewportWidth
+            ? tableRect.left + style.left - editorWidth - 2  // слева от выделения
+            : editorLeft;
+
+          // Проверяем, не выходит ли за нижний край
+          const viewportHeight = window.innerHeight;
+          const editorHeight = 300; // max-height редактора
+          const adjustedTop = editorTop + editorHeight > viewportHeight
+            ? viewportHeight - editorHeight - 10
+            : editorTop;
+
+          setEditorPosition({
+            position: 'fixed',
+            left: adjustedLeft,
+            top: Math.max(10, adjustedTop),  // минимум 10px от верха
+            zIndex: 1000
+          });
+        }
+      }
+
+      setRegionStyles(allStyles);
+
+      if (allStyles.length === 0) {
+        setEditorPosition(null);
+      }
+    });
   }, [startCell, endCell, selections, employeeIds, tableRef]);
+
+  // Отменяем незавершённый RAF при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   // Обновляем позиции при изменении выделения
   useEffect(() => {
