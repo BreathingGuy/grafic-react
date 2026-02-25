@@ -65,7 +65,7 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: thin;
     scrollbar-color: rgb(113, 112, 112) #f9f9fd;
-    will-change: transform;
+    will-change: scroll-position;
 }
 
 .scrollable_container::-webkit-scrollbar {
