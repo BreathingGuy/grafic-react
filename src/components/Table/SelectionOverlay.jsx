@@ -114,7 +114,35 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
       // Добавляем текущее активное выделение
       if (startCell && endCell) {
         const style = computeRegionStyle(startCell, endCell, employeeIds, tableRef);
-        if (style) allStyles.push(style);
+        if (style) {
+          allStyles.push(style);
+
+          // Позиция редактора - справа от последнего выделения (fixed относительно viewport)
+          const tableRect = tableRef.current.getBoundingClientRect();
+          const editorLeft = tableRect.left + style.left + style.width + 2;
+          const editorTop = tableRect.top + style.top;
+
+          // Проверяем, не выходит ли редактор за правый край экрана
+          const viewportWidth = window.innerWidth;
+          const editorWidth = 150; // примерная ширина редактора
+          const adjustedLeft = editorLeft + editorWidth > viewportWidth
+            ? tableRect.left + style.left - editorWidth - 2  // слева от выделения
+            : editorLeft;
+
+          // Проверяем, не выходит ли за нижний край
+          const viewportHeight = window.innerHeight;
+          const editorHeight = 300; // max-height редактора
+          const adjustedTop = editorTop + editorHeight > viewportHeight
+            ? viewportHeight - editorHeight - 10
+            : editorTop;
+
+          setEditorPosition({
+            position: 'fixed',
+            left: adjustedLeft,
+            top: Math.max(10, adjustedTop),  // минимум 10px от верха
+            zIndex: 1000
+          });
+        }
       }
 
       setRegionStyles(allStyles);
@@ -159,16 +187,6 @@ function SelectionOverlay({ tableRef, useSelectionStore, slotToDate: slotToDateP
       const allSels = getAllSelections();
       if (allSels.length > 0 || sc) {
         e.preventDefault();
-
-        // Вычисляем позицию свежо из координат курсора в момент клика
-        const editorWidth = 150;
-        const editorHeight = 300;
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        const left = e.clientX + editorWidth > vw ? e.clientX - editorWidth : e.clientX;
-        const top = e.clientY + editorHeight > vh ? vh - editorHeight - 10 : e.clientY;
-
-        setEditorPosition({ position: 'fixed', left: Math.max(0, left), top: Math.max(10, top), zIndex: 1000 });
         setShowContextMenu(true);
       }
     };
